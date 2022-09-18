@@ -1,0 +1,15 @@
+[
+	{
+	 	"modid": "email",
+	 	"name": "E-mail",
+	 	"description": "love of small_jiu",
+	 	"version": "${version}",
+	 	"mcversion": "${mcversion}",
+	 	"url": "https://github.com/SmallJiu/E-mail",
+	 	"updateUrl": "",
+	 	"authorList": ["small_jiu"],
+	 	"logoFile": "assets/email/mod_logo.png",
+	 	"screenshots": [],
+	 	"dependencies": []
+	}
+]

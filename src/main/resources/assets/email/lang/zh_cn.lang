@@ -1,0 +1,125 @@
+info.email.name=邮箱
+info.email.has_unread=你的邮箱内有 %s 封未读邮件.
+info.email.has_unreceive=你的邮箱内有 %s 封未领邮件.
+info.email.has_unread_and_unreceive=你的邮箱内有 %s 封未读邮件和 %s 封未领邮件
+
+info.email.error.to_big.0=§7邮箱 或 邮件内的物品 或 邮件内的物品NBT 过大，请联系管理员删除.
+info.email.error.to_big.1=§7邮件ID: %s, 槽位: %s, NBT: §4%s §f/ §72097152 Bytes
+
+#main
+info.email.dispatch=发送邮件
+info.email.un_read=未读
+info.email.un_accept=未领
+info.email.delete_accept=删除已领
+info.email.delete_read=删除已读
+info.email.delete=删除所选
+info.email.accept=领取所选
+info.email.read_all=全部读取
+info.email.accept_all=全部领取
+info.email.storage=邮箱:
+info.email.out_size=邮箱过大，请删除部分邮件
+info.email.main.from=来自: %s
+
+#send
+info.email.send=发送
+info.email.receiving=邮箱
+info.email.addressee=收件人
+info.email.title=标题
+info.email.msgs=信息
+info.email.items=物品
+info.email.default_msg=一封来自虚空的邮件
+info.email.default_title=来自虚空的邮件
+info.email.cooling=冷却中 -> %s:%s
+info.email.from=你有一封来自%s的新邮件
+info.email.send.warn=警告: 使用此按钮领取邮件可能会导致领取的物品丢失
+
+info.email.error.not_found_player=找不到玩家: %s ！
+info.email.error.empty_name=收件人不能为空！
+info.email.error.send_self=你不能发送邮件给自己！
+info.email.error.empty_msgs_item=物品或消息必须有一个不为空！
+info.email.error.send.to_big=邮件物品的NBT过大，请减小体积. 槽位: %s, NBT: %s / 2097152 Bytes
+info.email.error.send.to_big.email=发出的邮件过大，请减小体积。%s / 2097152 Bytes
+info.email.send.success=邮件发出成功
+
+#command
+email.command.send=/email send <文件名称> [玩家] - 发送解析后的邮件给玩家
+email.command.send.file_not_found=找不到文件. 路径: ./emails/export/%s
+
+email.command.send.msg=/email sendmsg <发送者> <收件人>  <标题> <一堆信息> - 发送信息邮件给玩家
+
+email.command.export=/email export [all] - 导出手上或背包物品到文件
+email.command.export.only_player=此命令只能由玩家执行
+email.command.export.empty_item=手上物品不能为空！
+email.command.export.success=导出物品 %s 到文件成功, 文件名: %s
+email.command.export.all.empty_item=背包不能为空！
+email.command.export.all.success=导出背包全部物品到文件成功, 文件名: %s
+
+email.command.send.black.add=/email blacklist add <玩家> - 添加玩家到邮寄黑名单, 注: 必须开启黑名单制才能添加
+email.command.send.black.remove=/email blacklist remove <玩家> - 移除玩家的邮寄黑名单
+
+email.command.send.white.add=/email whitelist add <玩家> - 添加玩家到邮寄白名单, 注: 必须开启白名单制才能添加
+email.command.send.white.remove=/email whitelist remove <玩家> - 移除玩家的邮寄白名单
+
+email.command.send.list.white=白名单
+email.command.send.list.black=黑名单
+
+email.command.send.list.unenable=服务器未开启发送邮件的%s！请联系服务器管理员开启！
+email.command.send.list.not_found_player=未找到玩家 %s 的%s 
+email.command.send.list.add.success=成功为玩家 %s 添加发送邮件的%s
+email.command.send.list.remove.success=成功移除玩家 %s 的%s
+email.command.send.list.already_exist=玩家 %s 已有发送邮件的%s
+email.command.send.list.error=未知错误，请查看日志。
+email.command.send.list.file_not_found=找不到文件: %s
+
+email.command.send.no_permission.black=你有服务器的邮寄黑名单, 请联系管理员删除
+email.command.send.no_permission.white=你没有服务器的邮寄白名单, 请联系管理员添加
+
+#config
+email.config.title=标题
+email.config.msg=消息
+email.config.sender=发送者
+
+email.config.infinite_size=邮箱无限空间
+email.config.save_to_root_directory=保存至根目录
+
+email.config.main=主界面
+email.config.main.show_text_rows=显示行数
+email.config.main.show_text_spacing=显示间距
+
+email.config.main.size=界面大小
+email.config.main.size.width=宽
+email.config.main.size.height=高
+
+email.config.main.pos=文本位置
+email.config.main.pos.row=行数
+email.config.main.pos.title.time=发送时间
+email.config.main.pos.current.msgid=邮件ID
+email.config.main.pos.current.items=物品
+
+email.config.main.number_of_words=文本字数
+email.config.main.number_of_words.current=已选邮件
+email.config.main.number_of_words.candidate=候选邮件
+
+email.config.send=寄送邮件
+email.config.send.blacklist=黑名单制
+email.config.send.whitelist=白名单制
+email.config.send.send_to_self=发给自己
+email.config.send.cooling=发送冷却
+email.config.send.inbox_button=邮箱按钮
+
+email.config.send.cooling.time=冷却时间
+email.config.send.cooling.time.tick=刻
+email.config.send.cooling.time.second=秒
+email.config.send.cooling.time.minute=分
+email.config.send.cooling.time.hour=时
+email.config.send.cooling.time.day=天
+
+email.dev_message.sender=某玖_Damon
+email.dev_message.title=你好，我的朋友
+email.dev_message.0=你好，我的朋友，谢谢您使用此mod。
+email.dev_message.1=教程不会用这个写，会另外单独制作。
+email.dev_message.2=这里只说这个mod可以实现的功能：
+email.dev_message.3=  一：可以发送信息，也可以发送物品，物品可以带NBT。
+email.dev_message.4=  二：你完全可以使用此mod来代替发放物品所需的功能。
+email.dev_message.5=  三：你完全可以使用此mod来制作带剧情的地图或mod
+email.dev_message.6=至此，祝您游戏愉快 

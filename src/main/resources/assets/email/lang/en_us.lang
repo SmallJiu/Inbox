@@ -1,0 +1,124 @@
+info.email.name=Inbox
+info.email.has_unread=You inbox has %s message unread.
+info.email.has_unreceive=You inbox has %s message unreceive.
+info.email.has_unread_and_unreceive=You inbox has %s message unread, and %s message unreceive.
+
+info.email.error.to_big.0=§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.
+info.email.error.to_big.1=§7Emain ID: %s, Slot: %s, NBT: §4%s §f/ §72097152 Bytes
+
+#main
+info.email.dispatch=Push
+info.email.un_read=Unread
+info.email.un_accept=Unreceive
+info.email.delete_accept=Delete receive
+info.email.delete_read=Delete Read
+info.email.delete=Delete
+info.email.accept=Receive
+info.email.read_all=Read all
+info.email.accept_all=Receive all
+info.email.storage=Inbox:
+info.email.out_size=Inbox to big，please delete some email
+info.email.main.from=From: %s
+
+#send
+info.email.send=Push
+info.email.receiving=Inbox
+info.email.addressee=Addressee
+info.email.title=Title
+info.email.msgs=Messages
+info.email.items=Items
+info.email.default_msg=From the Void
+info.email.default_title=A email from the Void
+info.email.cooling=Cooling -> %s:%s
+info.email.from=You have a new E-mail from %s
+info.email.send.warn=Warning: Use this button receive email maybe will miss items
+
+info.email.error.not_found_player=Can not found Player: %s !
+info.email.error.empty_name=Addressee can not be empty !
+info.email.error.send_self=You can't send e-mail to your self !
+info.email.error.empty_msgs_item=item or message can not be empty!
+
+info.email.error.send.to_big=Email item is to big, please remove some item or nbt. Slot: %s, NBT: %s / 2097152 Bytes
+info.email.error.send.to_big.email=Send email to big, Please reduce the e-mail size. %s / 2097152 Bytes
+info.email.send.success=Send e-mail success.
+
+#command
+email.command.send=/email send <File> [Player]
+email.command.send.file_not_found=File not found, Path: ./emails/export/%s
+
+email.command.send.msg=/email sendmsg <Sender> <Addressee> <Title> <Messages>
+
+email.command.export=/email export - Export hand item to can be parsed json file
+email.command.export.only_player=This command only use on player
+email.command.export.empty_item=Hand item can not be empty !
+email.command.export.success=Export item %s to file success, File name: %s
+email.command.export.all.empty_item=player inventory can not be empty !
+email.command.export.all.success=Export inventory items to file success, File name: %s
+
+email.command.send.black.add=/email blacklist add <Player> - Add player send email blacklist, note: only enable on config 'blacklist'
+email.command.send.black.remove=/email blacklist remove <Player> - Remove player send email blacklist
+
+email.command.send.white.add=/email whitelist add <Player> - Add player send email whitelist, note: only enable on config 'whitelist'
+email.command.send.white.remove=/email whitelist remove <Player> - Remove player send email whitelist
+
+email.command.send.list.white=White List
+email.command.send.list.black=Black List
+
+email.command.send.list.unenable=Server is not enable e-mail %s! please call you server admin to enable!
+email.command.send.list.not_found_player=not found player %s %s 
+email.command.send.list.add.success=success to add player %s Send e-mail %s
+email.command.send.list.remove.success=success to remove player %s send e-mail %s
+email.command.send.list.already_exist=Player %s is has e-mail send %s
+email.command.send.list.error=Unknow error, please check log.
+email.command.send.list.file_not_found=Not found file: %s
+
+email.command.send.no_permission.black=You has server send email blacklist, please call admin to remove.
+email.command.send.no_permission.white=You not has server send e-mail whitelist, please call admin to add.
+
+#config
+email.config.title=Title
+email.config.msg=Message
+email.config.sender=Sender
+
+email.config.infinite_size=Inbox infinite storage
+email.config.save_to_root_directory=Save email to root directory
+
+email.config.main=Main Menu
+email.config.main.show_text_rows=Show Rows
+email.config.main.show_text_spacing=Rows Spacing
+
+email.config.main.size=Gui size
+email.config.main.size.width=Width
+email.config.main.size.height=Height
+
+email.config.main.pos=Text Position
+email.config.main.pos.row=Row
+email.config.main.pos.title.time=Send Time
+
+email.config.main.number_of_words=Number of words
+email.config.main.number_of_words.current=Current Email
+email.config.main.number_of_words.candidate=Candidate Email
+
+email.config.send=Send E-mail
+email.config.send.blacklist=Enable BlackList
+email.config.send.whitelist=Enable WhiteList
+email.config.send.send_to_self=Can send to Self
+email.config.send.inbox_button=Enable Inbox Button
+
+email.config.send.cooling=Send cooling
+email.config.send.cooling.time=Cooling time
+email.config.send.cooling.time.tick=Tick
+email.config.send.cooling.time.second=Second
+email.config.send.cooling.time.minute=Minute
+email.config.send.cooling.time.hour=Hour
+email.config.send.cooling.time.day=Day
+
+email.dev_message.sender=small_jiu
+email.dev_message.title=Hello my friend
+email.dev_message.0=Hello my friend, thank you use this mod.
+email.dev_message.1=usage will not use this to add, will use other to add.
+email.dev_message.2=This only say the functions: 
+email.dev_message.3=First: You can send message, or send item, item can have the NBT.
+email.dev_message.4=Second: You can use this mod to replace the functions required to distribute items.
+email.dev_message.5=Third: You can use this mod to create a story with map or mod.
+email.dev_message.6=And, have a good game.
