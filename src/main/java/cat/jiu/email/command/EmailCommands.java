@@ -15,6 +15,7 @@ public class EmailCommands extends CommandTreeBase {
 		super.addSubcommand(new CommandEmailSendWhiteList());
 		super.addSubcommand(new CommandEmailSendMsgs());
 		super.addSubcommand(new CommandEmailExport());
+		super.addSubcommand(new CommandEmailExecute());
 	}
 	
 	@Override

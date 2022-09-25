@@ -65,7 +65,7 @@ public final class EmailConfigs {
 				public Row Row = new Row();
 				public class Row {
 					public int X = 93;
-					public int Y = 31;
+					public int Y = 33;
 				}
 				@Config.LangKey("email.config.msg")
 				@Config.Comment("message position")
@@ -130,10 +130,10 @@ public final class EmailConfigs {
 			public class CurrentEmail {
 				@Config.LangKey("email.config.msg")
 				@Config.RangeInt(min = 1)
-				public int Message = 110;
+				public int Message = 105;
 				@Config.LangKey("email.config.title")
 				@Config.RangeInt(min = 1)
-				public int Title = 121;
+				public int Title = 124;
 				@Config.LangKey("email.config.sender")
 				@Config.RangeInt(min = 1)
 				public int Sender = 60;

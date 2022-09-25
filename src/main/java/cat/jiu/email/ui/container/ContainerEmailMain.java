@@ -37,7 +37,7 @@ public class ContainerEmailMain extends Container {
 	private long inboxSize = 0;
 	public Inbox getInbox() {return inbox;}
 	public long getEmailSize() {return inboxSize;}
-	public void setMsgs(Inbox inbox) {
+	public void setInbox(Inbox inbox) {
 		this.inbox = inbox;
 		this.inboxSize = inbox.getInboxSize();
 	}

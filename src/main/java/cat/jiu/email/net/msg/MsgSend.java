@@ -10,22 +10,16 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
-import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import cat.jiu.email.Email;
+import cat.jiu.email.element.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
-import cat.jiu.email.element.EmailSound;
+import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.event.EmailSendEvent.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailSizeReport;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
 
 import io.netty.buffer.ByteBuf;
 
@@ -47,15 +41,9 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgSend implements IMessage {
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
-	protected String sender;
 	protected String addresserName;
-	protected String time;
-	protected String title;
-	protected List<String> msgs;
-	protected List<ItemStack> items;
-	protected String itemFile;
 	protected EmailSenderGroup group;
-	protected EmailSound sound;
+	protected Email email;
 	
 	public MsgSend() {}
 	/**
@@ -66,17 +54,11 @@ public class MsgSend implements IMessage {
 	 * @param msgs the email messages, can be null
 	 * @param items the email items, can be null
 	 */
-	public MsgSend(EmailSenderGroup group, @Nullable String sender, String title, String addressee, @Nullable List<String> msgs, @Nullable EmailSound sound, @Nullable List<ItemStack> items) {
-		this.items = items;
-		this.sender = sender;
+	public MsgSend(EmailSenderGroup group, String addressee, Email email) {
 		this.group = group;
-		this.title = title;
 		this.addresserName = addressee;
-		this.msgs = msgs;
-		this.time = getTime();
-	}
-	public MsgSend(EmailSenderGroup group, @Nullable String sender, String title, String addressee, @Nullable List<String> msgs, @Nullable EmailSound sound) {
-		this(group, sender, title, addressee, msgs, sound, null);
+		this.email = email;
+		this.email.setTime(new Date());
 	}
 	
 	public static String getTime() {
@@ -89,30 +71,8 @@ public class MsgSend implements IMessage {
 			NBTTagCompound nbt = new PacketBuffer(buf).readCompoundTag();
 			
 			this.addresserName = nbt.getString("uid");
-			this.title = nbt.getString("title");
-			this.time = nbt.getString("time");
 			this.group = EmailSenderGroup.getGroupByID(nbt.getInteger("sender_group"));
-			if(nbt.hasKey("sender")) this.sender = nbt.getString("sender");
-			if(nbt.hasKey("sound")) this.sound = EmailSound.from(nbt.getCompoundTag("sound"));
-			
-			if(nbt.hasKey("msgs")) {
-				this.msgs = Lists.newArrayList();
-				NBTTagCompound msgsNBT = nbt.getCompoundTag("msgs");
-				for(int i = 0; i < msgsNBT.getSize(); i++) {
-					this.msgs.add(msgsNBT.getString(Integer.toString(i)));
-				}
-			}
-			if(nbt.hasKey("items")) {
-				if(nbt.getTag("items") instanceof NBTTagString) {
-					this.itemFile = nbt.getString("items");
-				}else {
-					this.items = Lists.newArrayList();
-					NBTTagCompound itemsNBT = nbt.getCompoundTag("items");
-					for(String key : itemsNBT.getKeySet()) {
-						this.items.add(new ItemStack(itemsNBT.getCompoundTag(key)));
-					}
-				}
-			}
+			this.email = new Email(nbt.getCompoundTag("email"));
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -124,28 +84,8 @@ public class MsgSend implements IMessage {
 		NBTTagCompound nbt = new NBTTagCompound();
 		
 		nbt.setString("uid", this.addresserName);
-		nbt.setString("time", this.time);
-		nbt.setString("title", this.title);
 		nbt.setInteger("sender_group", EmailSenderGroup.getIDByGroup(this.group));
-		if(this.sound!=null) nbt.setTag("sound", this.sound.toNBT());
-		
-		if(this.sender != null)nbt.setString("sender", this.sender);
-		
-		if(this.msgs != null && !this.msgs.isEmpty()) {
-			NBTTagCompound msgs = new NBTTagCompound();
-			for(int i = 0; i < this.msgs.size(); i++) {
-				msgs.setString(Integer.toString(i), this.msgs.get(i));
-			}
-			nbt.setTag("msgs", msgs);
-		}
-		
-		if(this.items != null && !this.items.isEmpty()) {
-			NBTTagCompound msgs = new NBTTagCompound();
-			for(int i = 0; i < this.items.size(); i++) {
-				msgs.setTag(Integer.toString(i), this.items.get(i).writeToNBT(new NBTTagCompound()));
-			}
-			nbt.setTag("items", msgs);
-		}
+		nbt.setTag("email", this.email.write(new NBTTagCompound()));
 		
 		pb.writeCompoundTag(nbt);
 	}
@@ -168,7 +108,7 @@ public class MsgSend implements IMessage {
 		if(EmailMain.server != null) {
 			EmailUtils.initNameAndUUID(EmailMain.server);
 			UUID addresserUUID = EmailUtils.getUUID(this.addresserName);
-			UUID senderUID = EmailUtils.getUUID(this.sender);
+			UUID senderUID = EmailUtils.getUUID(this.email.getSender());
 			if(senderUID != null) {
 				EntityPlayer player = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(senderUID);
 				if(player != null) {
@@ -180,14 +120,29 @@ public class MsgSend implements IMessage {
 				EmailMain.log.error("Not Found Player: {}", this.addresserName);
 				return;
 			}
-			EmailSendEvent.Pre pre = new EmailSendEvent.Pre(EmailMain.server, this.title, this.time, sender, this.group, this.addresserName, addresserUUID, this.msgs, this.items); 
+			EmailSendEvent.Pre pre = new EmailSendEvent.Pre(EmailMain.server, this.group, this.addresserName, addresserUUID, email); 
 			if(MinecraftForge.EVENT_BUS.post(pre)) {
 				return;
 			}
-			this.title = pre.getTitle();
-			this.time = pre.getSendTime();
-			this.sender = pre.getSender();
+			Inbox inbox = Inbox.get(addresserUUID);
+			inbox.add(this.email);
 			
+			MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
+			
+			if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+				EmailMain.log.info("{} send a email to Player: {}, UUID: {}", this.email.getSender(), this.addresserName, addresserUUID);
+				MsgSend.sendLog(this.email.getSender(), this.addresserName, addresserUUID);
+				EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
+				if(addresser!=null) {
+					EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);
+					if(email.hasItems()) {
+						EmailMain.net.sendMessageToPlayer(new MsgUnreceive(inbox.getUnReceived()), (EntityPlayerMP) addresser);
+					}
+					addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", this.email.getSender()));
+				}
+			}
+			
+			/*
 			JsonObject email = EmailUtils.getInboxJson(addresserUUID.toString());
 			
 			if(email == null) {
@@ -215,7 +170,7 @@ public class MsgSend implements IMessage {
 			email.add(Integer.toString(email.size()), msg);
 			
 			boolean lag = EmailUtils.toJsonFile(addresserUUID.toString(), email);
-			MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, sender, this.group, this.addresserName, addresserUUID, email));
+			MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
 			if(lag) {
 				EmailMain.log.info("{} send a email to Player: {}, UUID: {}", sender, this.addresserName, addresserUUID);
 				this.writeLog(sender, this.addresserName, addresserUUID);
@@ -227,7 +182,7 @@ public class MsgSend implements IMessage {
 					}
 					addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", sender));
 				}
-			}
+			}*/
 			return;
 		}else {
 			EmailMain.log.error("Server is no Started!");
@@ -240,12 +195,12 @@ public class MsgSend implements IMessage {
 			player.sendMessage(EmailUtils.createTextComponent("info.email.error.not_found_player", TextFormatting.RED, this.addresserName));
 			return;
 		}else if(EmailConfigs.Send.Enable_Send_BlackList) {
-			if(Email.isInBlackList(player)) {
+			if(EmailAPI.isInBlackList(player)) {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.send.no_permission.black", TextFormatting.RED));
 				return;
 			}
 		}else if(EmailConfigs.Send.Enable_Send_WhiteList) {
-			if(!Email.isInWhiteList(player)) {
+			if(!EmailAPI.isInWhiteList(player)) {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.send.no_permission.white", TextFormatting.RED));
 				return;
 			}
@@ -253,7 +208,29 @@ public class MsgSend implements IMessage {
 			player.sendMessage(EmailUtils.createTextComponent("info.email.error.send_self", TextFormatting.RED));
 			return;
 		}
+		EmailSendEvent.Pre pre = new EmailSendEvent.Pre(EmailMain.server, this.group, this.addresserName, addresserUUID, email); 
+		if(MinecraftForge.EVENT_BUS.post(pre)) {
+			return;
+		}
+		Inbox inbox = Inbox.get(addresserUUID);
+		inbox.add(this.email);
 		
+		MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
+		
+		if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", this.email.getSender(), this.addresserName, addresserUUID);
+			MsgSend.sendLog(this.email.getSender(), this.addresserName, addresserUUID);
+			EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
+			if(addresser!=null) {
+				EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);
+				if(email.hasItems()) {
+					EmailMain.net.sendMessageToPlayer(new MsgUnreceive(inbox.getUnReceived()), (EntityPlayerMP) addresser);
+				}
+				addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", this.email.getSender()));
+			}
+		}
+		
+		/*
 		JsonObject email = EmailUtils.getInboxJson(addresserUUID.toString());
 		
 		if(email == null) {
@@ -261,7 +238,7 @@ public class MsgSend implements IMessage {
 		}
 		JsonObject msg = new JsonObject();
 		String sender = this.sender == null ? player.getName() : this.sender;
-		EmailSendEvent.Pre pre = new EmailSendEvent.Pre(player.getServer(), this.title, this.time, sender, this.group, this.addresserName, addresserUUID, this.msgs, this.items); 
+		EmailSendEvent.Pre pre = new EmailSendEvent.Pre(player.getServer(), this.group, this.addresserName, addresserUUID, email); 
 		if(MinecraftForge.EVENT_BUS.post(pre)) {
 			return;
 		}
@@ -289,7 +266,7 @@ public class MsgSend implements IMessage {
 		email.add(Integer.toString(email.size()), msg);
 		
 		boolean lag = EmailUtils.toJsonFile(addresserUUID.toString(), email);
-		MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), sender, this.group, this.addresserName, addresserUUID, email));
+		MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), this.group, addresserUUID, email));
 		if(lag) {
 			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", player.getName(), this.addresserName, addresserUUID);
 			this.writeLog(player.getName(), this.addresserName, addresserUUID);
@@ -302,17 +279,17 @@ public class MsgSend implements IMessage {
 				}
 				addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", sender));
 			}
-		}
+		}*/
 	}
 	
 	private void player_to_player(EntityPlayerMP player) {
 		if(EmailConfigs.Send.Enable_Send_BlackList) {
-			if(Email.isInBlackList(player)) {
+			if(EmailAPI.isInBlackList(player)) {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.send.no_permission.black", TextFormatting.RED));
 				return;
 			}
 		}else if(EmailConfigs.Send.Enable_Send_WhiteList) {
-			if(!Email.isInWhiteList(player)) {
+			if(!EmailAPI.isInWhiteList(player)) {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.send.no_permission.white", TextFormatting.RED));
 				return;
 			}
@@ -333,10 +310,83 @@ public class MsgSend implements IMessage {
 				}
 				
 				ContainerEmailSend container = (ContainerEmailSend) player.openContainer;
-				this.items = container.toItemList();
-				String sender = this.sender == null ? player.getName() : this.sender;
+				container.setLock(true);
+
+				this.email.clearItems();
+				List<ItemStack> items = container.toItemList();
+				items.forEach(stack->{
+					this.email.addItem(stack);
+				});
+				String sender = this.email.getSender() == null ? player.getName() : this.email.getSender();
 				
-				EmailSendEvent.Pre pre = new EmailSendEvent.Pre(player.getServer(), this.title, this.time, sender, this.group, this.addresserName, addresserUUID, this.msgs, this.items); 
+				EmailSendEvent.Pre pre = new EmailSendEvent.Pre(EmailMain.server, this.group, this.addresserName, addresserUUID, email); 
+				if(MinecraftForge.EVENT_BUS.post(pre)) {
+					container.putStack(items);
+					container.setLock(false);
+					return;
+				}
+				
+				Inbox inbox = Inbox.get(addresserUUID);
+				inbox.add(email);
+				
+				if(EmailUtils.isInfiniteSize()) {
+					MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
+					
+					container.setLock(false);
+					if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+						EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.GREEN, EmailUtils.parseTick(5, 0), "info.email.send.success"), player);
+	        			if(EmailConfigs.Send.Enable_Send_Cooling) {
+	        				EmailMain.net.sendMessageToPlayer(new SendCooling(EmailUtils.getCoolingTicks()), player);
+	        			}
+	        			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", sender, this.addresserName, addresserUUID);
+						MsgSend.sendLog(sender, this.addresserName, addresserUUID);
+						EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
+						if(addresser!=null) {
+							EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);
+							if(email.hasItems()) {
+								EmailMain.net.sendMessageToPlayer(new MsgUnreceive(inbox.getUnReceived()), (EntityPlayerMP) addresser);
+							}
+							addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", sender));
+						}
+					}
+				}else {
+					EmailSizeReport report = EmailUtils.checkInboxSize(inbox);
+					
+					if(!EmailSizeReport.SUCCES.equals(report)) {
+        				EmailMain.net.sendMessageToPlayer(new SendRenderText("info.email.error.send.to_big", Integer.toString(report.slot), Long.toString(report.size)), player);
+                		container.setLock(false);
+        			}else {
+        				long size = inbox.getInboxSize();
+        				if(size >= 2097152L) {
+    						EmailMain.net.sendMessageToPlayer(new SendRenderText("info.email.error.send.to_big.email", Long.toString(size)), player);
+    	        			container.setLock(false);
+    						return;
+    					}else {
+    						MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
+    						
+    						container.setLock(false);
+    						if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+    							EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.GREEN, EmailUtils.parseTick(5, 0), "info.email.send.success"), player);
+    		        			if(EmailConfigs.Send.Enable_Send_Cooling) {
+    		        				EmailMain.net.sendMessageToPlayer(new SendCooling(EmailUtils.getCoolingTicks()), player);
+    		        			}
+    		        			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", sender, this.addresserName, addresserUUID);
+    							MsgSend.sendLog(sender, this.addresserName, addresserUUID);
+    							EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
+    							if(addresser!=null) {
+    								EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);
+    								if(email.hasItems()) {
+    									EmailMain.net.sendMessageToPlayer(new MsgUnreceive(inbox.getUnReceived()), (EntityPlayerMP) addresser);
+    								}
+    								addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", sender));
+    							}
+    						}
+    					}
+        			}
+				}
+				
+				/*
+				EmailSendEvent.Pre pre = new EmailSendEvent.Pre(player.getServer(), this.group, this.addresserName, addresserUUID, email); 
 				if(MinecraftForge.EVENT_BUS.post(pre)) {
 					container.putStack(pre.items);
 					return;
@@ -374,7 +424,7 @@ public class MsgSend implements IMessage {
 					email.add(Integer.toString(email.size()), msg);
 					
 					boolean lag = EmailUtils.toJsonFile(addresserUUID.toString(), email);
-					MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), sender, this.group, this.addresserName, addresserUUID, email));
+					MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), this.group, addresserUUID, email));
 					if(lag) {
 						EmailMain.log.info("{} send a email to Player: {}, UUID: {}", player.getName(), this.addresserName, addresserUUID);
 	        			container.setLock(false);
@@ -420,7 +470,7 @@ public class MsgSend implements IMessage {
     					email.add(Integer.toString(email.size()), msg);
     					
 						boolean lag = EmailUtils.toJsonFile(addresserUUID.toString(), email);
-						MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), sender, this.group, this.addresserName, addresserUUID, email));
+						MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(player.getServer(), this.group, addresserUUID, email));
     					if(lag) {
 							EmailMain.log.info("{} send a email to Player: {}, UUID: {}", player.getName(), this.addresserName, addresserUUID);
 		        			container.setLock(false);
@@ -437,11 +487,13 @@ public class MsgSend implements IMessage {
 						}
         			}
         		}
+        		*/
 			});
 		}
 	}
 	
 	public static class SendRenderText implements IMessage {
+		public static final Object[] empty = new Object[0];
 		protected String langKey;
 		protected Object[] args;
 		protected Color color;
@@ -449,7 +501,7 @@ public class MsgSend implements IMessage {
 		
 		public SendRenderText() {}
 		public SendRenderText(String langKey) {
-			this(langKey, new Object[0]);
+			this(langKey, empty);
 		}
 		public SendRenderText(String langKey, Object... args) {
 			this(Color.RED, EmailUtils.parseTick(15, 0), langKey, args);
@@ -524,8 +576,7 @@ public class MsgSend implements IMessage {
 		}
 	}
 	
-	static final SimpleDateFormat logDateFormat = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss] ");
-	private void writeLog(String sender, String name, UUID uid) {
+	public static void sendLog(String sender, String name, UUID uid) {
 		File filepath = new File("./logs/email.log");
 
 		if(!filepath.exists()) {
@@ -535,23 +586,21 @@ public class MsgSend implements IMessage {
 				e.printStackTrace();
 			}
 		}
-		StringBuilder log = new StringBuilder()
-			.append(sender)
-			.append(" send a email to Player: ")
-			.append(name)
-			.append(", UUID: ")
-			.append(uid.toString());
-		
 		StringBuilder s = new StringBuilder()
-			.append(logDateFormat.format(new Date()))
-			.append(log)
+			.append("[")
+			.append(dateFormat.format(new Date()))
+			.append("] ")
+			.append(new StringBuilder()
+					.append(sender)
+					.append(" send a email to Player: ")
+					.append(name)
+					.append(", UUID: ")
+					.append(uid.toString()))
 			.append("\n");
 		
-		try {
-			OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(filepath, true));
-			
+		try (FileOutputStream fos = new FileOutputStream(filepath, true);
+			 OutputStreamWriter out = new OutputStreamWriter(fos)) {
 			out.write(s.toString());
-			out.close();
 		}catch(IOException e) {
 			e.printStackTrace();
 		}

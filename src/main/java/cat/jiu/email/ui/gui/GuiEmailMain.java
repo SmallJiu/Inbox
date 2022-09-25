@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
+import cat.jiu.email.element.Message;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailMain;
@@ -97,7 +98,6 @@ public class GuiEmailMain extends GuiContainer {
 		this.buttonList.add(new GuiButton(nextID(), x+188, y+106, 35, 12, I18n.format("info.email.delete")) {
 			public void mouseReleased(int mouseX, int mouseY) {
 				if(currentMsg != -1) {
-					System.out.println(currentMsg);
 					EmailMain.net.sendMessageToServer(new MsgDeleteEmail.Delete(currentMsg));
 				}
 			}
@@ -178,7 +178,7 @@ public class GuiEmailMain extends GuiContainer {
 					Email msg = this.container.getInbox().get(this.showMsg[i]);
 					List<String> tip = Lists.newArrayList();
 					
-					tip.add(I18n.format(msg.getTitle()));
+					tip.add(I18n.format(msg.getTitle().getKey(), msg.getTitle().getArgs()));
 					tip.add("");
 					tip.add(TextFormatting.GRAY + msg.getTime());
 					tip.add(I18n.format("info.email.main.from", I18n.format(msg.getSender())));
@@ -337,21 +337,21 @@ public class GuiEmailMain extends GuiContainer {
 		
 		for (int i = 0; i < this.showMsg.length; i++) {
 			if(this.container.getInbox().has(this.showMsg[i])) {
-				Email msg = this.container.getInbox().get(this.showMsg[i]);
+				Email email = this.container.getInbox().get(this.showMsg[i]);
 				
-				if(msg.hasItems()) {
-					super.fontRenderer.drawString("$", Candidate_Email_X+44, Candidate_Email_Y + (17 * i), msg.isReceived() ? Color.GREEN.getRGB() :  Color.RED.getRGB());
+				if(email.hasItems()) {
+					super.fontRenderer.drawString("$", Candidate_Email_X+44, Candidate_Email_Y + (17 * i), email.isReceived() ? Color.GREEN.getRGB() :  Color.RED.getRGB());
 				}
-				super.fontRenderer.drawString("*", Candidate_Email_X+49, Candidate_Email_Y + (17 * i), msg.isRead() ? Color.GREEN.getRGB() : Color.RED.getRGB());
+				super.fontRenderer.drawString("*", Candidate_Email_X+49, Candidate_Email_Y + (17 * i), email.isRead() ? Color.GREEN.getRGB() : Color.RED.getRGB());
 				
 				super.drawCenteredString(fontRenderer, Integer.toString(this.showMsg[i]), Candidate_Email_X-9, Candidate_Email_Y + 3 + (17 * i), Color.WHITE.getRGB());
 				
-				String sender = I18n.format(msg.getSender());
+				String sender = I18n.format(email.getSender());
 				if(this.fontRenderer.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender) {
 					sender = this.fontRenderer.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender) + "...";
 				}
 				super.drawString(fontRenderer, sender, Candidate_Email_X+1, Candidate_Email_Y + (17 * i), Color.WHITE.getRGB());
-				super.fontRenderer.drawString(msg.getTime().substring(2), Candidate_Email_X+1, Candidate_Email_Y + 7 + (17 * i), Color.BLACK.getRGB());
+				super.fontRenderer.drawString(email.getTime().substring(2), Candidate_Email_X+1, Candidate_Email_Y + 7 + (17 * i), Color.BLACK.getRGB());
 			}
 		}
 		
@@ -363,9 +363,9 @@ public class GuiEmailMain extends GuiContainer {
 				if(this.fontRenderer.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Current_Email.Sender) {
 					sender = this.fontRenderer.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Current_Email.Sender) + "...";
 				}
-				String title = I18n.format(msg.getTitle());
-				if(this.fontRenderer.getStringWidth(title) > EmailConfigs.Main.Number_Of_Words.Current_Email.Title) {
-					title = this.fontRenderer.trimStringToWidth(title, EmailConfigs.Main.Number_Of_Words.Current_Email.Title) + "...";
+				String title = I18n.format(msg.getTitle().getKey(), msg.getTitle().getArgs());
+				if(this.fontRenderer.getStringWidth(title) > EmailConfigs.Main.Number_Of_Words.Current_Email.Title-(msg.hasSound()?13:0)) {
+					title = this.fontRenderer.trimStringToWidth(title, EmailConfigs.Main.Number_Of_Words.Current_Email.Title-(msg.hasSound()?13:0)) + "...";
 				}
 				super.fontRenderer.drawString(title, EmailConfigs.Main.Position.Current_Email.Title.X, EmailConfigs.Main.Position.Current_Email.Title.Y, Color.WHITE.getRGB());
 				
@@ -381,7 +381,7 @@ public class GuiEmailMain extends GuiContainer {
 				}
 				
 				if(msg.hasItems()) {
-					if(this.container.isEmpty() || this.container.getCurrenMsg() != this.currentMsg) {
+					if(this.container.getCurrenMsg() == this.currentMsg) {
 						this.container.putStack(msg.getItems());
 					}
 				}else {
@@ -396,7 +396,8 @@ public class GuiEmailMain extends GuiContainer {
 					this.mc.getTextureManager().bindTexture(BackGround);
 					int x = (this.width - this.xSize) / 2;
 					int y = (this.height - this.ySize) / 2;
-					this.drawTexturedModalRect(x+208, y+4, 227, 0, 13, 12);
+					
+					this.drawTexturedModalRect(x+208, y+4, 227, 0+(this.currentSound!=null?12:0), 13, 12);
 					GlStateManager.pushMatrix();
 				}
 			}
@@ -441,8 +442,8 @@ public class GuiEmailMain extends GuiContainer {
 					}
 					this.clearRenderText();
 					this.mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+					if(this.showMsg[i] != this.currentMsg) this.stopSound();
 					this.currentMsg = this.showMsg[i];
-					this.stopSound();
 					this.container.setCurrenMsg(this.currentMsg);
 					if(this.container.getInbox().has(this.currentMsg)) {
 						if(msg.hasMessages()) {
@@ -478,17 +479,18 @@ public class GuiEmailMain extends GuiContainer {
 		}
 	}
 	
-	private void formatMessage(List<String> msgs) {
+	private void formatMessage(List<Message> msgs) {
 		this.showText.clear();
+		
 		for(int i = 0; i < msgs.size(); i++) {
-			String msg = I18n.format(msgs.get(i));
-			if(this.fontRenderer.getStringWidth(msg) > EmailConfigs.Main.Number_Of_Words.Current_Email.Message) {
+			String msg = I18n.format(msgs.get(i).getKey(), msgs.get(i).getArgs());
+			if(this.fontRenderer.getStringWidth(msg) >= EmailConfigs.Main.Number_Of_Words.Current_Email.Message) {
 				char[] chs = msg.toCharArray();
 				StringBuilder s = new StringBuilder();
 				for(int k = 0; k < chs.length; k++) {
 					s.append(chs[k]);
 					String formatStr = s.toString();
-					if(this.fontRenderer.getStringWidth(formatStr) > EmailConfigs.Main.Number_Of_Words.Current_Email.Message) {
+					if(this.fontRenderer.getStringWidth(formatStr) >= EmailConfigs.Main.Number_Of_Words.Current_Email.Message) {
 						this.showText.add(formatStr);
 						s.setLength(0);
 					}
@@ -501,6 +503,7 @@ public class GuiEmailMain extends GuiContainer {
 			}
 		}
 	}
+	
 	protected Email getCurrentMsg() {
 		return this.container.getInbox().get(this.currentMsg);
 	}

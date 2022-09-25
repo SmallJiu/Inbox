@@ -1,10 +1,9 @@
 package cat.jiu.email.net.msg;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailDeleteEvent;
 import cat.jiu.email.util.EmailUtils;
-
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -27,15 +26,15 @@ public class MsgDeleteEmail {
 				EntityPlayerMP player = ctx.getServerHandler().player;
 				WorldServer world = player.getServerWorld();
 				world.addScheduledTask(()->{
-					Inbox inbox = new Inbox(player.getUniqueID(), EmailUtils.getInboxJson(player.getUniqueID().toString()));
+					Inbox inbox = Inbox.get(player);
 					
 					if(inbox.has(this.msgID)) {
 						if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, this.msgID, false, false))) {
 							inbox.delete(msgID);
 						}
 					}
-					inbox.save();
-					Email.sendEmailToClient(inbox, player);
+					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailAPI.sendInboxToClient(inbox, player);
 					MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, this.msgID, false, false));
 				});
 			}
@@ -53,7 +52,7 @@ public class MsgDeleteEmail {
 				EntityPlayerMP player = ctx.getServerHandler().player;
 				WorldServer world = player.getServerWorld();
 				world.addScheduledTask(()->{
-					Inbox inbox = new Inbox(player.getUniqueID(), EmailUtils.getInboxJson(player.getUniqueID().toString()));
+					Inbox inbox = Inbox.get(player);
 					
 					for(int i = 0; i < inbox.count(); i++) {
 						cat.jiu.email.element.Email email = inbox.get(i);
@@ -64,8 +63,8 @@ public class MsgDeleteEmail {
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, true, false));
 					}
-					inbox.save();
-					Email.sendEmailToClient(inbox, player);
+					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailAPI.sendInboxToClient(inbox, player);
 				});
 			}
 			return null;
@@ -81,7 +80,7 @@ public class MsgDeleteEmail {
 				EntityPlayerMP player = ctx.getServerHandler().player;
 				WorldServer world = player.getServerWorld();
 				world.addScheduledTask(()->{
-					Inbox inbox = new Inbox(player.getUniqueID(), EmailUtils.getInboxJson(player.getUniqueID().toString()));
+					Inbox inbox = Inbox.get(player);
 					
 					for(int i = 0; i < inbox.count(); i++) {
 						cat.jiu.email.element.Email email = inbox.get(i);
@@ -90,8 +89,8 @@ public class MsgDeleteEmail {
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));
 					}
-					inbox.save();
-					Email.sendEmailToClient(inbox, player);
+					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailAPI.sendInboxToClient(inbox, player);
 				});
 			}
 			return null;

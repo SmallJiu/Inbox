@@ -6,8 +6,10 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.Message;
 import cat.jiu.email.util.EmailConfigs;
+
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -24,12 +26,12 @@ class CommandEmailSendMsgs extends CommandBase {
 		}
 		String sender = args[0];
 		String addresser = args[1];
-		String title = args[2];
-		List<String> msgs = Lists.newArrayList();
+		Message title = new Message(args[2]);
+		List<Message> msgs = Lists.newArrayList();
 		for(int i = 3; i < args.length; i++) {
-			msgs.add(args[i]);
+			msgs.add(new Message(args[i]));
 		}
-		Email.sendCMDToPlayerEmail(sender, title, addresser, msgs, null, null);
+		EmailAPI.sendCommandEmail(addresser, new cat.jiu.email.element.Email(title, sender, null, null, msgs));
 	}
 	
 	@Override

@@ -26,11 +26,9 @@ public class MsgUnread implements IMessage {
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {
-			new Thread(()->{
-				// for network delay, need send after
-				try {Thread.sleep(100);}catch(InterruptedException e) { e.printStackTrace();}
+			EmailMain.execute(args->{
 				EmailMain.setUnread(this.unread);
-			}).start();
+			}, 100);
 		}
 		return null;
 	}

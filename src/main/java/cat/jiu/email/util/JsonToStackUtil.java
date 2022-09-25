@@ -17,7 +17,7 @@ import net.minecraft.nbt.*;
 
 /**
  * if you don't want to required JiuCore, but want to use json to itemstack function, copy this class to you mod project<p>
- * on you copied, you must keep this notes and keep class final, but you can rename this class name or function name
+ * on you copied, you must keep this notes and keep class final, but you can rename this class name or method name
  * @see cat.jiu.core.util.helpers.ItemUtils#toStack(JsonElement)
  * @see cat.jiu.core.util.helpers.ItemUtils#toStacks(JsonElement)
  * @author small_jiu

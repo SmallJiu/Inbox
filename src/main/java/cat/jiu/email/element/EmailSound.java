@@ -43,6 +43,43 @@ public class EmailSound {
 		return json;
 	}
 	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Float.floatToIntBits(pitch);
+		result = prime * result + ((sound == null) ? 0 : sound.hashCode());
+		result = prime * result + ((time == null) ? 0 : time.hashCode());
+		result = prime * result + Float.floatToIntBits(volume);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		EmailSound other = (EmailSound) obj;
+		if(Float.floatToIntBits(pitch) != Float.floatToIntBits(other.pitch))
+			return false;
+		if(sound == null) {
+			if(other.sound != null)
+				return false;
+		}else if(!sound.equals(other.sound))
+			return false;
+		if(time == null) {
+			if(other.time != null)
+				return false;
+		}else if(!time.equals(other.time))
+			return false;
+		if(Float.floatToIntBits(volume) != Float.floatToIntBits(other.volume))
+			return false;
+		return true;
+	}
+
 	public static EmailSound from(NBTTagCompound nbt) {
 		if(nbt!=null) {
 			return new EmailSound(new Time(nbt.getLong("time")), SoundEvent.REGISTRY.getObjectById(nbt.getInteger("sound")), nbt.getFloat("volume"), nbt.getFloat("pitch"));

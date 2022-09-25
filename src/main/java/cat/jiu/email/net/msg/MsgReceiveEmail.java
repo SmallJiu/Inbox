@@ -2,7 +2,7 @@ package cat.jiu.email.net.msg;
 
 import java.util.List;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReceiveEvent;
 import cat.jiu.email.ui.container.ContainerEmailMain;
@@ -53,10 +53,10 @@ public class MsgReceiveEmail  {
 								EmailUtils.spawnAsEntity(player, items);
 							}
 							
-							((ContainerEmailMain) player.openContainer).setMsgs(inbox);
-							Email.sendEmailToClient(inbox, player);
+							((ContainerEmailMain) player.openContainer).setInbox(inbox);
+							EmailAPI.sendInboxToClient(inbox, player);
 							MinecraftForge.EVENT_BUS.post(new EmailReceiveEvent.Post(player, inbox, email, false));
-							inbox.save();
+							EmailUtils.saveInboxToDisk(inbox, 10);
 						}
 					}
 				});
@@ -94,9 +94,9 @@ public class MsgReceiveEmail  {
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailReceiveEvent.Post(player, inbox, email, true));
 					}
-					((ContainerEmailMain) player.openContainer).setMsgs(inbox);
-					Email.sendEmailToClient(inbox, player);
-					inbox.save();
+					((ContainerEmailMain) player.openContainer).setInbox(inbox);
+					EmailAPI.sendInboxToClient(inbox, player);
+					EmailUtils.saveInboxToDisk(inbox, 10);
 				});
 			}
 			return null;

@@ -1,11 +1,11 @@
 package cat.jiu.email.net.msg;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReadEvent;
 import cat.jiu.email.ui.container.ContainerEmailMain;
-
+import cat.jiu.email.util.EmailUtils;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -45,9 +45,9 @@ public class MsgReadEmail implements IMessage {
 						email.setRead(true);
 						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) player);
 						
-						((ContainerEmailMain) player.openContainer).setMsgs(inbox);
-						Email.sendEmailToClient(inbox, player);
-						inbox.save();
+						((ContainerEmailMain) player.openContainer).setInbox(inbox);
+						EmailAPI.sendInboxToClient(inbox, player);
+						EmailUtils.saveInboxToDisk(inbox, 10);
 						
 						MinecraftForge.EVENT_BUS.post(new EmailReadEvent.Post(player, inbox, email, false));
 					}
@@ -80,9 +80,9 @@ public class MsgReadEmail implements IMessage {
 						MinecraftForge.EVENT_BUS.post(new EmailReadEvent.Post(player, inbox, email, true));
 					}
 					
-					((ContainerEmailMain) player.openContainer).setMsgs(inbox);
-					inbox.save();;
-					Email.sendEmailToClient(inbox, player);
+					((ContainerEmailMain) player.openContainer).setInbox(inbox);
+					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailAPI.sendInboxToClient(inbox, player);
 					EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) player);
 				});
 			}

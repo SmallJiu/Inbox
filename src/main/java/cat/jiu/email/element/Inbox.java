@@ -1,40 +1,80 @@
 package cat.jiu.email.element;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import cat.jiu.core.api.handler.IJsonSerializable;
 import cat.jiu.core.api.handler.INBTSerializable;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
+
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.*;
 
 public final class Inbox implements INBTSerializable, IJsonSerializable {
-	protected final UUID owner;
-	protected ArrayList<Email> emails = Lists.newArrayList();
-	protected boolean dev;
+	private static final Map<String, Inbox> inboxCache = Maps.newHashMap();
+	private final String owner;
+	private ArrayList<Email> emails = Lists.newArrayList();
+	private boolean dev;
+	private Map<String, Object> customValue = Maps.newHashMap();
 	
-	public Inbox(UUID owner, JsonObject inboxJson) {
+	private Inbox(UUID owner, NBTTagCompound inboxTag) {
+		this.owner = owner.toString();
+		this.read(inboxTag);
+	}
+	private Inbox(UUID owner, JsonObject inboxJson) {
+		this(owner.toString(), inboxJson);
+	}
+	private Inbox(String owner, JsonObject inboxJson) {
 		this.owner = owner;
 		this.read(inboxJson);
 	}
-	
-	public Inbox(UUID owner, NBTTagCompound inboxTag) {
-		this.owner = owner;
-		this.read(inboxTag);
+	/**
+	 * @return true if this email list contains no emails.
+	 */
+	public boolean isEmpty() {return this.emails.isEmpty();}
+	/**
+	 * @return the inbox owner string
+	 */
+	public String getOwner() {return owner;}
+	/**
+	 * @return the owner uuid
+	 */
+	public UUID getOwnerAsUUID() {
+		try {
+			return UUID.fromString(owner);
+		}catch(Exception e) {
+			return EmailUtils.getUUID(owner);
+		}
 	}
-	
-	public UUID getOwner() {return owner;}
+	/**
+	 * @return emails count
+	 */
 	public int count() {return emails.size();}
+	/**
+	 * @return true if inbox has dev msg
+	 */
 	public boolean isSendDevMsg() {return dev;}
+	/**
+	 * set inbox dev msg state
+	 */
 	public void setSendDevMsg(boolean dev) {this.dev = dev;}
-	public long getInboxSize() {return EmailUtils.getEmailSize(this.write(new NBTTagCompound()));}
+	/**
+	 * @return inbox serialize size, for send network pack
+	 */
+	public long getInboxSize() {return EmailUtils.getSize(this.write(new NBTTagCompound()));}
+	/**
+	 * get inbox unread email count
+	 * @return unread count
+	 */
 	public int getUnRead() {
 		int i = 0;
 		for(Email email : emails) {
@@ -42,6 +82,10 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		}
 		return i;
 	}
+	/**
+	 * get inbox unreceived email count
+	 * @return unreceived count
+	 */
 	public int getUnReceived() {
 		int i = 0;
 		for(Email email : emails) {
@@ -49,39 +93,100 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		}
 		return i;
 	}
-	
+	/**
+	 * @param id email id
+	 * @return true if inbox has email by id
+	 */
 	public boolean has(int id) {
 		int size = this.emails.size();
-		return id < size && id >=0;
+		return size > 0 && id < size && id >=0;
 	}
+	/**
+	 * get email from id
+	 * @param id email id
+	 * @return emial by id
+	 */
 	public Email get(int id) {
-		if(!this.has(id)) return null;
-		return this.emails.get(id);
+		return this.has(id) ? this.emails.get(id) : null;
 	}
+	/**
+	 * remove email by id
+	 * @return the id pos old email
+	 */
 	public Email delete(int id) {
 		return this.emails.remove(id);
 	}
+	/**
+	 * set new email to id
+	 * @param id 
+	 * @param newEmail 
+	 * @return the old email
+	 */
 	public Email set(int id, Email newEmail) {
-		return this.emails.set(id, newEmail);
+		return this.has(id) ? this.emails.set(id, newEmail) : null;
 	}
+	/**
+	 * add email to inbox
+	 * @return true if add email success
+	 */
 	public boolean add(Email email) {
 		return this.emails.add(email);
 	}
 	
-	public void save() {
-		JsonUtil.toJsonFile(EmailUtils.getSaveEmailPath() + owner + ".json", this.write(new JsonObject()), false);
+	public void addCustom(String key, Object value) {
+		this.customValue.put(key, value);
+	}
+	public Object getCustom(String key) {
+		return this.customValue.get(key);
+	}
+	public Object removeCustom(String key) {
+		return this.customValue.remove(key);
+	}
+	public boolean hasCustomValue(String key) {
+		return this.customValue.containsKey(key);
 	}
 	
-	public void read() {
-		this.read(EmailUtils.getInboxJson(this.owner.toString()));
+	/**
+	 * save inbox to disk
+	 * @return true if save success
+	 */
+	public boolean save() {
+		return JsonUtil.toJsonFile(EmailUtils.getSaveEmailPath() + owner + ".json", this.write(new JsonObject()), false);
 	}
 	
+	/**
+	 * read inbox from disk
+	 */
+	public Inbox read() {
+		this.emails.clear();
+		this.customValue.clear();
+		this.dev = false;
+		this.read(EmailUtils.getInboxJson(this.owner));
+		return this;
+	}
+	
+	// Serialize start
 	@Override
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
 		if(this.dev) json.addProperty("dev", true);
 		for(int i = 0; i < this.emails.size(); i++) {
 			json.add(Integer.toString(i), this.emails.get(i).write(new JsonObject()));
+			
+		}
+		if(!this.customValue.isEmpty()) {
+			JsonObject customObj = new JsonObject();
+			for(Entry<String, Object> custom : this.customValue.entrySet()) {
+				Object value = custom.getValue();
+				if(value instanceof Integer) {
+					customObj.addProperty(custom.getKey(), (Integer)value);
+				}else if(value instanceof Boolean) {
+					customObj.addProperty(custom.getKey(), (Boolean)value);
+				}else {
+					customObj.addProperty(custom.getKey(), String.valueOf(value));
+				}
+			}
+			json.add("custom", customObj);
 		}
 		return json;
 	}
@@ -89,9 +194,24 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			if(json.has("dev")) this.dev = true;
 			for(Entry<String, JsonElement> emails : json.entrySet()) {
-				if(!emails.getKey().equalsIgnoreCase("dev")) {
+				if(emails.getKey().equalsIgnoreCase("dev")) {
+					this.dev = true;
+				}else if(emails.getKey().equalsIgnoreCase("custom")) {
+					for(Entry<String, JsonElement> custom : emails.getValue().getAsJsonObject().entrySet()) {
+						JsonElement value = custom.getValue();
+						if(value.isJsonPrimitive()) {
+							JsonPrimitive primitive = value.getAsJsonPrimitive();
+							if(primitive.isBoolean()) {
+								this.customValue.put(custom.getKey(), primitive.getAsBoolean());
+							}else if(primitive.isNumber()) {
+								this.customValue.put(custom.getKey(), primitive.getAsNumber());
+							}else {
+								this.customValue.put(custom.getKey(), primitive.getAsString());
+							}
+						}
+					}
+				}else {
 					this.emails.add(new Email(emails.getValue().getAsJsonObject()));
 				}
 			}
@@ -105,30 +225,146 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		for(int i = 0; i < this.emails.size(); i++) {
 			nbt.setTag(Integer.toString(i), this.emails.get(i).write(new NBTTagCompound()));
 		}
+		if(!this.customValue.isEmpty()) {
+			NBTTagCompound cutsomTag = new NBTTagCompound();
+			for(Entry<String, Object> custom : this.customValue.entrySet()) {
+				Object value = custom.getValue();
+				if(value instanceof Integer) {
+					cutsomTag.setInteger(custom.getKey(), (Integer) value);
+				}else if(value instanceof Boolean) {
+					cutsomTag.setBoolean(custom.getKey(), (Boolean) value);
+				}else {
+					cutsomTag.setString(custom.getKey(), String.valueOf(value));
+				}
+			}
+			nbt.setTag("custom", cutsomTag);
+		}
 		return nbt;
 	}
 
 	@Override
 	public void read(NBTTagCompound nbt) {
 		if(nbt!=null && nbt.getSize()>0) {
-			if(nbt.hasKey("dev")) this.dev = true;
 			for(String email : nbt.getKeySet()) {
-				if(!email.equalsIgnoreCase("dev")) {
-					this.emails.add(new Email(nbt.getCompoundTag(email)));
+				if(email.equalsIgnoreCase("dev")) {
+					this.dev = true;
+					continue;
+				}else if(email.equalsIgnoreCase("custom")) {
+					NBTTagCompound customTag = nbt.getCompoundTag(email);
+					for(String custom : customTag.getKeySet()) {
+						NBTBase customValue = customTag.getTag(custom);
+						if(customValue instanceof NBTTagByte) {
+							this.customValue.put(custom, ((NBTTagByte)customValue).getByte()==1);
+						}else if(customValue instanceof NBTTagInt) {
+							this.customValue.put(custom, ((NBTTagInt)customValue).getInt());
+						}else {
+							this.customValue.put(custom, customValue.toString());
+						}
+					}
+					continue;
+				}else {
+					NBTTagCompound emailTag = nbt.getCompoundTag(email);
+					if(emailTag.getSize()>0) {
+						this.emails.add(new Email(emailTag));
+					}
 				}
 			}
 		}
 	}
+	// Serialize end
 	
 	@Override
 	public String toString() {
 		return this.write(new JsonObject()).toString();
 	}
 	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((customValue == null) ? 0 : customValue.hashCode());
+		result = prime * result + (dev ? 1231 : 1237);
+		result = prime * result + ((emails == null) ? 0 : emails.hashCode());
+		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if(this == obj)
+			return true;
+		if(obj == null)
+			return false;
+		if(getClass() != obj.getClass())
+			return false;
+		Inbox other = (Inbox) obj;
+		if(customValue == null) {
+			if(other.customValue != null)
+				return false;
+		}else if(!customValue.equals(other.customValue))
+			return false;
+		if(dev != other.dev)
+			return false;
+		if(emails == null) {
+			if(other.emails != null)
+				return false;
+		}else if(!emails.equals(other.emails))
+			return false;
+		if(owner == null) {
+			if(other.owner != null)
+				return false;
+		}else if(!owner.equals(other.owner))
+			return false;
+		return true;
+	}
+	
+	/**
+	 * @return the player inbox
+	 */
 	public static Inbox get(EntityPlayer player) {
 		return get(player.getUniqueID());
 	}
+	/**
+	 * @return the uuid inbox
+	 */
 	public static Inbox get(UUID uid) {
-		return new Inbox(uid, EmailUtils.getInboxJson(uid.toString()));
+		return get(uid.toString());
+	}
+	/**
+	 * @return the owner inbox
+	 */
+	public static Inbox get(String owner) {
+		if(owner==null||owner.isEmpty()) return null;
+		if(inboxCache.containsKey(owner)) {
+			return inboxCache.get(owner).read();
+		}
+		Inbox inbox = new Inbox(owner, EmailUtils.getInboxJson(owner));
+		inboxCache.put(owner, inbox);
+		return inbox;
+	}
+	/**
+	 * get inbox from nbt
+	 * @param uid the owner
+	 * @param inboxTag the inbox serialize nbt
+	 * @return the inbox
+	 */
+	public static Inbox get(UUID uid, NBTTagCompound inboxTag) {
+		if(inboxTag==null)return null;
+		if(inboxCache.containsKey(uid.toString())) {
+			return inboxCache.get(uid.toString()).read();
+		}
+		return new Inbox(uid, inboxTag);
+	}
+	/**
+	 * get inbox from json
+	 * @param uid the owner
+	 * @param inboxJson the inbox serialize json
+	 * @return the inbox
+	 */
+	public static Inbox get(UUID uid, JsonObject inboxJson) {
+		if(inboxJson==null)return null;
+		if(inboxCache.containsKey(uid.toString())) {
+			return inboxCache.get(uid.toString()).read();
+		}
+		return new Inbox(uid, inboxJson);
 	}
 }

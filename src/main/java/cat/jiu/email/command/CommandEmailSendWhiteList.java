@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.UUID;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
@@ -65,10 +65,10 @@ class CommandEmailSendWhiteList extends CommandTreeBase {
 				}
 			}
 			if(name != null && uid != null) {
-				if(Email.isInWhiteList(name) || Email.isInWhiteList(uid)) {
+				if(EmailAPI.isInWhiteList(name) || EmailAPI.isInWhiteList(uid)) {
 					throw new CommandException("email.command.send.white.already_exist", argName);
 				}else {
-					boolean lag = Email.addToWhiteList(name, uid);
+					boolean lag = EmailAPI.addToWhiteList(name, uid);
 					if(lag) {
 						sender.sendMessage(new TextComponentTranslation("email.command.send.list.add.success", argName, white));
 					}else {
@@ -96,8 +96,8 @@ class CommandEmailSendWhiteList extends CommandTreeBase {
 			if(args.length < 1) throw new CommandException(this.getUsage(sender));
 			
 			String argName = args[0];
-			if(Email.isInWhiteList(argName)) {
-				boolean lag = Email.removeInWhiteList(argName);
+			if(EmailAPI.isInWhiteList(argName)) {
+				boolean lag = EmailAPI.removeInWhiteList(argName);
 				if(lag) {
 					sender.sendMessage(new TextComponentTranslation("email.command.send.list.remove.success", argName, white));
 				}else {

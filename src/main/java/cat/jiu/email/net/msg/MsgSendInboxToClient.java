@@ -4,8 +4,6 @@ import java.io.IOException;
 
 import javax.annotation.Nonnull;
 
-import com.google.gson.JsonObject;
-
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.ui.container.ContainerEmailMain;
@@ -30,11 +28,11 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgSendInboxToClient implements IMessage {
-	protected Inbox email;
+	protected Inbox inbox;
 	protected EmailSizeReport report = EmailSizeReport.SUCCES;
 	public MsgSendInboxToClient() {}
-	public MsgSendInboxToClient(@Nonnull Inbox email) {
-		this.email = email;
+	public MsgSendInboxToClient(@Nonnull Inbox inbox) {
+		this.inbox = inbox;
 	}
 
 	@Override
@@ -49,7 +47,7 @@ public class MsgSendInboxToClient implements IMessage {
 		        try {
 					NBTTagCompound nbt = CompressedStreamTools.read(new ByteBufInputStream(pb), new NBTSizeTracker(Long.MAX_VALUE));
 					if(nbt != null) {
-						this.email = new Inbox(nbt.getUniqueId("owner"), nbt.getCompoundTag("inbox"));
+						this.inbox = Inbox.get(nbt.getUniqueId("owner"), nbt.getCompoundTag("inbox"));
 					}
 		        }catch(IOException e) {
 					e.printStackTrace();
@@ -64,14 +62,13 @@ public class MsgSendInboxToClient implements IMessage {
 	        if(b0 != 0) {
 	        	pb.readerIndex(i);
 		        try {
-					NBTTagCompound nbt = CompressedStreamTools.read(new ByteBufInputStream(pb), new NBTSizeTracker(Long.MAX_VALUE));
-					if(nbt != null) {
-						if(nbt.hasKey("ToBig")) {
-							this.report = new EmailSizeReport(nbt.getInteger("msgID"), nbt.getInteger("slot"), nbt.getInteger("size"));
+					NBTTagCompound inboxTag = CompressedStreamTools.read(new ByteBufInputStream(pb), new NBTSizeTracker(Long.MAX_VALUE));
+					if(inboxTag != null) {
+						if(inboxTag.hasKey("ToBig")) {
+							this.report = new EmailSizeReport(inboxTag.getInteger("id"), inboxTag.getInteger("slot"), inboxTag.getInteger("size"));
 							return;
 						}else {
-							NBTTagCompound inboxTag = new PacketBuffer(buf).readCompoundTag();
-							this.email = new Inbox(inboxTag.getUniqueId("owner"), inboxTag.getCompoundTag("inbox"));
+							this.inbox = Inbox.get(inboxTag.getUniqueId("owner"), inboxTag.getCompoundTag("inbox"));
 						}
 					}
 				}catch(IOException e) {
@@ -86,23 +83,26 @@ public class MsgSendInboxToClient implements IMessage {
 		PacketBuffer pb = new PacketBuffer(buf);
 		
 		if(EmailUtils.isInfiniteSize()) {
-			pb.writeCompoundTag(this.email.write(new NBTTagCompound()));
+			NBTTagCompound inbox = new NBTTagCompound();
+			inbox.setUniqueId("owner", this.inbox.getOwnerAsUUID());
+			inbox.setTag("inbox", this.inbox.write(new NBTTagCompound()));
+			pb.writeCompoundTag(inbox);
 		}else {
-			EmailSizeReport report = EmailUtils.checkEmailSize(this.email.write(new JsonObject()));
+			EmailSizeReport report = EmailUtils.checkInboxSize(this.inbox);
 			if(!EmailSizeReport.SUCCES.equals(report)) {
 				NBTTagCompound nbt = new NBTTagCompound();
 				
 				nbt.setBoolean("ToBig", true);
-				nbt.setInteger("msgID", report.msgID);
-				nbt.setInteger("slot", report.itemSlot);
+				nbt.setInteger("id", report.id);
+				nbt.setInteger("slot", report.slot);
 				nbt.setLong("size", report.size);
 				
 				pb.writeCompoundTag(nbt);
 				return;
 			}
 			NBTTagCompound inbox = new NBTTagCompound();
-			inbox.setTag("inbox", this.email.write(new NBTTagCompound()));
-			inbox.setUniqueId("owner", Minecraft.getMinecraft().player.getUniqueID());
+			inbox.setUniqueId("owner", this.inbox.getOwnerAsUUID());
+			inbox.setTag("inbox", this.inbox.write(new NBTTagCompound()));
 			pb.writeCompoundTag(inbox);
 		}
 	}
@@ -115,12 +115,12 @@ public class MsgSendInboxToClient implements IMessage {
 				if(!EmailSizeReport.SUCCES.equals(this.report)) {
 					player.sendMessage(new TextComponentString(TextFormatting.GRAY + "---------------------------------------------"));
 					player.sendMessage(new TextComponentString(I18n.format("info.email.error.to_big.0")));
-					player.sendMessage(new TextComponentString(I18n.format("info.email.error.to_big.1", this.report.msgID, this.report.itemSlot, this.report.size)));
+					player.sendMessage(new TextComponentString(I18n.format("info.email.error.to_big.1", this.report.id, this.report.slot, this.report.size)));
 					player.closeScreen();
 				}else {
-					EmailMain.setUnread(this.email.getUnRead());
-					EmailMain.setAccept(this.email.getUnReceived());
-					((ContainerEmailMain) con).setMsgs(this.email);
+					EmailMain.setUnread(this.inbox.getUnRead());
+					EmailMain.setAccept(this.inbox.getUnReceived());
+					((ContainerEmailMain) con).setInbox(this.inbox);
 				}
 			}
 		}

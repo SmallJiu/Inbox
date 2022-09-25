@@ -1,24 +1,26 @@
 package cat.jiu.email;
 
-import java.util.Map.Entry;
-import java.util.UUID;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.common.collect.Lists;
 
+import cat.jiu.core.api.handler.IFunction;
 import cat.jiu.email.command.EmailCommands;
+import cat.jiu.email.element.Email;
+import cat.jiu.email.element.Inbox;
+import cat.jiu.email.element.Message;
+import cat.jiu.email.event.EmailSendDevMessageEvent;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.net.msg.MsgOpenGui;
-import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.net.msg.MsgUnreceive;
 import cat.jiu.email.net.msg.MsgUnread;
 import cat.jiu.email.proxy.ServerProxy;
 import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.util.EmailExecuteEvent;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.client.Minecraft;
@@ -35,6 +37,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
 
 import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
@@ -42,6 +45,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -60,9 +64,9 @@ public class EmailMain {
 	public static final String MODID = "email";
 	public static final String NAME = "E-mail";
 	public static final String OWNER = "small_jiu";
-	public static final String VERSION = "1.0.1-a0-20220923015711";
+	public static final String VERSION = "1.0.2-a0-20220925204935";
 	public static EmailNetworkHandler net;
-	public static final Logger log = LogManager.getLogger("Email");
+	public static final Logger log = LogManager.getLogger("EmailAPI");
 	public static final String SYSTEM = "?????";
 	public static MinecraftServer server;
 	
@@ -91,37 +95,31 @@ public class EmailMain {
 		}
 		EmailUtils.getSaveEmailPath();
 		EmailUtils.initNameAndUUID(event.getServer());
+		EmailExecuteEvent.init();
 		event.registerServerCommand(new EmailCommands());
 	}
 
 	@Mod.EventHandler
 	public void onServerClose(FMLServerStoppedEvent event) {
 		server = null;
-		EmailUtils.resetPath();
+		EmailUtils.clearEmailPath();
 	}
 
 	@SubscribeEvent
-	public static void onJoin(EntityJoinWorldEvent event) {
-		if(event.getEntity() instanceof EntityPlayer && !event.getWorld().isRemote) {
-			UUID uid = event.getEntity().getUniqueID(); 
-			JsonObject inbox = EmailUtils.getInboxJson(uid.toString());
-			if(inbox == null) inbox = new JsonObject();
-			
-			if(!inbox.has("dev")) {
-				inbox.addProperty("dev", true);
-				
-				JsonObject devEmail = new JsonObject(); {
-					devEmail.addProperty("sender", "email.dev_message.sender");
-					devEmail.addProperty("time", MsgSend.getTime());
-					devEmail.addProperty("title", "email.dev_message.title");
-					JsonArray msgs = new JsonArray();
-					for(int i = 0; i < 7; i++) {
-						msgs.add("email.dev_message."+i);
-					}
-					devEmail.add("msgs", msgs);
+	public static void onJoin(PlayerLoggedInEvent event) {
+		if(!event.player.world.isRemote) {
+			Inbox inbox = Inbox.get(event.player);
+			if(!inbox.isSendDevMsg()) {
+				inbox.setSendDevMsg(true);
+				List<Message> msgs = Lists.newArrayList();
+				msgs.add(new Message("email.dev_message.0", event.player.getName()));
+				for(int i = 1; i < 7; i++) {
+					msgs.add(new Message("email.dev_message."+i));
 				}
-				inbox.add(Integer.toString(inbox.size()), devEmail);
-				EmailUtils.toJsonFile(uid.toString(), inbox);
+				inbox.add(new Email(new Message("email.dev_message.title", event.player.getName()), "email.dev_message.sender", null, null, msgs));
+				EmailExecuteEvent.initDefaultCustomValue(inbox);
+				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(event.player, inbox));
+				EmailUtils.saveInboxToDisk(inbox, 10);
 			}
 		}
 	}
@@ -129,54 +127,28 @@ public class EmailMain {
 	@SubscribeEvent
 	public static void onJoinWorld(EntityJoinWorldEvent event) {
 		if(event.getEntity() instanceof EntityPlayer && !event.getWorld().isRemote) {
-			JsonObject emailOBJ = EmailUtils.getInboxJson(event.getEntity().getUniqueID().toString());
-			if(emailOBJ != null) {
-				int unread = getUn(emailOBJ, "read");
-				int unaccept = getUn(emailOBJ, "accept");
-				if(unread > 0) {
-					if(!proxy.isClient()) {
-						net.sendMessageToPlayer(new MsgUnread(unread), (EntityPlayerMP) event.getEntity());
-					}else {
-						new Thread(()->{
-							// for network delay, need send after
-							try {Thread.sleep(100);}catch(InterruptedException e) { e.printStackTrace();}
-							EmailMain.setUnread(unread);
-						}).start();
-					}
-				}
-				if(unaccept > 0) {
-					if(!proxy.isClient()) {
-						net.sendMessageToPlayer(new MsgUnreceive(unaccept), (EntityPlayerMP) event.getEntity());
-					}else {
-						new Thread(()->{
-							// for network delay, need send after
-							try {Thread.sleep(100);}catch(InterruptedException e) { e.printStackTrace();}
-							EmailMain.setAccept(unaccept);
-						}).start();
-					}
-				}
-			}
-		}
-	}
-	
-	public static int getUn(JsonObject email, String key) {
-		int un = 0;
-		for(Entry<String, JsonElement> msgs : email.entrySet()) {
-			if(msgs.getValue().isJsonObject()) {
-				JsonObject msg = msgs.getValue().getAsJsonObject();
-				if("accept".equals(key)) {
-					if(!msg.has("accept") && msg.has("items")) {
-						un++;
-						continue;
-					}
-				}else if(msg.has(key)) {
-					continue;
+			Inbox inbox = Inbox.get((EntityPlayer)event.getEntity());
+			int unread = inbox.getUnRead();
+			int unaccept = inbox.getUnReceived();
+			if(unread > 0) {
+				if(!proxy.isClient()) {
+					net.sendMessageToPlayer(new MsgUnread(unread), (EntityPlayerMP) event.getEntity());
 				}else {
-					un++;
+					execute(args->{
+						EmailMain.setUnread(unread);
+					}, 100);
+				}
+			}
+			if(unaccept > 0) {
+				if(!proxy.isClient()) {
+					net.sendMessageToPlayer(new MsgUnreceive(unaccept), (EntityPlayerMP) event.getEntity());
+				}else {
+					execute(args->{
+						EmailMain.setAccept(unaccept);
+					},100);
 				}
 			}
 		}
-		return un;
 	}
 	
 	@SubscribeEvent
@@ -198,10 +170,10 @@ public class EmailMain {
 			
 			if(time <= 0) {
 				time = (int) EmailUtils.parseTick(15, 0);
-				JsonObject email = EmailUtils.getInboxJson(player.getUniqueID().toString());
-				if(email != null) {
-					int unread = getUn(email, "read");
-					int unreceive = getUn(email, "accept");
+				Inbox inbox = Inbox.get(player);
+				if(inbox != null) {
+					int unread = inbox.getUnRead();
+					int unreceive = inbox.getUnReceived();
 					if(unread > 0) {
 						if(unreceive > 0) {
 							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread_and_unreceive", unread, unreceive), true);
@@ -402,5 +374,13 @@ public class EmailMain {
 			}
 			return this.enabled && this.visible && EmailGuiHandler.isInRange(mouseX, mouseY, x, this.y, this.width, this.height);
 		}
+	}
+	
+	// for network delay, need send after
+	public static void execute(IFunction function, long delay) {
+		new Thread(()->{
+			try {Thread.sleep(delay);}catch(InterruptedException e) { e.printStackTrace();}
+			function.run();
+		}).start();
 	}
 }

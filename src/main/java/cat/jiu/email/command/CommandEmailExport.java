@@ -24,7 +24,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 
 class CommandEmailExport extends CommandBase {
-	public static final String Path = CommandEmailSend.Path + "export" + File.separator;
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 	public String getName() {return "export";}
 	public String getUsage(ICommandSender sender) {return "/email export [all]";}
@@ -49,7 +48,7 @@ class CommandEmailExport extends CommandBase {
 				throw new CommandException("email.command.export.all.empty_item");
 			}
 			
-			String path = Path + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
+			String path = EmailUtils.exportPath + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, stacks, false);
 			player.sendMessage(EmailUtils.createTextComponent("email.command.export.all.success", TextFormatting.GREEN, dateFormat.format(new Date()) + ".json"));
 		}else {
@@ -61,7 +60,7 @@ class CommandEmailExport extends CommandBase {
 			stacks.add(JsonToStackUtil.toJson(stack));
 			
 			ResourceLocation name = stack.getItem().getRegistryName();
-			String path = Path + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
+			String path = EmailUtils.exportPath + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, stacks, false);
 			player.sendMessage(EmailUtils.createTextComponent("email.command.export.success", TextFormatting.GREEN, name.toString(), dateFormat.format(new Date()) + ".json"));
 		}

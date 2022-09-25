@@ -6,7 +6,7 @@ import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.Map.Entry;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import net.minecraft.command.CommandBase;
@@ -62,10 +62,10 @@ class CommandEmailSendBlackList extends CommandTreeBase {
 				}
 			}
 			if(name != null && uid != null) {
-				if(Email.isInBlackList(name) || Email.isInBlackList(uid)) {
+				if(EmailAPI.isInBlackList(name) || EmailAPI.isInBlackList(uid)) {
 					throw new CommandException("email.command.send.list.already_exist", argName, black);
 				}else {
-					boolean lag = Email.addToBlackList(name, uid);
+					boolean lag = EmailAPI.addToBlackList(name, uid);
 					if(lag) {
 						sender.sendMessage(new TextComponentTranslation("email.command.send.list.add.success", argName, black));
 					}else {
@@ -92,8 +92,8 @@ class CommandEmailSendBlackList extends CommandTreeBase {
 			if(args.length < 1) throw new CommandException(this.getUsage(sender));
 			
 			String argName = args[0];
-			if(Email.isInBlackList(argName)) {
-				boolean lag = Email.removeInBlackList(argName);
+			if(EmailAPI.isInBlackList(argName)) {
+				boolean lag = EmailAPI.removeInBlackList(argName);
 				if(lag) {
 					sender.sendMessage(new TextComponentTranslation("email.command.send.list.remove.success", argName, black));
 				}else {

@@ -4,7 +4,7 @@ info.email.has_unreceive=你的邮箱内有 %s 封未领邮件.
 info.email.has_unread_and_unreceive=你的邮箱内有 %s 封未读邮件和 %s 封未领邮件
 
 info.email.error.to_big.0=§7邮箱 或 邮件内的物品 或 邮件内的物品NBT 过大，请联系管理员删除.
-info.email.error.to_big.1=§7邮件ID: %s, 槽位: %s, NBT: §4%s §f/ §72097152 Bytes
+info.email.error.to_big.1=§7邮件ID: %s, 槽位: %s, Size: §4%s §f/ §72097152 Bytes
 
 #main
 info.email.dispatch=发送邮件
@@ -29,7 +29,7 @@ info.email.msgs=信息
 info.email.items=物品
 info.email.default_msg=一封来自虚空的邮件
 info.email.default_title=来自虚空的邮件
-info.email.cooling=冷却中 -> %s:%s
+info.email.cooling=冷却中 -> %s:%s:%s:%s:%s
 info.email.from=你有一封来自%s的新邮件
 info.email.send.warn=警告: 使用此按钮领取邮件可能会导致领取的物品丢失
 
@@ -42,11 +42,15 @@ info.email.error.send.to_big.email=发出的邮件过大，请减小体积。%s 
 info.email.send.success=邮件发出成功
 
 #command
+email.command.send.event=/email event_reload - 重载事件处理器
+
 email.command.send=/email send <文件名称> [玩家] - 发送解析后的邮件给玩家
 email.command.send.file_not_found=找不到文件. 路径: %s
 email.command.send.msg=/email sendmsg <发送者> <收件人>  <标题> <一堆信息> - 发送信息邮件给玩家
-info.email.send.success.all=邮件发出至 存储在'usernamecache.json'内的玩家 成功.
-info.email.send.success.all.online=邮件发出至 '全部在线玩家' 成功.
+email.command.send.success.all=邮件发出至 存储在'usernamecache.json'内的玩家 成功.
+email.command.send.success.all.online=邮件发出至 '全部在线玩家' 成功.
+email.command.send.error.abstract_name=不能在不是玩家的情况下使用模糊的收件人: %s。
+email.command.send.ing=发送中，请稍后... 期间可能会掉线，属于正常情况
 
 email.command.export=/email export [all] - 导出手上或背包物品到文件
 email.command.export.only_player=此命令只能由玩家执行
@@ -116,8 +120,8 @@ email.config.send.cooling.time.hour=时
 email.config.send.cooling.time.day=天
 
 email.dev_message.sender=某玖_Damon
-email.dev_message.title=你好，我的朋友
-email.dev_message.0=你好，我的朋友，谢谢您使用此mod。
+email.dev_message.title=你好，%s
+email.dev_message.0=你好，%s，谢谢您使用此mod。
 email.dev_message.1=教程不会用这个写，会另外单独制作。
 email.dev_message.2=这里只说这个mod可以实现的功能：
 email.dev_message.3=  一：可以发送信息，也可以发送物品，物品可以带NBT。

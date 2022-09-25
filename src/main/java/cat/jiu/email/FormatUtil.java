@@ -19,6 +19,7 @@ import com.google.gson.JsonSyntaxException;
 import cat.jiu.email.util.JsonUtil;
 
 public class FormatUtil {
+	static final String[] emptyArgs = new String[0];
 	static final JsonParser parse = new JsonParser();
 	static final Filter JSON = new Filter("json", "(.json) Json File");
 	
@@ -27,10 +28,12 @@ public class FormatUtil {
 			File jsonFile = new File(args[0]);
 			if(!jsonFile.exists()) {
 				System.err.println("File not found!");
+				main(emptyArgs);
 				return;
 			}
 			if(jsonFile.isDirectory()) {
 				System.err.println("File cannot be Directory!");
+				main(emptyArgs);
 				return;
 			}
 			try {
@@ -42,6 +45,7 @@ public class FormatUtil {
 				System.out.println("Format successful (took " + (System.currentTimeMillis() - currenTime) + " ms)");
 			}catch(JsonIOException | JsonSyntaxException | IOException e) {
 				e.printStackTrace();
+				main(emptyArgs);
 				return;
 			}
 		}else {

@@ -8,8 +8,9 @@ import org.lwjgl.input.Keyboard;
 
 import com.google.common.collect.Lists;
 
-import cat.jiu.email.Email;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.Message;
 import cat.jiu.email.net.msg.MsgOpenGui;
 import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailSend;
@@ -90,7 +91,7 @@ public class GuiEmailSend extends GuiContainer {
             			return;
             		}
             		
-            		List<String> msgs = Lists.newArrayList();
+            		List<Message> msgs = Lists.newArrayList();
             		if(!textsIsEmpty()) {
             			for(int i = 0; i < textFields.length; i++) {
     						String msg = textFields[i].getText();
@@ -98,7 +99,7 @@ public class GuiEmailSend extends GuiContainer {
     							if(i!=0 && i<4) {
     								String previous = textFields[i+1].getText();
     								if(previous == null || previous.isEmpty()) {
-    									msgs.add("");
+    									msgs.add(Message.empty);
     								}
     							}
     							StringBuilder sb = new StringBuilder();
@@ -114,13 +115,13 @@ public class GuiEmailSend extends GuiContainer {
 										sb.append(ch);
 									}
 								}
-    							msgs.add(sb.toString());
+    							msgs.add(new Message(sb.toString()));
     						}
     					}
             		}else {
-            			msgs.add(I18n.format("info.email.default_msg"));
+            			msgs.add(new Message(I18n.format("info.email.default_msg")));
             		}
-            		Email.sendPlayerToPlayerEmail(null, title, name, msgs, null);
+            		EmailAPI.sendPlayerEmail(name, new cat.jiu.email.element.Email(new Message(title), Minecraft.getMinecraft().player.getName(), null, null, msgs));
             		clearRenderText();
         		}
         	}
@@ -204,12 +205,30 @@ public class GuiEmailSend extends GuiContainer {
 			 if(this.container.renderTicks < 1) clearRenderText();
 		 }
 		 if(this.container.isCooling()) {
+			 long t_t = this.container.getCoolingTick() % 20;
 			 long t_s = this.container.getCoolingTick() / 20;
-			 long t_tick = this.container.getCoolingTick() % 20;
+			 long t_m = 0;
+			 if(t_s >= 60) {
+				 t_m = t_s / 60;
+				 t_s %= 60;
+			 }
+			 long t_h = 0;
+			 if(t_m >= 60) {
+				 t_h = t_m / 60;
+				 t_m %= 60;
+			 }
+			 long t_d = 0;
+			 if(t_h >= 24) {
+				 t_d = t_h / 24;
+				 t_h %= 24;
+			 }
+			 String d = t_d < 10 ? "0" + t_d : Long.toString(t_d);
+			 String h = t_h < 10 ? "0" + t_h : Long.toString(t_h);
+			 String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			 String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
-			 String tick = t_tick < 10 ? "0" + t_tick : Long.toString(t_tick);
+			 String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
 			 
-			 fontRenderer.drawString(I18n.format("info.email.cooling", s, tick), 60, 60, Color.RED.getRGB());
+			 fontRenderer.drawString(I18n.format("info.email.cooling", d, h, m, s, t), 45, 60, Color.RED.getRGB());
 		 }
 		 if(this.titleField.getText().isEmpty()) {
 			 this.fontRenderer.drawString(I18n.format("info.email.default_title"), 39, 21, Color.BLACK.getRGB());
@@ -310,9 +329,11 @@ public class GuiEmailSend extends GuiContainer {
 		int x = (this.width - this.xSize) / 2;
 		int y = (this.height - this.ySize) / 2;
 		
+		GlStateManager.popMatrix();
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		this.mc.getTextureManager().bindTexture(BackGround);
 		super.drawTexturedModalRect(x, y, 0, 0, this.xSize, this.ySize);
+		GlStateManager.pushMatrix();
 		
 		super.drawTexturedModalRect(x + 163, y + 100, 176 + (this.container.isLock() ? 9 : 0), 0, 7, 7);
 	}

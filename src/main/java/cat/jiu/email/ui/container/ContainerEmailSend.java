@@ -67,28 +67,28 @@ public class ContainerEmailSend extends Container {
 			while(coolingTicks > 0) {
 				try {
 					Thread.sleep(50);
-					coolingTicks -= 1;
+					coolingTicks--;
 				}catch(InterruptedException e) {e.printStackTrace();}
 			}
 		}).start();
 	}
 	public long getCoolingTick() {return coolingTicks;}
 	
-	boolean isSending = false;
-	boolean t_isSending = false;
-	public boolean isLock() {return isSending;}
+	boolean isLock = false;
+	boolean t_isLock = false;
+	public boolean isLock() {return isLock;}
 	public void setLock(boolean isSending) {
-		this.isSending = isSending;
+		this.isLock = isSending;
 		this.detectAndSendChanges();
 	}
 	
 	@Override
 	public void detectAndSendChanges() {
 		super.detectAndSendChanges();
-		if(this.t_isSending != this.isSending) {
-			this.t_isSending = this.isSending;
+		if(this.t_isLock != this.isLock) {
+			this.t_isLock = this.isLock;
 			for(IContainerListener listener : this.listeners) {
-				listener.sendWindowProperty(this, 1001, this.isSending ? 1 : 0);
+				listener.sendWindowProperty(this, 1001, this.isLock ? 1 : 0);
 			}
 		}
 	}
@@ -98,7 +98,7 @@ public class ContainerEmailSend extends Container {
 	public void updateProgressBar(int id, int data) {
 		switch(id) {
 			case 1001:
-				this.isSending = data == 1;
+				this.isLock = data == 1;
 				break;
 		}
 	}

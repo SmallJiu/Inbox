@@ -4,7 +4,7 @@ info.email.has_unreceive=You inbox has %s message unreceive.
 info.email.has_unread_and_unreceive=You inbox has %s message unread, and %s message unreceive.
 
 info.email.error.to_big.0=§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.
-info.email.error.to_big.1=§7Emain ID: %s, Slot: %s, NBT: §4%s §f/ §72097152 Bytes
+info.email.error.to_big.1=§7Emain ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes
 
 #main
 info.email.dispatch=Push
@@ -46,8 +46,10 @@ info.email.send.success=Send e-mail success.
 email.command.send=/email send <File> [Player]
 email.command.send.file_not_found=File not found, Path: %s
 email.command.send.msg=/email sendmsg <Sender> <Addressee> <Title> <Messages>
-info.email.send.success.all=Send e-mail to all storage in 'usernamecache.json' players success.
-info.email.send.success.all.online=Send e-mail to all 'online' players success.
+email.command.send.success.all=Send e-mail to all storage in 'usernamecache.json' players success.
+email.command.send.success.all.online=Send e-mail to all 'online' players success.
+email.command.send.error.abstract_name=Can not use abstract name in not a player: %s。
+email.command.send.ing=Sending, please wait... It is normal that the line may be disconnected during this period.
 
 email.command.export=/email export - Export hand item to can be parsed json file
 email.command.export.only_player=This command only use on player
@@ -115,8 +117,8 @@ email.config.send.cooling.time.hour=Hour
 email.config.send.cooling.time.day=Day
 
 email.dev_message.sender=small_jiu
-email.dev_message.title=Hello my friend
-email.dev_message.0=Hello my friend, thank you use this mod.
+email.dev_message.title=Hello %s
+email.dev_message.0=Hello %s, thank you use this mod.
 email.dev_message.1=usage will not use this to add, will use other to add.
 email.dev_message.2=This only say the functions: 
 email.dev_message.3=First: You can send message, or send item, item can have the NBT.

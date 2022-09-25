@@ -4,37 +4,28 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import cat.jiu.email.Email;
-import cat.jiu.email.element.EmailSound;
+import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.EmailFunction;
+import cat.jiu.email.element.Message;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
 import cat.jiu.email.util.JsonUtil;
-import cat.jiu.email.util.EmailSenderSndSound.Time;
+
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
 
 class CommandEmailSend extends CommandBase {
-	public static final String Path = EmailUtils.getSaveEmailPath() + "type" + File.separator;
 	public String getName() {return "send";}
-	public int getRequiredPermissionLevel() {return 2;}
 	public String getUsage(ICommandSender sender) {return "email.command.send";}
 
 	@Override
@@ -42,7 +33,7 @@ class CommandEmailSend extends CommandBase {
 		if(args.length < 1) {
 			throw new CommandException(this.getUsage(cmdSender));
 		}
-		EmailFunction function = this.foundFunction(cmdSender, args[0]);
+		EmailFunction function = EmailUtils.findFunction(args[0]);
 		if(function == null) {
 			try {
 				throw new CommandException("email.command.send.list.file_not_found", new File("./emails/export/" + args[0]).getCanonicalPath());
@@ -50,172 +41,65 @@ class CommandEmailSend extends CommandBase {
 				throw new CommandException(e.getLocalizedMessage());
 			}
 		}
+		if(cmdSender instanceof EntityPlayer) {
+			function.sender = cmdSender.getName();
+		}
 		String addresser = function.addresser;
 		if("@a".equals(addresser)) {
-			for(String name : EmailUtils.getAllName()) {
-				Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
-			}
-			cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all", TextFormatting.GREEN));
+			cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.ing", TextFormatting.YELLOW));
+			new Thread(()->{
+				for(String name : EmailUtils.getAllName()) {
+					replaceAbstract(name, function.msgs);
+					EmailAPI.sendCommandEmail(name, function.toEmail());
+				}
+				cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.success.all", TextFormatting.GREEN));
+			}).start();
 			return;
 		}else if("@a-online".equals(addresser)) {
-			for(String name : server.getOnlinePlayerNames()) {
-				Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
-			}
-			cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all.online", TextFormatting.GREEN));
+			cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.ing", TextFormatting.YELLOW));
+			new Thread(()->{
+				for(String name : server.getOnlinePlayerNames()) {
+					replaceAbstract(name, function.msgs);
+					EmailAPI.sendCommandEmail(name, function.toEmail());
+				}
+				cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.success.all.online", TextFormatting.GREEN));
+			}).start();
 			return;
 		}else if("@p".equals(addresser)) {
-			if(cmdSender instanceof EntityPlayer) {
-				addresser = cmdSender.getName();
-			}
-		}
-		if(args.length >= 2) {
-			if("@a".equals(addresser)) {
-				for(String name : EmailUtils.getAllName()) {
-					Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
+			if(args!=null && args.length >= 2) {
+				String argAddrsser = args[1];
+				if(EmailUtils.hasNameOrUUID(argAddrsser)) {
+					addresser = argAddrsser;
 				}
-				cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all", TextFormatting.GREEN));
-				return;
-			}else if("@a-online".equals(addresser)) {
-				for(String name : server.getOnlinePlayerNames()) {
-					Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
-				}
-				cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all.online", TextFormatting.GREEN));
-				return;
-			}else if("@p".equals(addresser)) {
+			}else {
 				if(cmdSender instanceof EntityPlayer) {
 					addresser = cmdSender.getName();
 				}else {
-					addresser = args[1];
+					throw new CommandException("email.command.send.error.abstract_name");
 				}
 			}
 		}
-		
 		cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success", TextFormatting.GREEN));
-		Email.sendCMDToPlayerEmail(function.sender, function.title, addresser, function.msgs, null, function.items);
+		EmailAPI.sendCommandEmail(addresser, function.toEmail());
 	}
 	
-	private EmailFunction foundFunction(ICommandSender sender, String file) throws CommandException {
-		File functionFile = this.foundFile(new File(Path), file);
-		if(functionFile != null) {
-			JsonElement e = JsonUtil.parse(functionFile);
-			if(e != null && e.isJsonObject()) {
-				JsonObject function = e.getAsJsonObject();
-				List<String> msgs = null;
-				if(function.has("msgs")) {
-					msgs = Lists.newArrayList();
-					JsonElement msgE = function.get("msgs");
-					if(msgE.isJsonPrimitive()) {
-						msgs.add(msgE.getAsString());
-					}else if(msgE.isJsonArray()) {
-						JsonArray msgsArray = msgE.getAsJsonArray();
-						for(int i = 0; i < msgsArray.size(); i++) {
-							msgs.add(msgsArray.get(i).getAsString());
-						}
-					}else if(msgE.isJsonObject()) {
-						for(Entry<String, JsonElement> msg : msgE.getAsJsonObject().entrySet()) {
-							msgs.add(msg.getValue().getAsString());
-						}
-					}
+	private void replaceAbstract(String name, List<Message> msgs) {
+		for(Message msg : msgs) {
+			Object[] args = msg.getArgs();
+			for(int i = 0; i < args.length; i++) {
+				Object arg = args[i];
+				System.out.println(msg.getKey() + " | " + arg);
+				if("@a".equals(arg) || "@a-online".equals(arg)) {
+					args[i] = name;
 				}
-				
-				List<ItemStack> items = null;
-				if(function.has("items")) {
-					JsonElement itemE = function.get("items");
-					if(itemE.isJsonPrimitive() && itemE.getAsJsonPrimitive().isString()) {
-						ItemStack stack = JsonToStackUtil.toStack(function.get("items"));
-						if(stack!=null) {
-							items = Lists.newArrayList(stack);
-						}else {
-							String path = function.get("items").getAsString();
-							JsonElement itemsE = JsonUtil.parse(CommandEmailExport.Path + path);
-							if(itemsE!=null) {
-								items = JsonToStackUtil.toStacks(itemsE);
-							}else {
-								throw new CommandException("email.command.send.file_not_found", path);
-							}
-						}
-					}else if(itemE.isJsonObject()) {
-						items = Lists.newArrayList();
-						for(Entry<String, JsonElement> item : itemE.getAsJsonObject().entrySet()) {
-							if(item.getValue().isJsonPrimitive()) {
-								ItemStack stack = JsonToStackUtil.toStack(item.getValue());
-								if(stack!=null) {
-									items.add(stack);
-								}else {
-									JsonElement itemsE = JsonUtil.parse(CommandEmailExport.Path + item.getValue().getAsJsonPrimitive().getAsString());
-									if(itemsE!=null) {
-										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
-											if(stack0!=null) {
-												items.add(stack0);
-											}
-										}
-									}
-								}
-							}else {
-								items.add(JsonToStackUtil.toStack(item.getValue()));
-							}
-						}
-					}else if(itemE.isJsonArray()) {
-						items = Lists.newArrayList();
-						for(int i = 0; i < itemE.getAsJsonArray().size(); i++) {
-							JsonElement item = itemE.getAsJsonArray().get(i);
-							if(item.isJsonPrimitive()) {
-								ItemStack stack = JsonToStackUtil.toStack(item);
-								if(stack!=null) {
-									items.add(stack);
-								}else {
-									JsonElement itemsE = JsonUtil.parse(CommandEmailExport.Path + item.getAsJsonPrimitive().getAsString());
-									if(itemsE!=null) {
-										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
-											if(stack0!=null) {
-												items.add(stack0);
-											}
-										}
-									}
-								}
-							}else {
-								ItemStack stack = JsonToStackUtil.toStack(item);
-								if(stack!=null) {
-									items.add(stack);
-								}
-							}
-						}
-					}
-				}
-				
-				EmailSound sound = null;
-				if(function.has("sound")) {
-					sound = new EmailSound(new Time(function.get("time").getAsLong()), new SoundEvent(new ResourceLocation(function.get("name").getAsString())), function.get("volume").getAsInt(), function.get("pitch").getAsInt());
-				}
-				
-				return new EmailFunction(
-						function.get("sender").getAsString(),
-						function.get("addresser").getAsString(),
-						function.get("title").getAsString(),
-						items, msgs, sound);
 			}
 		}
-		
-		return null;
-	}
-	
-	private File foundFile(File file, String name) {
-		if(file==null || !file.exists()) return null;
-		for(File subFile : file.listFiles()) {
-			if(subFile.isDirectory() && !"export".equals(subFile.getName())) {
-				File f = this.foundFile(subFile, name);
-				if(f != null) return f;
-			}else if(subFile.getName().equals(name)) {
-				return subFile;
-			}
-		}
-		return null;
 	}
 	
 	@Override
 	public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos targetPos) {
 		if(args.length == 1) {
-			File originDir = new File(Path);
+			File originDir = new File(EmailUtils.typePath);
 			if(originDir.exists()) {
 				List<String> functions = Lists.newArrayList();
 				this.getAllFunction(functions, originDir);
@@ -225,6 +109,7 @@ class CommandEmailSend extends CommandBase {
 			List<String> players = getListOfStringsMatchingLastWord(args, server.getOnlinePlayerNames());
 			players.add("@p");
 			players.add("@a");
+			players.add("@a-online");
 			return players;
 		}
 		return Collections.emptyList();
@@ -232,7 +117,7 @@ class CommandEmailSend extends CommandBase {
 	
 	private void getAllFunction(List<String> names, File file) {
 		if(file.isDirectory()) {
-			if(!"export".equals(file.getName())) {
+			if(!"export".equals(file.getName()) && !"event".equals(file.getName())) {
 				for(File subFile : file.listFiles()) {
 					this.getAllFunction(names, subFile);
 				}
@@ -257,28 +142,11 @@ class CommandEmailSend extends CommandBase {
 		if(sender instanceof EntityPlayer) {
 			EntityPlayer player = (EntityPlayer) sender;
 			if(EmailConfigs.Send.Enable_Send_BlackList) {
-				lag = !Email.isInBlackList(player);
+				lag = !EmailAPI.isInBlackList(player);
 			}else if(EmailConfigs.Send.Enable_Send_WhiteList) {
-				lag = Email.isInWhiteList(player);
+				lag = EmailAPI.isInWhiteList(player);
 			}
 		}
 		return super.checkPermission(server, sender) && lag;
-	}
-	
-	private static class EmailFunction {
-		private String sender;
-		private String addresser;
-		private String title;
-		private final List<ItemStack> items;
-		private final EmailSound sound;
-		private final List<String> msgs;
-		private EmailFunction(String sender, String addresser, String title, List<ItemStack> items, List<String> msgs, @Nullable EmailSound sound) {
-			this.sender = sender;
-			this.addresser = addresser;
-			this.title = title;
-			this.items = items;
-			this.msgs = msgs;
-			this.sound = sound;
-		}
 	}
 }
