@@ -1,5 +1,6 @@
 package cat.jiu.email.util;
 
+import cat.jiu.email.element.EmailSound;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 
 import net.minecraft.client.Minecraft;
@@ -14,19 +15,21 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class EmailSenderSndSound extends MovingSound {
 	protected final EntityPlayerSP player;
 	protected long time;
-	public EmailSenderSndSound(EmailSound sound) {
+	private int id;
+	public EmailSenderSndSound(EmailSound sound, int msgID) {
 		super(sound.getSound(), SoundCategory.PLAYERS);
 		this.player = Minecraft.getMinecraft().player;
 		this.time = sound.getTime().tick;
 		this.pitch = sound.getSoundPitch();
 		this.volume = sound.getSoundVolume();
+		this.id = msgID;
 	}
 	
 	@Override
 	public void update() {
 		if(this.time > 0
 		&& this.player.openContainer instanceof ContainerEmailMain
-		&& ((ContainerEmailMain)this.player.openContainer).isSameMsg()) {
+		&& ((ContainerEmailMain)this.player.openContainer).getCurrenMsg()==this.id) {
 			this.xPosF = (float)this.player.posX;
 			this.yPosF = (float)this.player.posY;
 			this.zPosF = (float)this.player.posZ;

@@ -3,7 +3,6 @@ package cat.jiu.email.ui.gui;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nonnull;
@@ -12,29 +11,25 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.Email;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailSenderSndSound;
-import cat.jiu.email.util.EmailSound;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
-import net.minecraft.client.audio.ISound;
+
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
+
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -85,12 +80,12 @@ public class GuiEmailMain extends GuiContainer {
 		
 		this.buttonList.add(new GuiButton(nextID(), x+4, y+106, 37, 12, I18n.format("info.email.delete_accept")) {
 			public void mouseReleased(int mouseX, int mouseY) {
-				EmailMain.net.sendMessageToServer(new MsgDelete.AllReceive());
+				EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllReceive());
 			}
 		});
 		this.buttonList.add(new GuiButton(nextID(), x+4, y+119, 37, 12, I18n.format("info.email.delete_read")) {
 			public void mouseReleased(int mouseX, int mouseY) {
-				EmailMain.net.sendMessageToServer(new MsgDelete.AllRead());
+				EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllRead());
 			}
 		});
 		this.buttonList.add(new GuiButton(nextID(), x+4, y+132, 37, 12, I18n.format("info.email.dispatch")) {
@@ -102,7 +97,8 @@ public class GuiEmailMain extends GuiContainer {
 		this.buttonList.add(new GuiButton(nextID(), x+188, y+106, 35, 12, I18n.format("info.email.delete")) {
 			public void mouseReleased(int mouseX, int mouseY) {
 				if(currentMsg != -1) {
-					EmailMain.net.sendMessageToServer(new MsgDelete.Delete(currentMsg));
+					System.out.println(currentMsg);
+					EmailMain.net.sendMessageToServer(new MsgDeleteEmail.Delete(currentMsg));
 				}
 			}
 		});
@@ -113,7 +109,7 @@ public class GuiEmailMain extends GuiContainer {
 						emailIsOutStorageSize();
 						return;
 					}
-					EmailMain.net.sendMessageToServer(new MsgReceive.Receive(currentMsg));
+					EmailMain.net.sendMessageToServer(new MsgReceiveEmail.Receive(currentMsg));
 				}
 			}
 		});
@@ -121,24 +117,24 @@ public class GuiEmailMain extends GuiContainer {
 		this.buttonList.add(new GuiButton(nextID(), x+188, y+145, 35, 12, I18n.format("info.email.accept_all")) {
 			public void mouseReleased(int mouseX, int mouseY) {
 				if(!EmailUtils.isInfiniteSize()) {
-					if(container.getEmailSize()+(EmailMain.getUn(container.getInbox(), "accept") * 55) >= 2097152L) {
+					if(container.getEmailSize()+(container.getInbox().getUnReceived() * 55) >= 2097152L) {
 						emailIsOutStorageSize();
 						return;
 					}
 				}
-				EmailMain.net.sendMessageToServer(new MsgReceive.All());
+				EmailMain.net.sendMessageToServer(new MsgReceiveEmail.All());
 			}
 		});
 		this.buttonList.add(new GuiButton(nextID(), x+188, y+132, 35, 12, I18n.format("info.email.read_all")) {
 			public void mouseReleased(int mouseX, int mouseY) {
 				if(!EmailUtils.isInfiniteSize()) {
-					if(container.getEmailSize()+(EmailMain.getUn(container.getInbox(), "read") * 51) > 2097152L) {
+					if(container.getEmailSize()+(container.getInbox().getUnRead() * 51) > 2097152L) {
 						emailIsOutStorageSize();
 						return;
 					}
 				}
 				
-				EmailMain.net.sendMessageToServer(new MsgRead.All());
+				EmailMain.net.sendMessageToServer(new MsgReadEmail.All());
 			}
 		});
 	}
@@ -172,18 +168,20 @@ public class GuiEmailMain extends GuiContainer {
 		super.drawDefaultBackground();
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		super.renderHoveredToolTip(mouseX, mouseY);
+		if(this.currentSound!=null && this.currentSound.isDonePlaying()) {
+			this.stopSound();
+		}
 		for(int i = 0; i < 5; i++) {
 			if(this.showMsg == null || i >= this.showMsg.length) break;
 			if(EmailGuiHandler.isInRange(mouseX, mouseY, this.getGuiLeft() + Candidate_Email_X, this.getGuiTop() + Candidate_Email_Y + ((17 * i)), 54, 15)) {
-				String curren = Integer.toString(this.showMsg[i]);
-				if(this.container.getInbox().has(curren)) {
-					JsonObject msg = this.container.getInbox().get(curren).getAsJsonObject();
+				if(this.container.getInbox().has(this.showMsg[i])) {
+					Email msg = this.container.getInbox().get(this.showMsg[i]);
 					List<String> tip = Lists.newArrayList();
 					
-					tip.add(I18n.format(msg.get("title").getAsString()));
+					tip.add(I18n.format(msg.getTitle()));
 					tip.add("");
-					tip.add(TextFormatting.GRAY + msg.get("time").getAsString());
-					tip.add(I18n.format("info.email.main.from", I18n.format(msg.get("sender").getAsString())));
+					tip.add(TextFormatting.GRAY + msg.getTime());
+					tip.add(I18n.format("info.email.main.from", I18n.format(msg.getSender())));
 					
 					super.drawHoveringText(tip, mouseX, mouseY+10);
 					break;
@@ -291,31 +289,21 @@ public class GuiEmailMain extends GuiContainer {
 	private int size = -1;
 	
 	private void init() {
-		if(this.size == -1) this.size = this.container.getInbox().size()-(this.container.getInbox().has("dev") ? 1 : 0);
+		if(this.size == -1) this.size = this.container.getInbox().count();
 		if(this.msgKeyMap == null && this.size > 0) {
-			int i = 0;
 			this.msgKeyMap = new int[this.size];
-			for(Entry<String, JsonElement> msg : this.container.getInbox().entrySet()) {
-				if(msg.getKey().equals("dev")) {
-					continue;
-				}
-				this.msgKeyMap[i] = Integer.parseInt(msg.getKey());
-				i+=1;
+			for(int i = 0; i < this.container.getInbox().count(); i++) {
+				this.msgKeyMap[i] = i;
 			}
 			this.msgKeyMap = this.reverseOrder(this.msgKeyMap);
 			this.msgPage = 0;
 			this.goMsg(0);
 		}
-		if(this.size != this.container.getInbox().size()-1) {
-			this.size = this.container.getInbox().size()-1;
-			int i = 0;
+		if(this.size != this.container.getInbox().count()) {
+			this.size = this.container.getInbox().count();
 			this.msgKeyMap = new int[this.size];
-			for(Entry<String, JsonElement> msg : this.container.getInbox().entrySet()) {
-				if(msg.getKey().equals("dev")) {
-					continue;
-				}
-				this.msgKeyMap[i] = Integer.parseInt(msg.getKey());
-				i+=1;
+			for(int i = 0; i < this.container.getInbox().count(); i++) {
+				this.msgKeyMap[i] = i;
 			}
 			this.msgKeyMap = this.reverseOrder(this.msgKeyMap);
 		}
@@ -337,65 +325,52 @@ public class GuiEmailMain extends GuiContainer {
 		super.fontRenderer.drawString((EmailUtils.isInfiniteSize() ? "Infinite" : "2097183"), 28, 152, Color.BLACK.getRGB());
 		super.fontRenderer.drawString("Bytes", 56.3F, 152.0F, Color.BLACK.getRGB(), false);
 		
-		if(this.container.getInbox() == null || this.container.getInbox().size() < 1) return;
+		if(this.container.getInbox() == null
+		|| this.container.getInbox().count()<=0) return;
 		this.init();
 		if(this.showMsg == null) return;
-		int unRead = 0;
-		int unReceive = 0;
-		for(Entry<String, JsonElement> msgs : this.container.getInbox().entrySet()) {
-			if(msgs.getKey().equals("dev")) {
-				continue;
-			}
-			JsonObject msg = msgs.getValue().getAsJsonObject();
-			if(!msg.has("read")) {
-				unRead++;
-			}
-			if(msg.has("items") && ! msg.has("accept")) {
-				unReceive++;
-			}
-		}
+		int unRead = this.container.getInbox().getUnRead();
+		int unReceive = this.container.getInbox().getUnReceived();
 		
 		super.fontRenderer.drawString(I18n.format("info.email.un_read") + ": "+ unRead, 5, 6, Color.BLACK.getRGB());
 		super.fontRenderer.drawString(I18n.format("info.email.un_accept") + ": " + unReceive, 38, 6, Color.BLACK.getRGB());
 		
 		for (int i = 0; i < this.showMsg.length; i++) {
-			String id = Integer.toString(this.showMsg[i]);
-			if(this.container.getInbox().has(id)) {
-				JsonObject msg = this.container.getInbox().get(id).getAsJsonObject();
+			if(this.container.getInbox().has(this.showMsg[i])) {
+				Email msg = this.container.getInbox().get(this.showMsg[i]);
 				
-				if(msg.has("items")) {
-					super.fontRenderer.drawString("$", Candidate_Email_X+44, Candidate_Email_Y + (17 * i), msg.has("accept") ? Color.GREEN.getRGB() :  Color.RED.getRGB());
+				if(msg.hasItems()) {
+					super.fontRenderer.drawString("$", Candidate_Email_X+44, Candidate_Email_Y + (17 * i), msg.isReceived() ? Color.GREEN.getRGB() :  Color.RED.getRGB());
 				}
-				super.fontRenderer.drawString("*", Candidate_Email_X+49, Candidate_Email_Y + (17 * i), msg.has("read") ? Color.GREEN.getRGB() : Color.RED.getRGB());
+				super.fontRenderer.drawString("*", Candidate_Email_X+49, Candidate_Email_Y + (17 * i), msg.isRead() ? Color.GREEN.getRGB() : Color.RED.getRGB());
 				
-				super.drawCenteredString(fontRenderer, id, Candidate_Email_X-9, Candidate_Email_Y + 3 + (17 * i), Color.WHITE.getRGB());
+				super.drawCenteredString(fontRenderer, Integer.toString(this.showMsg[i]), Candidate_Email_X-9, Candidate_Email_Y + 3 + (17 * i), Color.WHITE.getRGB());
 				
-				String sender = I18n.format(msg.get("sender").getAsString());
+				String sender = I18n.format(msg.getSender());
 				if(this.fontRenderer.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender) {
 					sender = this.fontRenderer.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender) + "...";
 				}
 				super.drawString(fontRenderer, sender, Candidate_Email_X+1, Candidate_Email_Y + (17 * i), Color.WHITE.getRGB());
-				super.fontRenderer.drawString(msg.get("time").getAsString().substring(2), Candidate_Email_X+1, Candidate_Email_Y + 7 + (17 * i), Color.BLACK.getRGB());
+				super.fontRenderer.drawString(msg.getTime().substring(2), Candidate_Email_X+1, Candidate_Email_Y + 7 + (17 * i), Color.BLACK.getRGB());
 			}
 		}
 		
 		if(this.currentMsg >= 0) {
-			String curren = Integer.toString(this.currentMsg);
-			if(this.container.getInbox().has(curren)) {
-				JsonObject msg = this.getCurrentMsg();
+			if(this.container.getInbox().has(this.currentMsg)) {
+				Email msg = this.getCurrentMsg();
 				
-				String sender = I18n.format(msg.get("sender").getAsString());
+				String sender = I18n.format(msg.getSender());
 				if(this.fontRenderer.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Current_Email.Sender) {
 					sender = this.fontRenderer.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Current_Email.Sender) + "...";
 				}
-				String title = I18n.format(msg.get("title").getAsString());
+				String title = I18n.format(msg.getTitle());
 				if(this.fontRenderer.getStringWidth(title) > EmailConfigs.Main.Number_Of_Words.Current_Email.Title) {
 					title = this.fontRenderer.trimStringToWidth(title, EmailConfigs.Main.Number_Of_Words.Current_Email.Title) + "...";
 				}
 				super.fontRenderer.drawString(title, EmailConfigs.Main.Position.Current_Email.Title.X, EmailConfigs.Main.Position.Current_Email.Title.Y, Color.WHITE.getRGB());
 				
 				super.fontRenderer.drawString(sender, EmailConfigs.Main.Position.Current_Email.Sender.X, EmailConfigs.Main.Position.Current_Email.Sender.Y, Color.WHITE.getRGB());
-				super.fontRenderer.drawString(msg.get("time").getAsString(), EmailConfigs.Main.Position.Current_Email.Title.Time.X, EmailConfigs.Main.Position.Current_Email.Title.Time.Y, Color.WHITE.getRGB());
+				super.fontRenderer.drawString(msg.getTime(), EmailConfigs.Main.Position.Current_Email.Title.Time.X, EmailConfigs.Main.Position.Current_Email.Title.Time.Y, Color.WHITE.getRGB());
 				
 				super.drawCenteredString(fontRenderer, Integer.toString(this.currentMsg), EmailConfigs.Main.Position.Current_Email.MsgID.X, EmailConfigs.Main.Position.Current_Email.MsgID.Y, Color.WHITE.getRGB());
 				
@@ -405,17 +380,17 @@ public class GuiEmailMain extends GuiContainer {
 					super.fontRenderer.drawString(this.showText.get(this.currentText[i]),  EmailConfigs.Main.Position.Current_Email.Msg.X, EmailConfigs.Main.Position.Current_Email.Msg.Y + (this.showSelectedSpacing * i), Color.BLACK.getRGB());
 				}
 				
-				if(msg.has("items")) {
+				if(msg.hasItems()) {
 					if(this.container.isEmpty() || this.container.getCurrenMsg() != this.currentMsg) {
-						List<ItemStack> stacks = JsonToStackUtil.toStacks(msg.get("items"));
-						if(stacks != null)this.container.putStack(stacks);
+						this.container.putStack(msg.getItems());
 					}
 				}else {
 					if(!this.container.isEmpty()) {
 						this.container.clear();
 					}
 				}
-				if(msg.has("sound")) {
+				
+				if(msg.hasSound()) {
 					GlStateManager.popMatrix();
 					GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 					this.mc.getTextureManager().bindTexture(BackGround);
@@ -439,7 +414,7 @@ public class GuiEmailMain extends GuiContainer {
 		GlStateManager.pushMatrix();
 	}
 	
-	private ISound currentSound;
+	private EmailSenderSndSound currentSound;
 	
 	@Override
 	public void onGuiClosed() {
@@ -450,39 +425,28 @@ public class GuiEmailMain extends GuiContainer {
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
-		if(this.container.getInbox()==null || this.showMsg == null || this.showMsg == null) return;
-		if(this.currentMsg >=0
-		&& this.getCurrentMsg().has("sound")
-		&& EmailGuiHandler.isInRange(mouseX, mouseY, this.getGuiLeft() + 208, this.getGuiTop() + 4, 13, 12)) {
-			if(this.currentSound==null) {
-				this.currentSound = new EmailSenderSndSound(EmailSound.from(this.getCurrentMsg().get("sound").getAsJsonObject()));
-				this.mc.getSoundHandler().playSound(this.currentSound);
-				this.mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-				return;
-			}
-		}
+		if(this.container.getInbox()==null || this.container.getInbox().count()<=0 || this.showMsg == null) return;
+		
 		for(int i = 0; i < 5; i++) {
 			if(EmailGuiHandler.isInRange(mouseX, mouseY, this.getGuiLeft() + Candidate_Email_X, this.getGuiTop() + Candidate_Email_Y + (17 * i) - 1, 54, 15)) {
 				if(i >= this.showMsg.length) break;
-				JsonElement msgE = this.container.getInbox().get(Integer.toString(this.showMsg[i]));
-				if(msgE != null) {
-					JsonObject msg =  msgE.getAsJsonObject();
-					if(!msg.getAsJsonObject().has("read")) {
+				Email msg = this.container.getInbox().get(this.showMsg[i]);
+				if(msg != null) {
+					if(!msg.isRead()) {
 						if(this.container.getEmailSize()+51 >= 2097152L && !EmailUtils.isInfiniteSize()) {
 							emailIsOutStorageSize();
 							return;
 						}
-						EmailMain.net.sendMessageToServer(new MsgRead(this.showMsg[i]));
+						EmailMain.net.sendMessageToServer(new MsgReadEmail(this.showMsg[i]));
 					}
 					this.clearRenderText();
 					this.mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 					this.currentMsg = this.showMsg[i];
 					this.stopSound();
 					this.container.setCurrenMsg(this.currentMsg);
-					String curren = Integer.toString(this.currentMsg);
-					if(this.container.getInbox().has(curren)) {
-						if(msg.has("msgs")) {
-							this.long_line_winding(msg.get("msgs").getAsJsonArray());
+					if(this.container.getInbox().has(this.currentMsg)) {
+						if(msg.hasMessages()) {
+							this.formatMessage(msg.getMsgs());
 							this.textKeyMap = new int[this.showText.size()];
 							for(int j = 0; j < this.showText.size(); j++) {
 								this.textKeyMap[j] = j;
@@ -503,12 +467,21 @@ public class GuiEmailMain extends GuiContainer {
 				break;
 			}
 		}
+		if(this.currentMsg >=0 && this.getCurrentMsg()!=null && this.getCurrentMsg().hasSound()
+		&& EmailGuiHandler.isInRange(mouseX, mouseY, this.getGuiLeft() + 208, this.getGuiTop() + 4, 13, 12)) {
+			if(this.currentSound==null) {
+				this.currentSound = new EmailSenderSndSound(this.getCurrentMsg().getSound(), this.currentMsg);
+				this.mc.getSoundHandler().playSound(this.currentSound);
+				this.mc.getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+				return;
+			}
+		}
 	}
 	
-	private void long_line_winding(JsonArray msgs) {
+	private void formatMessage(List<String> msgs) {
 		this.showText.clear();
 		for(int i = 0; i < msgs.size(); i++) {
-			String msg = I18n.format(msgs.get(i).getAsString());
+			String msg = I18n.format(msgs.get(i));
 			if(this.fontRenderer.getStringWidth(msg) > EmailConfigs.Main.Number_Of_Words.Current_Email.Message) {
 				char[] chs = msg.toCharArray();
 				StringBuilder s = new StringBuilder();
@@ -528,8 +501,8 @@ public class GuiEmailMain extends GuiContainer {
 			}
 		}
 	}
-	protected JsonObject getCurrentMsg() {
-		return this.container.getInbox().get(String.valueOf(this.currentMsg)).getAsJsonObject();
+	protected Email getCurrentMsg() {
+		return this.container.getInbox().get(this.currentMsg);
 	}
 	
 	public void stopSound() {

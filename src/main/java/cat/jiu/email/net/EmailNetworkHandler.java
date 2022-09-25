@@ -24,22 +24,22 @@ public class EmailNetworkHandler {
 		this.channel.registerMessage(MsgOpenGui::handler, MsgOpenGui.class, nextID(), Side.CLIENT);
 		this.channel.registerMessage(MsgOpenGui::handler, MsgOpenGui.class, nextID(), Side.SERVER);
 		
-		this.channel.registerMessage(MsgDelete.Delete::handler, MsgDelete.Delete.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgDelete.AllRead::handler, MsgDelete.AllRead.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgDelete.AllReceive::handler, MsgDelete.AllReceive.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgDeleteEmail.Delete::handler, MsgDeleteEmail.Delete.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgDeleteEmail.AllRead::handler, MsgDeleteEmail.AllRead.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgDeleteEmail.AllReceive::handler, MsgDeleteEmail.AllReceive.class, nextID(), Side.SERVER);
 		
-		this.channel.registerMessage(MsgReceive.Receive::handler, MsgReceive.Receive.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgReceive.All::handler, MsgReceive.All.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgReceiveEmail.Receive::handler, MsgReceiveEmail.Receive.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgReceiveEmail.All::handler, MsgReceiveEmail.All.class, nextID(), Side.SERVER);
 		this.channel.registerMessage(MsgUnreceive::handler, MsgUnreceive.class, nextID(), Side.CLIENT);
 		
-		this.channel.registerMessage(MsgGetter::handler, MsgGetter.class, nextID(), Side.CLIENT);
+		this.channel.registerMessage(MsgSendInboxToClient::handler, MsgSendInboxToClient.class, nextID(), Side.CLIENT);
 		
 		this.channel.registerMessage(MsgSend::handler, MsgSend.class, nextID(), Side.SERVER);
 		this.channel.registerMessage(MsgSend.SendRenderText::handler, MsgSend.SendRenderText.class, nextID(), Side.CLIENT);
 		this.channel.registerMessage(MsgSend.SendCooling::handler, MsgSend.SendCooling.class, nextID(), Side.CLIENT);
 		
-		this.channel.registerMessage(MsgRead::handler, MsgRead.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgRead.All::handler, MsgRead.All.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgReadEmail::handler, MsgReadEmail.class, nextID(), Side.SERVER);
+		this.channel.registerMessage(MsgReadEmail.All::handler, MsgReadEmail.All.class, nextID(), Side.SERVER);
 		this.channel.registerMessage(MsgUnread::handler, MsgUnread.class, nextID(), Side.CLIENT);
 		
 	}

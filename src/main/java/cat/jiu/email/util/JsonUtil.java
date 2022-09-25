@@ -41,12 +41,8 @@ public class JsonUtil {
 		
 		try {
 			File file = new File(path);
-	        if (!file.getParentFile().exists()) {
-	            file.getParentFile().mkdirs();
-	        }
-	        if (file.exists()) {
-	            file.delete();
-	        }
+			if (!file.getParentFile().exists()) file.getParentFile().mkdirs();
+	        if (file.exists()) file.delete();
 	        
 	        file.createNewFile();
 	        OutputStreamWriter write = new OutputStreamWriter(new FileOutputStream(file));

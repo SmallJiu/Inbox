@@ -1,6 +1,7 @@
 package cat.jiu.email.command;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
@@ -13,8 +14,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cat.jiu.email.Email;
+import cat.jiu.email.element.EmailSound;
 import cat.jiu.email.util.EmailConfigs;
-import cat.jiu.email.util.EmailSound;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 import cat.jiu.email.util.JsonUtil;
@@ -43,14 +44,24 @@ class CommandEmailSend extends CommandBase {
 		}
 		EmailFunction function = this.foundFunction(cmdSender, args[0]);
 		if(function == null) {
-			throw new CommandException("email.command.send.list.file_not_found", args[0]);
+			try {
+				throw new CommandException("email.command.send.list.file_not_found", new File("./emails/export/" + args[0]).getCanonicalPath());
+			}catch(IOException e) {
+				throw new CommandException(e.getLocalizedMessage());
+			}
 		}
 		String addresser = function.addresser;
 		if("@a".equals(addresser)) {
+			for(String name : EmailUtils.getAllName()) {
+				Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
+			}
+			cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all", TextFormatting.GREEN));
+			return;
+		}else if("@a-online".equals(addresser)) {
 			for(String name : server.getOnlinePlayerNames()) {
 				Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
 			}
-			System.out.println("All players");
+			cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all.online", TextFormatting.GREEN));
 			return;
 		}else if("@p".equals(addresser)) {
 			if(cmdSender instanceof EntityPlayer) {
@@ -59,9 +70,16 @@ class CommandEmailSend extends CommandBase {
 		}
 		if(args.length >= 2) {
 			if("@a".equals(addresser)) {
+				for(String name : EmailUtils.getAllName()) {
+					Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
+				}
+				cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all", TextFormatting.GREEN));
+				return;
+			}else if("@a-online".equals(addresser)) {
 				for(String name : server.getOnlinePlayerNames()) {
 					Email.sendCMDToPlayerEmail(function.sender, function.title, name, function.msgs, function.sound, function.items);
 				}
+				cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success.all.online", TextFormatting.GREEN));
 				return;
 			}else if("@p".equals(addresser)) {
 				if(cmdSender instanceof EntityPlayer) {
@@ -71,6 +89,7 @@ class CommandEmailSend extends CommandBase {
 				}
 			}
 		}
+		
 		cmdSender.sendMessage(EmailUtils.createTextComponent("info.email.send.success", TextFormatting.GREEN));
 		Email.sendCMDToPlayerEmail(function.sender, function.title, addresser, function.msgs, null, function.items);
 	}

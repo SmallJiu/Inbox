@@ -12,10 +12,11 @@ import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import cat.jiu.email.element.EmailSound;
+import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendEvent.EmailSenderGroup;
-import cat.jiu.email.net.msg.MsgGetter;
+import cat.jiu.email.net.msg.MsgSendInboxToClient;
 import cat.jiu.email.net.msg.MsgSend;
-import cat.jiu.email.util.EmailSound;
 import cat.jiu.email.util.JsonUtil;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -37,6 +38,18 @@ public class Email {
 	
 	public static void sendJavaToPlayerEmail(String sender, String title, String addressee, @Nullable List<String> msgs, @Nullable EmailSound sound, @Nullable List<ItemStack> items) {
 		EmailMain.net.sendMessageToServer(new MsgSend(EmailSenderGroup.SYSTEM, sender, title, addressee, msgs, sound, items));
+	}
+//======
+	public static void sendPlayerToPlayerEmail(String addressee, cat.jiu.email.element.Email email) {
+		EmailMain.net.sendMessageToServer(new MsgSend(EmailSenderGroup.PLAYER, email.getSender(), email.getTitle(), addressee, email.getMsgs(), email.getSound()));
+	}
+	
+	public static void sendCMDToPlayerEmail(String addressee, cat.jiu.email.element.Email email) {
+		EmailMain.net.sendMessageToServer(new MsgSend(EmailSenderGroup.COMMAND, email.getSender(), email.getTitle(), addressee, email.getMsgs(), email.getSound(), email.getItems()));
+	}
+	
+	public static void sendJavaToPlayerEmail(String addressee, cat.jiu.email.element.Email email) {
+		EmailMain.net.sendMessageToServer(new MsgSend(EmailSenderGroup.SYSTEM, email.getSender(), email.getTitle(), addressee, email.getMsgs(), email.getSound(), email.getItems()));
 	}
 	
 	private static final String globalEmailListPath = "./email.json";
@@ -169,11 +182,11 @@ public class Email {
 		return true;
 	}
 
-	public static void sendEmailToClient(JsonObject email, EntityPlayerMP player) {
+	public static void sendEmailToClient(Inbox email, EntityPlayerMP player) {
 		new Thread(()->{
 			// for network delay, need send after
 			try {Thread.sleep(100);}catch(InterruptedException e) { e.printStackTrace();}
-			EmailMain.net.sendMessageToPlayer(new MsgGetter(email), player);
+			EmailMain.net.sendMessageToPlayer(new MsgSendInboxToClient(email), player);
 		}).start();
 	}
 }

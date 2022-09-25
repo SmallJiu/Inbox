@@ -3,6 +3,7 @@ package cat.jiu.email.util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -16,6 +17,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -74,11 +76,15 @@ public class EmailUtils {
 	}
 	
 	public static long getEmailSize(JsonObject email) {
+		return getEmailSize(EmailUtils.toNBT(email));
+	}
+	
+	public static long getEmailSize(NBTTagCompound email) {
 		if(email == null) {
 			return 0;
 		}
 		PacketBuffer pb = new PacketBuffer(Unpooled.buffer());
-		pb.writeCompoundTag(EmailUtils.toNBT(email));
+		pb.writeCompoundTag(email);
 		
 		int i = pb.readerIndex();
         byte b0 = pb.readByte();
@@ -212,6 +218,13 @@ public class EmailUtils {
 		return null;
 	}
 	
+	public static Set<UUID> getAllUUID(){
+		return Sets.newHashSet(UUIDToName.keySet());
+	}
+	public static Set<String> getAllName(){
+		return Sets.newHashSet(NameToUUID.keySet());
+	}
+	
 	public static boolean toJsonFile(String id, JsonObject json) {
 		JsonObject email = new JsonObject();
 		int index = 0;
@@ -227,7 +240,7 @@ public class EmailUtils {
 	}
 	
 	public static boolean deleteEmail(String uid, int msgID) {
-		JsonObject email = getEmail(uid);
+		JsonObject email = getInboxJson(uid);
 		if(email != null && email.has(Integer.toString(msgID))) {
 			email.remove(Integer.toString(msgID));
 		}else {
@@ -260,7 +273,7 @@ public class EmailUtils {
 		EmailPath = null;
 	}
 	
-	public static JsonObject getEmail(String uid) {
+	public static JsonObject getInboxJson(String uid) {
 		File email = new File(getSaveEmailPath() + uid + ".json");
 		if(email.exists()) {
 			JsonElement file = JsonUtil.parse(email);

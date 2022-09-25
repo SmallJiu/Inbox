@@ -1,8 +1,9 @@
-package cat.jiu.email.util;
+package cat.jiu.email.element;
 
 import com.google.gson.JsonObject;
 
 import cat.jiu.email.util.EmailSenderSndSound.Time;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.SoundEvent;
 

@@ -18,12 +18,12 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.email.Email;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.EmailSound;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.event.EmailSendEvent.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailSizeReport;
-import cat.jiu.email.util.EmailSound;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 
@@ -188,7 +188,7 @@ public class MsgSend implements IMessage {
 			this.time = pre.getSendTime();
 			this.sender = pre.getSender();
 			
-			JsonObject email = EmailUtils.getEmail(addresserUUID.toString());
+			JsonObject email = EmailUtils.getInboxJson(addresserUUID.toString());
 			
 			if(email == null) {
 				email = new JsonObject();
@@ -254,7 +254,7 @@ public class MsgSend implements IMessage {
 			return;
 		}
 		
-		JsonObject email = EmailUtils.getEmail(addresserUUID.toString());
+		JsonObject email = EmailUtils.getInboxJson(addresserUUID.toString());
 		
 		if(email == null) {
 			email = new JsonObject();
@@ -347,7 +347,7 @@ public class MsgSend implements IMessage {
 				container.putStack(pre.items);
 				
 				JsonObject msg = new JsonObject();
-				JsonObject email = EmailUtils.getEmail(addresserUUID.toString());
+				JsonObject email = EmailUtils.getInboxJson(addresserUUID.toString());
 				if(email == null) {
 					email = new JsonObject();
 				}

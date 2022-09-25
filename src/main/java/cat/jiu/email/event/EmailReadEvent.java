@@ -1,6 +1,7 @@
 package cat.jiu.email.event;
 
-import com.google.gson.JsonObject;
+import cat.jiu.email.element.Email;
+import cat.jiu.email.element.Inbox;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 
@@ -11,28 +12,28 @@ public class EmailReadEvent {
 	@Cancelable
 	public static class Pre extends Event {
 		public final EntityPlayerMP player;
-		public final JsonObject email;
-		private JsonObject message;
+		public final Inbox inbox;
+		private Email email;
 		public final boolean isReadAll;
-		public Pre(EntityPlayerMP player, JsonObject email, JsonObject message, boolean isReadAll) {
+		public Pre(EntityPlayerMP player, Inbox inbox, Email email, boolean isReadAll) {
 			this.player = player;
+			this.inbox = inbox;
 			this.email = email;
-			this.message = message;
 			this.isReadAll = isReadAll;
 		}
-		public JsonObject getMessage() {return message;}
-		public void setMessage(JsonObject message) {this.message = message;}
+		public Email getMessage() {return email;}
+		public void setMessage(Email message) {this.email = message;}
 	}
 	
 	public static class Post extends Event {
 		public final EntityPlayerMP player;
-		public final JsonObject email;
-		public final JsonObject message;
+		public final Inbox inbox;
+		public final Email email;
 		public final boolean isReadAll;
-		public Post(EntityPlayerMP player, JsonObject email, JsonObject message, boolean isReadAll) {
+		public Post(EntityPlayerMP player, Inbox inbox, Email email, boolean isReadAll) {
 			this.player = player;
+			this.inbox = inbox;
 			this.email = email;
-			this.message = message;
 			this.isReadAll = isReadAll;
 		}
 	}

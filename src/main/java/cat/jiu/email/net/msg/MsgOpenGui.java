@@ -1,9 +1,8 @@
 package cat.jiu.email.net.msg;
 
-import com.google.gson.JsonObject;
-
 import cat.jiu.email.Email;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.Inbox;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.email.util.EmailUtils;
 
@@ -40,10 +39,10 @@ public class MsgOpenGui implements IMessage {
 			player.getServerWorld().addScheduledTask(()->{
 				player.openGui(EmailMain.MODID, this.guiID, player.world, 0,0,0);
 				if(player.openContainer instanceof ContainerEmailMain) {
-					JsonObject msgs = EmailUtils.getEmail(player.getUniqueID().toString());
-					if(msgs != null) {
-						((ContainerEmailMain) player.openContainer).setMsgs(msgs);
-						Email.sendEmailToClient(msgs, player);
+					Inbox inbox = new Inbox(player.getUniqueID(), EmailUtils.getInboxJson(player.getUniqueID().toString()));
+					if(inbox != null) {
+						((ContainerEmailMain) player.openContainer).setMsgs(inbox);
+						Email.sendEmailToClient(inbox, player);
 					}
 				}
 			});

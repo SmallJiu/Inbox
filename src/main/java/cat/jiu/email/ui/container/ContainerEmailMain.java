@@ -2,10 +2,8 @@ package cat.jiu.email.ui.container;
 
 import java.util.List;
 
-import com.google.gson.JsonObject;
-
+import cat.jiu.email.element.Inbox;
 import cat.jiu.email.util.EmailConfigs;
-import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
@@ -17,7 +15,7 @@ import net.minecraftforge.items.SlotItemHandler;
 
 public class ContainerEmailMain extends Container {
 	public static final long EmailMaxSize = 2 * 1024 * 1024;
-	private JsonObject msgs;
+	private Inbox inbox;
 	private static final NonNullList<ItemStack> emptyStacks = NonNullList.withSize(16, ItemStack.EMPTY);
 	private final ItemStackHandler handler = new ItemStackHandler(16);
 	
@@ -36,12 +34,12 @@ public class ContainerEmailMain extends Container {
 		}
 	}
 	
-	private long emailSize = 0;
-	public JsonObject getInbox() {return msgs;}
-	public long getEmailSize() {return emailSize;}
-	public void setMsgs(JsonObject msgs) {
-		this.msgs = msgs;
-		this.emailSize = EmailUtils.getEmailSize(this.msgs);
+	private long inboxSize = 0;
+	public Inbox getInbox() {return inbox;}
+	public long getEmailSize() {return inboxSize;}
+	public void setMsgs(Inbox inbox) {
+		this.inbox = inbox;
+		this.inboxSize = inbox.getInboxSize();
 	}
 	
 	public void putStack(List<ItemStack> items) {

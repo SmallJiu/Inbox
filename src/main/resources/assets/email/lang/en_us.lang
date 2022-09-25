@@ -44,9 +44,10 @@ info.email.send.success=Send e-mail success.
 
 #command
 email.command.send=/email send <File> [Player]
-email.command.send.file_not_found=File not found, Path: ./emails/export/%s
-
+email.command.send.file_not_found=File not found, Path: %s
 email.command.send.msg=/email sendmsg <Sender> <Addressee> <Title> <Messages>
+info.email.send.success.all=Send e-mail to all storage in 'usernamecache.json' players success.
+info.email.send.success.all.online=Send e-mail to all 'online' players success.
 
 email.command.export=/email export - Export hand item to can be parsed json file
 email.command.export.only_player=This command only use on player

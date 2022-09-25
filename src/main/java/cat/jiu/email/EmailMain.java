@@ -60,7 +60,7 @@ public class EmailMain {
 	public static final String MODID = "email";
 	public static final String NAME = "E-mail";
 	public static final String OWNER = "small_jiu";
-	public static final String VERSION = "1.0.0-a0-20220919000017";
+	public static final String VERSION = "1.0.1-a0-20220923015711";
 	public static EmailNetworkHandler net;
 	public static final Logger log = LogManager.getLogger("Email");
 	public static final String SYSTEM = "?????";
@@ -104,13 +104,11 @@ public class EmailMain {
 	public static void onJoin(EntityJoinWorldEvent event) {
 		if(event.getEntity() instanceof EntityPlayer && !event.getWorld().isRemote) {
 			UUID uid = event.getEntity().getUniqueID(); 
-			JsonObject obj = EmailUtils.getEmail(uid.toString());
-			if(obj == null) {
-				obj = new JsonObject();
-			}
-			if(!obj.has("dev")) {
-				JsonObject email = new JsonObject();
-				email.addProperty("dev", true);
+			JsonObject inbox = EmailUtils.getInboxJson(uid.toString());
+			if(inbox == null) inbox = new JsonObject();
+			
+			if(!inbox.has("dev")) {
+				inbox.addProperty("dev", true);
 				
 				JsonObject devEmail = new JsonObject(); {
 					devEmail.addProperty("sender", "email.dev_message.sender");
@@ -122,8 +120,8 @@ public class EmailMain {
 					}
 					devEmail.add("msgs", msgs);
 				}
-				email.add(Integer.toString(obj.size()), devEmail);
-				EmailUtils.toJsonFile(uid.toString(), email);
+				inbox.add(Integer.toString(inbox.size()), devEmail);
+				EmailUtils.toJsonFile(uid.toString(), inbox);
 			}
 		}
 	}
@@ -131,7 +129,7 @@ public class EmailMain {
 	@SubscribeEvent
 	public static void onJoinWorld(EntityJoinWorldEvent event) {
 		if(event.getEntity() instanceof EntityPlayer && !event.getWorld().isRemote) {
-			JsonObject emailOBJ = EmailUtils.getEmail(event.getEntity().getUniqueID().toString());
+			JsonObject emailOBJ = EmailUtils.getInboxJson(event.getEntity().getUniqueID().toString());
 			if(emailOBJ != null) {
 				int unread = getUn(emailOBJ, "read");
 				int unaccept = getUn(emailOBJ, "accept");
@@ -200,7 +198,7 @@ public class EmailMain {
 			
 			if(time <= 0) {
 				time = (int) EmailUtils.parseTick(15, 0);
-				JsonObject email = EmailUtils.getEmail(player.getUniqueID().toString());
+				JsonObject email = EmailUtils.getInboxJson(player.getUniqueID().toString());
 				if(email != null) {
 					int unread = getUn(email, "read");
 					int unreceive = getUn(email, "accept");
