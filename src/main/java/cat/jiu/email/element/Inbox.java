@@ -1,9 +1,11 @@
 package cat.jiu.email.element;
 
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.UUID;
+
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -11,20 +13,21 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import cat.jiu.core.api.handler.IJsonSerializable;
-import cat.jiu.core.api.handler.INBTSerializable;
+import cat.jiu.core.api.handler.ISerializable;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.*;
 
-public final class Inbox implements INBTSerializable, IJsonSerializable {
-	private static final Map<String, Inbox> inboxCache = Maps.newHashMap();
+public final class Inbox implements ISerializable {
+	private static final HashMap<String, Inbox> inboxCache = Maps.newHashMap();
+	
+	/** all custom value will serialize to string */
+	private final HashMap<String, Object> customValue = Maps.newHashMap();
+	private final ArrayList<Email> emails = Lists.newArrayList();
 	private final String owner;
-	private ArrayList<Email> emails = Lists.newArrayList();
 	private boolean dev;
-	private Map<String, Object> customValue = Maps.newHashMap();
 	
 	private Inbox(UUID owner, NBTTagCompound inboxTag) {
 		this.owner = owner.toString();
@@ -40,7 +43,11 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	/**
 	 * @return true if this email list contains no emails.
 	 */
-	public boolean isEmpty() {return this.emails.isEmpty();}
+	public boolean isEmptyEmails() {return this.emails.isEmpty();}
+	/**
+	 * @return true if this custom value list contains no values.
+	 */
+	public boolean isEmptyCustomValues() {return this.customValue.isEmpty();}
 	/**
 	 * @return the inbox owner string
 	 */
@@ -58,7 +65,11 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	/**
 	 * @return emails count
 	 */
-	public int count() {return emails.size();}
+	public int emailCount() {return emails.size();}
+	/**
+	 * @return custom values count
+	 */
+	public int customValueCount() {return customValue.size();}
 	/**
 	 * @return true if inbox has dev msg
 	 */
@@ -70,7 +81,9 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	/**
 	 * @return inbox serialize size, for send network pack
 	 */
-	public long getInboxSize() {return EmailUtils.getSize(this.write(new NBTTagCompound()));}
+	public long getInboxSize() {
+		return EmailUtils.getSize(this.write(new NBTTagCompound()));
+	}
 	/**
 	 * get inbox unread email count
 	 * @return unread count
@@ -97,8 +110,8 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @param id email id
 	 * @return true if inbox has email by id
 	 */
-	public boolean has(int id) {
-		int size = this.emails.size();
+	public boolean hasEmail(int id) {
+		int size = this.emails!=null ? this.emails.size() : 0;
 		return size > 0 && id < size && id >=0;
 	}
 	/**
@@ -106,15 +119,15 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @param id email id
 	 * @return emial by id
 	 */
-	public Email get(int id) {
-		return this.has(id) ? this.emails.get(id) : null;
+	public Email getEmail(int id) {
+		return this.hasEmail(id) ? this.emails.get(id) : null;
 	}
 	/**
 	 * remove email by id
 	 * @return the id pos old email
 	 */
-	public Email delete(int id) {
-		return this.emails.remove(id);
+	public Email deleteEmail(int id) {
+		return this.hasEmail(id) ? this.emails.remove(id) : null;
 	}
 	/**
 	 * set new email to id
@@ -122,26 +135,38 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @param newEmail 
 	 * @return the old email
 	 */
-	public Email set(int id, Email newEmail) {
-		return this.has(id) ? this.emails.set(id, newEmail) : null;
+	public Email setEmail(int id, Email newEmail) {
+		return this.hasEmail(id) ? this.emails.set(id, newEmail) : null;
 	}
 	/**
 	 * add email to inbox
 	 * @return true if add email success
 	 */
-	public boolean add(Email email) {
+	public boolean addEmail(Email email) {
 		return this.emails.add(email);
 	}
 	
+	/**
+	 * add custom value to inbox
+	 */
 	public void addCustom(String key, Object value) {
 		this.customValue.put(key, value);
 	}
+	/**
+	 * get custom value from inbox
+	 */
 	public Object getCustom(String key) {
 		return this.customValue.get(key);
 	}
+	/**
+	 * remove custom value from inbox
+	 */
 	public Object removeCustom(String key) {
 		return this.customValue.remove(key);
 	}
+	/**
+	 * @return true if inbox has {@code key} custom value
+	 */
 	public boolean hasCustomValue(String key) {
 		return this.customValue.containsKey(key);
 	}
@@ -151,7 +176,7 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @return true if save success
 	 */
 	public boolean save() {
-		return JsonUtil.toJsonFile(EmailUtils.getSaveEmailPath() + owner + ".json", this.write(new JsonObject()), false);
+		return JsonUtil.toJsonFile(EmailUtils.getSaveEmailPath() + owner + ".json", this.writeTo(JsonObject.class), false);
 	}
 	
 	/**
@@ -161,7 +186,7 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		this.emails.clear();
 		this.customValue.clear();
 		this.dev = false;
-		this.read(EmailUtils.getInboxJson(this.owner));
+		this.readFrom(EmailUtils.getInboxJson(this.owner));
 		return this;
 	}
 	
@@ -170,11 +195,12 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
 		if(this.dev) json.addProperty("dev", true);
-		for(int i = 0; i < this.emails.size(); i++) {
-			json.add(Integer.toString(i), this.emails.get(i).write(new JsonObject()));
-			
+		if(!this.isEmptyEmails()) {
+			for(int i = 0; i < this.emails.size(); i++) {
+				json.add(Integer.toString(i), this.emails.get(i).writeTo(JsonObject.class));
+			}
 		}
-		if(!this.customValue.isEmpty()) {
+		if(!this.isEmptyCustomValues()) {
 			JsonObject customObj = new JsonObject();
 			for(Entry<String, Object> custom : this.customValue.entrySet()) {
 				Object value = custom.getValue();
@@ -196,7 +222,7 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		if(json!=null && json.size()>0) {
 			for(Entry<String, JsonElement> emails : json.entrySet()) {
 				if(emails.getKey().equalsIgnoreCase("dev")) {
-					this.dev = true;
+					this.dev = emails.getValue().getAsBoolean();
 				}else if(emails.getKey().equalsIgnoreCase("custom")) {
 					for(Entry<String, JsonElement> custom : emails.getValue().getAsJsonObject().entrySet()) {
 						JsonElement value = custom.getValue();
@@ -222,10 +248,14 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	public NBTTagCompound write(NBTTagCompound nbt) {
 		if(nbt==null) nbt = new NBTTagCompound();
 		if(this.dev) nbt.setBoolean("dev", true);
-		for(int i = 0; i < this.emails.size(); i++) {
-			nbt.setTag(Integer.toString(i), this.emails.get(i).write(new NBTTagCompound()));
+		if(!this.isEmptyEmails()) {
+			NBTTagCompound emails = new NBTTagCompound();
+			for(int i = 0; i < this.emails.size(); i++) {
+				emails.setTag(Integer.toString(i), this.emails.get(i).writeTo(NBTTagCompound.class));
+			}
+			nbt.setTag("emails", emails);
 		}
-		if(!this.customValue.isEmpty()) {
+		if(!this.isEmptyCustomValues()) {
 			NBTTagCompound cutsomTag = new NBTTagCompound();
 			for(Entry<String, Object> custom : this.customValue.entrySet()) {
 				Object value = custom.getValue();
@@ -247,7 +277,7 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 		if(nbt!=null && nbt.getSize()>0) {
 			for(String email : nbt.getKeySet()) {
 				if(email.equalsIgnoreCase("dev")) {
-					this.dev = true;
+					this.dev = nbt.getBoolean(email);
 					continue;
 				}else if(email.equalsIgnoreCase("custom")) {
 					NBTTagCompound customTag = nbt.getCompoundTag(email);
@@ -262,10 +292,12 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 						}
 					}
 					continue;
-				}else {
+				}else if(email.equalsIgnoreCase("emails")) {
 					NBTTagCompound emailTag = nbt.getCompoundTag(email);
 					if(emailTag.getSize()>0) {
-						this.emails.add(new Email(emailTag));
+						for(String emailKey : emailTag.getKeySet()) {
+							this.emails.add(new Email(emailTag.getCompoundTag(emailKey)));
+						}
 					}
 				}
 			}
@@ -320,20 +352,19 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	/**
 	 * @return the player inbox
 	 */
-	public static Inbox get(EntityPlayer player) {
+	public static Inbox get(@Nonnull EntityPlayer player) {
 		return get(player.getUniqueID());
 	}
 	/**
 	 * @return the uuid inbox
 	 */
-	public static Inbox get(UUID uid) {
+	public static Inbox get(@Nonnull UUID uid) {
 		return get(uid.toString());
 	}
 	/**
 	 * @return the owner inbox
 	 */
-	public static Inbox get(String owner) {
-		if(owner==null||owner.isEmpty()) return null;
+	public static Inbox get(@Nonnull String owner) {
 		if(inboxCache.containsKey(owner)) {
 			return inboxCache.get(owner).read();
 		}
@@ -347,12 +378,19 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @param inboxTag the inbox serialize nbt
 	 * @return the inbox
 	 */
-	public static Inbox get(UUID uid, NBTTagCompound inboxTag) {
+	public static Inbox get(@Nonnull UUID uid, NBTTagCompound inboxTag) {
 		if(inboxTag==null)return null;
 		if(inboxCache.containsKey(uid.toString())) {
-			return inboxCache.get(uid.toString()).read();
+			Inbox inbox = inboxCache.get(uid.toString()).read();
+			inbox.emails.clear();
+			inbox.customValue.clear();
+			inbox.dev = false;
+			inbox.read(inboxTag);
+			return inbox;
 		}
-		return new Inbox(uid, inboxTag);
+		Inbox inbox = new Inbox(uid, inboxTag);
+		inboxCache.put(uid.toString(), inbox);
+		return inbox;
 	}
 	/**
 	 * get inbox from json
@@ -360,11 +398,18 @@ public final class Inbox implements INBTSerializable, IJsonSerializable {
 	 * @param inboxJson the inbox serialize json
 	 * @return the inbox
 	 */
-	public static Inbox get(UUID uid, JsonObject inboxJson) {
+	public static Inbox get(@Nonnull UUID uid, JsonObject inboxJson) {
 		if(inboxJson==null)return null;
 		if(inboxCache.containsKey(uid.toString())) {
-			return inboxCache.get(uid.toString()).read();
+			Inbox inbox = inboxCache.get(uid.toString());
+			inbox.emails.clear();
+			inbox.customValue.clear();
+			inbox.dev = false;
+			inbox.read(inboxJson);
+			return inbox;
 		}
-		return new Inbox(uid, inboxJson);
+		Inbox inbox = new Inbox(uid, inboxJson);
+		inboxCache.put(uid.toString(), inbox);
+		return inbox;
 	}
 }

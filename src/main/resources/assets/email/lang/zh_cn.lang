@@ -37,7 +37,7 @@ info.email.error.not_found_player=找不到玩家: %s ！
 info.email.error.empty_name=收件人不能为空！
 info.email.error.send_self=你不能发送邮件给自己！
 info.email.error.empty_msgs_item=物品或消息必须有一个不为空！
-info.email.error.send.to_big=邮件物品的NBT过大，请减小体积. 槽位: %s, NBT: %s / 2097152 Bytes
+info.email.error.send.to_big=邮件物品体积过大，请减小体积. 槽位: %s, Size: %s / 2097152 Bytes
 info.email.error.send.to_big.email=发出的邮件过大，请减小体积。%s / 2097152 Bytes
 info.email.send.success=邮件发出成功
 
@@ -55,9 +55,9 @@ email.command.send.ing=发送中，请稍后... 期间可能会掉线，属于�
 email.command.export=/email export [all] - 导出手上或背包物品到文件
 email.command.export.only_player=此命令只能由玩家执行
 email.command.export.empty_item=手上物品不能为空！
-email.command.export.success=导出物品 %s 到文件成功, 文件名: %s
+email.command.export.success=导出物品 %s 到文件成功, 路径: %s
 email.command.export.all.empty_item=背包不能为空！
-email.command.export.all.success=导出背包全部物品到文件成功, 文件名: %s
+email.command.export.all.success=导出背包全部物品到文件成功, 路径: %s
 
 email.command.send.black.add=/email blacklist add <玩家> - 添加玩家到邮寄黑名单, 注: 必须开启黑名单制才能添加
 email.command.send.black.remove=/email blacklist remove <玩家> - 移除玩家的邮寄黑名单

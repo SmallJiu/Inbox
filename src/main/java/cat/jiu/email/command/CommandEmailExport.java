@@ -1,6 +1,7 @@
 package cat.jiu.email.command;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -27,8 +28,6 @@ class CommandEmailExport extends CommandBase {
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 	public String getName() {return "export";}
 	public String getUsage(ICommandSender sender) {return "/email export [all]";}
-	public int getRequiredPermissionLevel() {return 2;}
-
 	@Override
 	public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
 		if(!(sender instanceof EntityPlayer)) {
@@ -37,6 +36,9 @@ class CommandEmailExport extends CommandBase {
 		
 		EntityPlayer player = (EntityPlayer) sender;
 		if(args.length >= 1 && args[0].equals("all")) {
+			if(player.inventory.getSizeInventory() < 1) {
+				throw new CommandException("email.command.export.all.empty_item");
+			}
 			JsonArray stacks = new JsonArray();
 			for(int i = 0; i < player.inventory.getSizeInventory(); i++) {
 				ItemStack stack = player.inventory.getStackInSlot(i);
@@ -44,25 +46,26 @@ class CommandEmailExport extends CommandBase {
 					stacks.add(JsonToStackUtil.toJson(stack));
 				}
 			}
-			if(stacks.size() < 1) {
-				throw new CommandException("email.command.export.all.empty_item");
-			}
-			
 			String path = EmailUtils.exportPath + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, stacks, false);
-			player.sendMessage(EmailUtils.createTextComponent("email.command.export.all.success", TextFormatting.GREEN, dateFormat.format(new Date()) + ".json"));
+			try {
+				player.sendMessage(EmailUtils.createTextComponent("email.command.export.all.success", TextFormatting.GREEN, new File(path).getCanonicalPath()));
+			}catch(IOException e) {
+				throw new CommandException(e.getLocalizedMessage());
+			}
 		}else {
 			ItemStack stack = player.getHeldItemMainhand();
 			if(stack.isEmpty()) {
 				throw new CommandException("email.command.export.empty_item");
 			}
-			JsonArray stacks = new JsonArray();
-			stacks.add(JsonToStackUtil.toJson(stack));
-			
 			ResourceLocation name = stack.getItem().getRegistryName();
 			String path = EmailUtils.exportPath + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
-			JsonUtil.toJsonFile(path, stacks, false);
-			player.sendMessage(EmailUtils.createTextComponent("email.command.export.success", TextFormatting.GREEN, name.toString(), dateFormat.format(new Date()) + ".json"));
+			JsonUtil.toJsonFile(path, JsonToStackUtil.toJson(stack), false);
+			try {
+				player.sendMessage(EmailUtils.createTextComponent("email.command.export.success", TextFormatting.GREEN, name.toString(), new File(path).getCanonicalPath()));
+			}catch(IOException e) {
+				throw new CommandException(e.getLocalizedMessage());
+			}
 		}
 	}
 	

@@ -46,7 +46,7 @@ public final class EmailConfigs {
 		public class Size {
 			@Config.LangKey("email.config.main.size.width")
 			@Config.Comment("gui width")
-			public int Width = 227;
+			public int Width = 230;
 			@Config.LangKey("email.config.main.size.height")
 			@Config.Comment("gui height")
 			public int Height = 164;
@@ -92,7 +92,7 @@ public final class EmailConfigs {
 				@Config.Comment("items position")
 				public Items Items = new Items();
 				public class Items {
-					public int X = 43;
+					public int X = 45;
 					public int Y = 109;
 				}
 				@Config.LangKey("email.config.title")
@@ -105,7 +105,7 @@ public final class EmailConfigs {
 					@Config.Comment("send time position")
 					public Time Time = new Time();
 					public class Time {
-						public int X = 158;
+						public int X = 161;
 						public int Y = 20;
 					}
 				}
@@ -130,13 +130,13 @@ public final class EmailConfigs {
 			public class CurrentEmail {
 				@Config.LangKey("email.config.msg")
 				@Config.RangeInt(min = 1)
-				public int Message = 105;
+				public int Message = 106;
 				@Config.LangKey("email.config.title")
 				@Config.RangeInt(min = 1)
-				public int Title = 124;
+				public int Title = 125;
 				@Config.LangKey("email.config.sender")
 				@Config.RangeInt(min = 1)
-				public int Sender = 60;
+				public int Sender = 61;
 			}
 			@Config.LangKey("email.config.main.number_of_words.candidate")
 			@Config.Comment("candidate msgs")

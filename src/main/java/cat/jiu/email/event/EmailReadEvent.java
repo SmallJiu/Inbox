@@ -21,7 +21,7 @@ public class EmailReadEvent {
 			this.email = email;
 			this.isReadAll = isReadAll;
 		}
-		public Email getMessage() {return email;}
+		public Email getEmail() {return email;}
 		public void setMessage(Email message) {this.email = message;}
 	}
 	

@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "cat.jiu.email.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "email.mixin.refmap.json",
+	"mixins": [
+		"MixinNBTBase"
+	],
+	"client": [],
+	"server": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

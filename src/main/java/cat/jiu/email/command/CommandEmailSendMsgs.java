@@ -7,7 +7,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.EmailAPI;
-import cat.jiu.email.element.Message;
+import cat.jiu.email.element.Email;
+import cat.jiu.email.element.Text;
 import cat.jiu.email.util.EmailConfigs;
 
 import net.minecraft.command.CommandBase;
@@ -24,14 +25,14 @@ class CommandEmailSendMsgs extends CommandBase {
 		if(args.length < 4) {
 			throw new CommandException(this.getUsage(cmdSender));
 		}
-		String sender = args[0];
+		Text sender = new Text(args[0]);
 		String addresser = args[1];
-		Message title = new Message(args[2]);
-		List<Message> msgs = Lists.newArrayList();
+		Text title = new Text(args[2]);
+		List<Text> msgs = Lists.newArrayList();
 		for(int i = 3; i < args.length; i++) {
-			msgs.add(new Message(args[i]));
+			msgs.add(new Text(args[i]));
 		}
-		EmailAPI.sendCommandEmail(addresser, new cat.jiu.email.element.Email(title, sender, null, null, msgs));
+		EmailAPI.sendCommandEmail(addresser, new Email(title, sender, null, null, msgs));
 	}
 	
 	@Override

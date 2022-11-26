@@ -1,9 +1,11 @@
 package cat.jiu.email.util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
 import com.google.gson.Gson;
@@ -13,24 +15,34 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
-public class JsonUtil {
-	static final Gson gson = new GsonBuilder().create();
+@SuppressWarnings("unchecked")
+public final class JsonUtil {
+	public static final Gson gson = new GsonBuilder().serializeNulls().create();
 	public static final JsonParser parser = new JsonParser();
-	public static JsonElement parse(File file) {
+	public static <E extends JsonElement> E parse(File file) {
 		if(!file.exists()) return null;
 		try {
-			return parser.parse(new FileReader(file));
+			return (E) parser.parse(new InputStreamReader(new FileInputStream(file)));
 		}catch(JsonIOException | JsonSyntaxException | FileNotFoundException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
-	public static JsonElement parse(String path) {
+	public static <E extends JsonElement> E parse(String path) {
 		try {
 			File file = new File(path);
 			if(!file.exists()) return null;
-			return parser.parse(new FileReader(file));
+			return (E) parser.parse(new InputStreamReader(new FileInputStream(file)));
 		}catch(JsonIOException | JsonSyntaxException | FileNotFoundException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public static <E extends JsonElement> E parse(InputStream path) {
+		try {
+			return (E) parser.parse(new InputStreamReader(path));
+		}catch(JsonIOException | JsonSyntaxException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -59,10 +71,9 @@ public class JsonUtil {
         
         for (int i = 0; i < json.length(); i++) {
         	char key = json.charAt(i);
-            
             if (key == '[' || key == '{') {
         		result.append(key);
-            	if(i-1 > 0) {
+        		if(i-1 > 0) {
             		if(json.charAt(i-1) != '\"') {
                         result.append('\n');
                         number++;
@@ -76,7 +87,7 @@ public class JsonUtil {
                 continue;
             }
             
-            if (key == ']' || key == '}') {
+            if ((key == ']' || key == '}')) {
             	if(i+1 < json.length()) {
             		if(json.charAt(i+1) != '\"') {
                 		result.append('\n');
@@ -99,7 +110,8 @@ public class JsonUtil {
                     result.append(indent(number));
             	}else {
             		if(json.substring(i-4, i).equals("true") 
-            		|| json.substring(i-5, i).equals("false")) {
+            		|| json.substring(i-5, i).equals("false")
+            		|| json.substring(i-4, i).equals("null")) {
                         result.append('\n');
                         result.append(indent(number));
             		}
@@ -111,8 +123,8 @@ public class JsonUtil {
         		result.append(key);
             	if(json.charAt(i-1) == '"') {
 	            	result.append(' ');
-	            	continue;
             	}
+            	continue;
             }
             result.append(key);
         }
@@ -122,13 +134,22 @@ public class JsonUtil {
     }
 	
 	private static boolean canNextLine(char c) {
-		if(c == '}' || c == ']' || c == '"') {
-			return true;
+		switch(c) {
+			case ']':
+			case '"':
+			case '}':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9': return true;
+			default: return false;
 		}
-		if(c=='0' || c=='1' || c=='2' || c=='3' || c=='4' || c=='5' || c=='6' || c=='7' || c=='8' || c=='9') {
-			return true;
-		}
-		return false;
 	}
 	
 	private static String indent(int number) {

@@ -3,31 +3,40 @@ package cat.jiu.email.element;
 import java.util.Arrays;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
-import cat.jiu.core.api.handler.IJsonSerializable;
-import cat.jiu.core.api.handler.INBTSerializable;
 import cat.jiu.email.net.msg.MsgSend;
+
+import net.minecraft.client.resources.I18n;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 
-public class Message implements INBTSerializable, IJsonSerializable {
-	public static final Message empty = new Message("") {
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+public class Text {
+	public static final Text empty = new Text("") {
 		public void setKey(String key) {}
 	};
-	String key;
-	Object[] args = MsgSend.SendRenderText.empty;
 	
-	public Message(String key, Object... args) {
+	protected String key = "";
+	protected Object[] args = MsgSend.SendRenderText.empty;
+	
+	public Text(String key, Object... args) {
 		this.key = key;
-		this.args = args;
+		if(args!=null&&args.length>0) this.args = args; 
 	}
-	public Message(JsonObject json) {
-		this.read(json);
+	public Text(JsonElement json) {
+		this.readFromJson(json);
 	}
-	public Message(NBTTagCompound nbt) {
-		this.read(nbt);
+	public Text(NBTBase nbt) {
+		this.readFromNBT(nbt);
 	}
 	
 	public String getKey() {
@@ -38,6 +47,15 @@ public class Message implements INBTSerializable, IJsonSerializable {
 	}
 	public Object[] getArgs() {
 		return args;
+	}
+	
+	@SideOnly(Side.CLIENT)
+	public String format() {
+		return I18n.format(key, args);
+	}
+	
+	public TextComponentTranslation toTextComponent() {
+		return new TextComponentTranslation(key, args);
 	}
 	
 	public JsonArray writeArgs(JsonArray args) {
@@ -74,7 +92,7 @@ public class Message implements INBTSerializable, IJsonSerializable {
 			return false;
 		if(getClass() != obj.getClass())
 			return false;
-		Message other = (Message) obj;
+		Text other = (Text) obj;
 		if(!Arrays.equals(args, other.args))
 			return false;
 		if(key == null) {
@@ -84,65 +102,71 @@ public class Message implements INBTSerializable, IJsonSerializable {
 			return false;
 		return true;
 	}
-	
-	@Override
-	public JsonObject write(JsonObject json) {
-		if(json==null) json=new JsonObject();
+	public JsonElement writeToJson() {
+		JsonElement e = null;
 		
-		json.addProperty("key", this.key);
 		if(this.args!=null&&this.args.length>0) {
+			e = new JsonObject();
+			e.getAsJsonObject().addProperty("key", this.key);
 			JsonArray args = new JsonArray();
 			for(int i = 0; i < this.args.length; i++) {
 				args.add(String.valueOf(this.args[i]));
 			}
-			json.add("args", args);
+			e.getAsJsonObject().add("args", args);
+		}else if(!"".equals(this.key)) {
+			e = new JsonPrimitive(this.key);
+		}else {
+			e = JsonNull.INSTANCE;
 		}
 		
-		return json;
+		return e;
 	}
-	@Override
-	public void read(JsonObject json) {
-		if(json==null||json.size()<1) {
-			this.key = "";
-		}else {
-			this.key = json.get("key").getAsString();
-			if(json.has("args")) {
-				JsonArray args = json.getAsJsonArray("args");
+	
+	public void readFromJson(JsonElement json) {
+		if(json instanceof JsonObject) {
+			this.key = json.getAsJsonObject().get("key").getAsString();
+			if(json.getAsJsonObject().has("args")) {
+				JsonArray args = json.getAsJsonObject().getAsJsonArray("args");
 				this.args = new Object[args.size()];
 				for(int i = 0; i < this.args.length; i++) {
 					this.args[i] = args.get(i).getAsString();
 				}
 			}
+		}else if(json instanceof JsonPrimitive) {
+			this.key = json.getAsString();
 		}
 	}
-	@Override
-	public NBTTagCompound write(NBTTagCompound nbt) {
-		if(nbt==null) nbt=new NBTTagCompound();
+	public NBTBase writeToNBT() {
+		NBTBase nbt = null;
 		
-		nbt.setString("key", this.key);
 		if(this.args!=null&&this.args.length>0) {
+			nbt=new NBTTagCompound();
+			((NBTTagCompound) nbt).setString("key", this.key);
 			NBTTagList args = new NBTTagList();
 			for(int i = 0; i < this.args.length; i++) {
 				args.appendTag(new NBTTagString(String.valueOf(this.args[i])));
 			}
-			nbt.setTag("args", args);
+			((NBTTagCompound) nbt).setTag("args", args);
+		}else if(!"".equals(this.key)) {
+			nbt= new NBTTagString(this.key);
+		}else {
+			nbt = Email.emptyTag;
 		}
-		
 		return nbt;
 	}
-	@Override
-	public void read(NBTTagCompound nbt) {
-		if(nbt==null||nbt.getSize()<1) {
-			this.key="";
-		}else {
-			this.key = nbt.getString("key");
-			if(nbt.hasKey("args")) {
-				NBTTagList args = nbt.getTagList("args", 8);
+	
+	public void readFromNBT(NBTBase nbt) {
+		if(nbt instanceof NBTTagCompound) {
+			this.key = ((NBTTagCompound)nbt).getString("key");
+			if(((NBTTagCompound)nbt).hasKey("args")) {
+				NBTTagList args = ((NBTTagCompound)nbt).getTagList("args", 8);
 				this.args = new Object[args.tagCount()];
 				for(int i = 0; i < this.args.length; i++) {
 					this.args[i] = args.getStringTagAt(i);
 				}
 			}
+		}else if(nbt instanceof NBTTagString) {
+			this.key = ((NBTTagString) nbt).getString();
 		}
 	}
 }

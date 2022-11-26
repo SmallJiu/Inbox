@@ -2,6 +2,7 @@ package cat.jiu.email.net.msg;
 
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReadEvent;
 import cat.jiu.email.ui.container.ContainerEmailMain;
@@ -31,17 +32,18 @@ public class MsgReadEmail implements IMessage {
 			world.addScheduledTask(()->{
 				Inbox inbox = Inbox.get(player);
 				
-				if(inbox.has(this.msgID)) {
-					cat.jiu.email.element.Email email = inbox.get(this.msgID);
-					
-					EmailReadEvent.Pre pre = new EmailReadEvent.Pre(player, inbox, email, false);
-					if(MinecraftForge.EVENT_BUS.post(pre)) {
-						return;
-					}
-					email = pre.getMessage();
-					inbox.set(this.msgID, email);
+				if(inbox.hasEmail(this.msgID)) {
+					Email email = inbox.getEmail(this.msgID);
 					
 					if(!email.isRead()) {
+						EmailReadEvent.Pre pre = new EmailReadEvent.Pre(player, inbox, email, false);
+						if(MinecraftForge.EVENT_BUS.post(pre)) {
+							inbox.save();
+							return;
+						}
+						email = pre.getEmail();
+						inbox.setEmail(this.msgID, email);
+						
 						email.setRead(true);
 						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) player);
 						
@@ -52,7 +54,6 @@ public class MsgReadEmail implements IMessage {
 						MinecraftForge.EVENT_BUS.post(new EmailReadEvent.Post(player, inbox, email, false));
 					}
 				}
-				
 			});
 		}
 		return null;
@@ -68,11 +69,11 @@ public class MsgReadEmail implements IMessage {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.count(); i++) {
-						cat.jiu.email.element.Email email = inbox.get(i);
+					for(int i = 0; i < inbox.emailCount(); i++) {
+						Email email = inbox.getEmail(i);
 						EmailReadEvent.Pre pre = new EmailReadEvent.Pre(player, inbox, email, true);
 						if(MinecraftForge.EVENT_BUS.post(pre)) continue;
-						email = pre.getMessage();
+						email = pre.getEmail();
 						
 						if(!email.isRead()) {
 							email.setRead(true);

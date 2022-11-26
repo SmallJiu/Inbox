@@ -3,6 +3,7 @@ package cat.jiu.email.net.msg;
 import java.util.List;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReceiveEvent;
 import cat.jiu.email.ui.container.ContainerEmailMain;
@@ -34,14 +35,14 @@ public class MsgReceiveEmail  {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					if(inbox!=null && inbox.has(this.msgID)) {
-						cat.jiu.email.element.Email email = inbox.get(msgID);
+					if(inbox!=null && inbox.hasEmail(this.msgID)) {
+						Email email = inbox.getEmail(msgID);
 						EmailReceiveEvent.Pre pre = new EmailReceiveEvent.Pre(player, inbox, email, false);
 						if(MinecraftForge.EVENT_BUS.post(pre)) {
 							return;
 						}
 						email = pre.getEmail();
-						inbox.set(msgID, email);
+						inbox.setEmail(msgID, email);
 						
 						if(!email.isReceived() && email.hasItems()) {
 							if(inbox.getInboxSize()+55 >= 2097152L && !EmailUtils.isInfiniteSize()) {
@@ -75,12 +76,12 @@ public class MsgReceiveEmail  {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.count(); i++) {
-						cat.jiu.email.element.Email email = inbox.get(i);
+					for(int i = 0; i < inbox.emailCount(); i++) {
+						Email email = inbox.getEmail(i);
 						EmailReceiveEvent.Pre pre = new EmailReceiveEvent.Pre(player, inbox, email, true);
 						if(MinecraftForge.EVENT_BUS.post(pre)) continue;
 						email = pre.getEmail();
-						inbox.set(i, email);
+						inbox.setEmail(i, email);
 						
 						if(!email.isReceived() && email.hasItems()) {
 							if(inbox.getInboxSize()+55 >= 2097152L && !EmailUtils.isInfiniteSize()) {

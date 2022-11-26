@@ -1,6 +1,0 @@
-Manifest-Version: 1.0
-FMLAT: email_at.cfg
-Rsrc-Class-Path: ./ gson-2.8.0.jar
-Class-Path: .
-Rsrc-Main-Class: cat.jiu.email.FormatUtil
-Main-Class: org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader

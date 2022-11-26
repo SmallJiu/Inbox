@@ -54,9 +54,9 @@ email.command.send.ing=Sending, please wait... It is normal that the line may be
 email.command.export=/email export - Export hand item to can be parsed json file
 email.command.export.only_player=This command only use on player
 email.command.export.empty_item=Hand item can not be empty !
-email.command.export.success=Export item %s to file success, File name: %s
+email.command.export.success=Export item %s to file success, File path: %s
 email.command.export.all.empty_item=player inventory can not be empty !
-email.command.export.all.success=Export inventory items to file success, File name: %s
+email.command.export.all.success=Export inventory items to file success, File path: %s
 
 email.command.send.black.add=/email blacklist add <Player> - Add player send email blacklist, note: only enable on config 'blacklist'
 email.command.send.black.remove=/email blacklist remove <Player> - Remove player send email blacklist

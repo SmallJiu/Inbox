@@ -48,17 +48,4 @@ public class EmailSenderSndSound extends MovingSound {
 		}
 		return false;
 	}
-	
-	public static class Time {
-		public final long tick;
-		public Time(long tick) {
-			this(0,0,tick);
-		}
-		public Time(long m, long s, long tick) {
-			this.tick = parseTick(0,0,m,s,tick);
-		}
-		public static long parseTick(long day, long h, long m, long s, long tick) {
-			return (((((((day*24)+h)*60)+m)*60)+s)*20)+tick;
-		}
-	}
 }

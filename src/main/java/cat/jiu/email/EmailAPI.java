@@ -41,11 +41,11 @@ public class EmailAPI {
 		}else {
 			if(EmailUtils.hasNameOrUUID(addressee)) {
 				Inbox inbox = Inbox.get(EmailUtils.getUUID(addressee));
-				inbox.add(email);
+				inbox.addEmail(email);
 				
 				if(EmailUtils.saveInboxToDisk(inbox, 10)) {
 					EmailMain.log.info("{} send a email to Player: {}, UUID: {}", email.getSender(), addressee, inbox.getOwnerAsUUID());
-					MsgSend.sendLog(email.getSender(), addressee, inbox.getOwnerAsUUID());
+					MsgSend.sendLog(email.getSender().getKey(), addressee, inbox.getOwnerAsUUID());
 					EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(inbox.getOwnerAsUUID());
 					if(addresser!=null) {
 						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);

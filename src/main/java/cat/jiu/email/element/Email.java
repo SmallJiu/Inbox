@@ -8,24 +8,27 @@ import java.util.Map.Entry;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
-import cat.jiu.core.api.handler.IJsonSerializable;
-import cat.jiu.core.api.handler.INBTSerializable;
+import cat.jiu.core.api.handler.ISerializable;
 import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.util.JsonToStackUtil;
-
+import cat.jiu.email.util.NBTTagNull;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 
-public final class Email implements INBTSerializable, IJsonSerializable {
-	protected Message title;
+public class Email implements ISerializable {
+	protected Text title;
 	protected String time;
-	protected String sender;
+	protected Text sender;
 	protected EmailSound sound;
 	protected List<ItemStack> items;
-	protected List<Message> msgs;
+	protected List<Text> msgs;
 	protected boolean read;
 	protected boolean accept;
 	
@@ -38,7 +41,7 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 	 * 
 	 * @author small_jiu
 	 */
-	public Email(Message title, String sender, EmailSound sound, List<ItemStack> items, List<Message> msgs) {
+	public Email(Text title, Text sender, EmailSound sound, List<ItemStack> items, List<Text> msgs) {
 		this.title = title;
 		this.time = MsgSend.getTime();
 		this.sender = sender;
@@ -55,16 +58,16 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 	}
 	
 	public String getTime() {return time;}
-	public Message getTitle() {return title;}
-	public String getSender() {return sender;}
+	public Text getTitle() {return title;}
+	public Text getSender() {return sender;}
 	public EmailSound getSound() {return sound;}
 	public boolean isRead() {return read;}
 	public boolean isReceived() {return accept;}
 	public List<ItemStack> getItems() {return Lists.newArrayList(items);}
-	public List<Message> getMsgs() {return msgs;}
+	public List<Text> getMsgs() {return msgs;}
 
-	public void setSender(String sender) {this.sender = sender;}
-	public void setTitle(Message title) {this.title = title;}
+	public void setSender(Text sender) {this.sender = sender;}
+	public void setTitle(Text title) {this.title = title;}
 	public void setRead(boolean read) {this.read = read;}
 	public void setAccept(boolean accept) {this.accept = accept;}
 	public void setTime(LocalDateTime time) {this.time = MsgSend.dateFormat.format(time);}
@@ -82,7 +85,7 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 	}
 	public void addMessage(String msg, Object... args) {
 		if(msg!=null && !msg.isEmpty()) {
-			this.msgs.add(new Message(msg, args));
+			this.msgs.add(new Text(msg, args));
 		}
 	}
 	public boolean hasSound() {
@@ -99,9 +102,9 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
 		
-		json.add("title", this.title.write(new JsonObject()));
+		json.add("title", this.title.writeToJson());
 		json.addProperty("time", this.time);
-		json.addProperty("sender", this.sender);
+		json.add("sender", this.sender.writeToJson());
 		if(read) json.addProperty("read", true);
 		if(accept) json.addProperty("accept", true);
 		if(this.hasSound()) json.add("sound", this.sound.toJson());
@@ -111,20 +114,28 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 		if(this.hasMessages()) {
 			JsonObject msgs = new JsonObject();
 			for(int i = 0; i < this.msgs.size(); i++) {
-				Message msg = this.msgs.get(i);
-				msgs.add(msg.key, msg.writeArgs(new JsonArray()));
+				Text msg = this.msgs.get(i);
+				if(msg.args!=null && msg.args.length>0) {
+					JsonArray arg = new JsonArray();
+					for(int j = 0; j < msg.args.length; j++) {
+						arg.add(String.valueOf(msg.args[j]));
+					}
+					msgs.add(msg.key, arg);
+				}else {
+					msgs.add(msg.key, JsonNull.INSTANCE);
+				}
 			}
 			json.add("msgs", msgs);
 		}
 		return json;
 	}
-
+	
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			this.title = new Message(json.get("title").getAsJsonObject());
+			this.title = new Text(json.get("title"));
 			this.time = json.get("time").getAsString();
-			this.sender = json.get("sender").getAsString();
+			this.sender = new Text(json.get("sender"));
 			if(json.has("read")) this.read = true;
 			if(json.has("accept")) this.accept = true;
 			if(json.has("sound")) this.sound = EmailSound.from(json.get("sound").getAsJsonObject());
@@ -133,36 +144,36 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 			}
 			if(json.has("msgs")) {
 				this.msgs = Lists.newArrayList();
+				JsonObject msgs = json.getAsJsonObject("msgs");
 				
-				JsonObject msgs = json.get("msgs").getAsJsonObject();
 				for(Entry<String, JsonElement> msg : msgs.entrySet()) {
 					String key = msg.getKey();
-					JsonArray value = msg.getValue().getAsJsonArray();
-					if(value.size()>0) {
-						Object[] arg = new Object[value.size()];
-						for(int i = 0; i < arg.length; i++) {
-							arg[i] = value.get(i).getAsString();
+					JsonElement a = msg.getValue();
+					if(a.isJsonArray()) {
+						JsonArray argJson = a.getAsJsonArray();
+						Object[] args = new Object[argJson.size()];
+						for(int i = 0; i < args.length; i++) {
+							args[i] = argJson.get(i).getAsString();
 						}
-						this.msgs.add(new Message(key, arg));
+						this.msgs.add(new Text(key, args));
 					}else {
-						if(key.isEmpty()) {
-							this.msgs.add(Message.empty);
-						}else {
-							this.msgs.add(new Message(key));
-						}
+						this.msgs.add(new Text(key));
 					}
 				}
 			}
 		}
 	}
 
+	static final boolean debug = true;
+	static final NBTBase emptyTag = debug ? new NBTTagNull() : new NBTTagByte((byte)0);
+
 	@Override
 	public NBTTagCompound write(NBTTagCompound nbt) {
 		if(nbt==null) nbt = new NBTTagCompound();
 		
-		nbt.setTag("title", this.title.write(new NBTTagCompound()));
+		nbt.setTag("title", this.title.writeToNBT());
 		nbt.setString("time", this.time);
-		nbt.setString("sender", this.sender);
+		nbt.setTag("sender", this.sender.writeToNBT());
 		if(read) nbt.setBoolean("read", true);
 		if(accept) nbt.setBoolean("accept", true);
 		if(this.hasSound()) nbt.setTag("sound", this.sound.toNBT());
@@ -176,8 +187,16 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 		if(this.hasMessages()) {
 			NBTTagCompound msgs = new NBTTagCompound();
 			for(int i = 0; i < this.msgs.size(); i++) {
-				Message msg = this.msgs.get(i);
-				msgs.setTag(msg.key, msg.writeArgs(new NBTTagList()));
+				Text msg = this.msgs.get(i);
+				if(msg.args!=null && msg.args.length>0) {
+					NBTTagList args = new NBTTagList();
+					for(int j = 0; j < msg.args.length; j++) {
+						args.appendTag(new NBTTagString(String.valueOf(msg.args[i])));
+					}
+					msgs.setTag(msg.key, args);
+				}else {
+					msgs.setTag(msg.key, emptyTag);
+				}
 			}
 			nbt.setTag("msgs", msgs);
 		}
@@ -188,9 +207,9 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 	@Override
 	public void read(NBTTagCompound nbt) {
 		if(nbt!=null && nbt.getSize()>0) {
-			this.title = new Message(nbt.getCompoundTag("title"));
+			this.title = new Text(nbt.getTag("title"));
 			this.time = nbt.getString("time");
-			this.sender = nbt.getString("sender");
+			this.sender = new Text(nbt.getTag("sender"));
 			if(nbt.hasKey("read")) this.read = true;
 			if(nbt.hasKey("accept")) this.accept = true;
 			if(nbt.hasKey("sound")) this.sound = EmailSound.from(nbt.getCompoundTag("sound"));
@@ -204,20 +223,19 @@ public final class Email implements INBTSerializable, IJsonSerializable {
 			if(nbt.hasKey("msgs")) {
 				this.msgs = Lists.newArrayList();
 				NBTTagCompound msgs = nbt.getCompoundTag("msgs");
-				for(String key : msgs.getKeySet()) {
-					NBTTagList argList = msgs.getTagList(key, 8);
-					if(argList.tagCount()>0) {
-						Object[] arg = new Object[argList.tagCount()];
-						for(int i = 0; i < arg.length; i++) {
-							arg[i] = argList.getStringTagAt(i);
+				List<String> keys = Lists.newArrayList(msgs.getKeySet());
+				for(int i = 0; i < keys.size(); i++) {
+					String key = keys.get(i);
+					NBTBase msg = msgs.getTag(key);
+					if(msg instanceof NBTTagNull || msg instanceof NBTTagByte) {
+						this.msgs.add(new Text(key));
+					}else if(msg instanceof NBTTagList) {
+						NBTTagList argNBT = (NBTTagList) msg;
+						Object[] args = new Object[argNBT.tagCount()];
+						for(int j = 0; j < args.length; j++) {
+							args[j] = argNBT.getStringTagAt(j);
 						}
-						this.msgs.add(new Message(key, arg));
-					}else {
-						if(key.isEmpty()) {
-							this.msgs.add(Message.empty);
-						}else {
-							this.msgs.add(new Message(key));
-						}
+						this.msgs.add(new Text(key, args));
 					}
 				}
 			}

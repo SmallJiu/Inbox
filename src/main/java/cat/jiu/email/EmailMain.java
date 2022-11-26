@@ -11,7 +11,7 @@ import cat.jiu.core.api.handler.IFunction;
 import cat.jiu.email.command.EmailCommands;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.element.Message;
+import cat.jiu.email.element.Text;
 import cat.jiu.email.event.EmailSendDevMessageEvent;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.net.msg.MsgOpenGui;
@@ -22,6 +22,7 @@ import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailExecuteEvent;
 import cat.jiu.email.util.EmailUtils;
+import cat.jiu.email.util.NBTTagNull;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -31,9 +32,11 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -64,9 +67,9 @@ public class EmailMain {
 	public static final String MODID = "email";
 	public static final String NAME = "E-mail";
 	public static final String OWNER = "small_jiu";
-	public static final String VERSION = "1.0.2-a0-20220925204935";
+	public static final String VERSION = "1.0.2-a1-20220928013822";
 	public static EmailNetworkHandler net;
-	public static final Logger log = LogManager.getLogger("EmailAPI");
+	public static final Logger log = LogManager.getLogger("Email");
 	public static final String SYSTEM = "?????";
 	public static MinecraftServer server;
 	
@@ -76,6 +79,14 @@ public class EmailMain {
 		modId = EmailMain.MODID
 	)
 	public static ServerProxy proxy;
+	
+	@Mod.Instance
+	public static EmailMain instance;
+	public EmailMain() {}
+	static {
+//		org.spongepowered.asm.launch.MixinBootstrap.init();
+//		org.spongepowered.asm.mixin.Mixins.addConfiguration("email.mixin.json");
+	}
 	
 	@Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
@@ -104,19 +115,28 @@ public class EmailMain {
 		server = null;
 		EmailUtils.clearEmailPath();
 	}
-
+	static final Text title = new Text("email.dev_message.title", "");
+	static final Text sender = new Text("email.dev_message.sender");
+	
 	@SubscribeEvent
 	public static void onJoin(PlayerLoggedInEvent event) {
+		event.player.sendMessage(new TextComponentString(NBTBase.getTagTypeName(-1)+" | "+String.valueOf(new NBTTagNull())));
 		if(!event.player.world.isRemote) {
 			Inbox inbox = Inbox.get(event.player);
 			if(!inbox.isSendDevMsg()) {
 				inbox.setSendDevMsg(true);
-				List<Message> msgs = Lists.newArrayList();
-				msgs.add(new Message("email.dev_message.0", event.player.getName()));
+				List<Text> msgs = Lists.newArrayList();
+				msgs.add(new Text("email.dev_message.0", event.player.getName()));
 				for(int i = 1; i < 7; i++) {
-					msgs.add(new Message("email.dev_message."+i));
+					msgs.add(new Text("email.dev_message."+i));
 				}
-				inbox.add(new Email(new Message("email.dev_message.title", event.player.getName()), "email.dev_message.sender", null, null, msgs));
+				title.getArgs()[0] = event.player.getName();
+				inbox.addEmail(new Email(
+						title,
+						sender,
+//						new EmailSound(new Time(0,12,0), SoundEvent.REGISTRY.getObject(new ResourceLocation("email:dev_sound")), 1, 1),
+						null, null, msgs));
+				
 				EmailExecuteEvent.initDefaultCustomValue(inbox);
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(event.player, inbox));
 				EmailUtils.saveInboxToDisk(inbox, 10);
@@ -237,10 +257,11 @@ public class EmailMain {
 		}
 		
 		int tick = 0;
-		int i = 10;
+		int i = 8;
 		boolean lag = false;
 		
 		public void drawButton(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
+			GlStateManager.pushMatrix();
 			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 			if(EmailGuiHandler.isInRange(mouseX, mouseY, this.x, this.y, this.width, this.height)) {
 				this.hovered = true;
@@ -275,6 +296,7 @@ public class EmailMain {
 			if(EmailGuiHandler.isInRange(mouseX, mouseY, this.x, this.y, this.width, this.height)) {
 				this.gui.drawHoveringText(super.displayString, mouseX, mouseY);
 			}
+			GlStateManager.popMatrix();
 		}
 		public void mouseReleased(int mouseX, int mouseY) {
 			net.sendMessageToServer(new MsgOpenGui(this.guiId));
@@ -306,7 +328,7 @@ public class EmailMain {
 		}
 		
 		int tick = 0;
-		int i = 10;
+		int i = 8;
 		boolean lag = false;
 		
 		@Override
@@ -325,7 +347,7 @@ public class EmailMain {
 						}
 					}
 				}
-				
+				GlStateManager.pushMatrix();
 				GlStateManager.color(1.0F, 1.0F, 1.0F, 1F);
 				if(EmailGuiHandler.isInRange(mouseX, mouseY, x, this.y, this.width, this.height)) {
 					this.hovered = true;
@@ -351,6 +373,7 @@ public class EmailMain {
 					this.gui.drawHoveringText(super.displayString, mouseX, mouseY);
 				}
 				this.mouseDragged(mc, mouseX, mouseY);
+				GlStateManager.popMatrix();
 			}
 		}
 		

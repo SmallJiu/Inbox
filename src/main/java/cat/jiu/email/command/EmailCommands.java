@@ -8,7 +8,7 @@ import net.minecraft.command.ICommandSender;
 
 import net.minecraftforge.server.command.CommandTreeBase;
 
-public class EmailCommands extends CommandTreeBase {
+public final class EmailCommands extends CommandTreeBase {
 	public EmailCommands() {
 		super.addSubcommand(new CommandEmailSend());
 		super.addSubcommand(new CommandEmailSendBlackList());

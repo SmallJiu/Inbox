@@ -47,7 +47,7 @@ public class EmailExecuteEvent {
 								inbox.addCustom(e.condition.name, e.condition.after);
 								EmailFunction function = EmailUtils.findFunction(e.emailFile);
 								if(function != null) {
-									inbox.add(function.toEmail());
+									inbox.addEmail(function.toEmail());
 								}
 								EmailUtils.saveInboxToDisk(inbox, 10);
 							}
@@ -55,7 +55,7 @@ public class EmailExecuteEvent {
 					}else {
 						EmailFunction function = EmailUtils.findFunction(e.emailFile);
 						if(function != null) {
-							inbox.add(function.toEmail());
+							inbox.addEmail(function.toEmail());
 						}
 						EmailUtils.saveInboxToDisk(inbox, 10);
 					}
@@ -81,7 +81,7 @@ public class EmailExecuteEvent {
 								inbox.addCustom(e.condition.name, e.condition.after);
 								EmailFunction function = EmailUtils.findFunction(e.emailFile);
 								if(function != null) {
-									inbox.add(function.toEmail());
+									inbox.addEmail(function.toEmail());
 								}
 								EmailUtils.saveInboxToDisk(inbox, 10);
 							}
@@ -89,7 +89,7 @@ public class EmailExecuteEvent {
 					}else {
 						EmailFunction function = EmailUtils.findFunction(e.emailFile);
 						if(function != null) {
-							inbox.add(function.toEmail());
+							inbox.addEmail(function.toEmail());
 						}
 						EmailUtils.saveInboxToDisk(inbox, 10);
 					}
@@ -133,13 +133,13 @@ public class EmailExecuteEvent {
 						inbox.addCustom(e.condition.name, e.condition.after);
 						EmailFunction function = EmailUtils.findFunction(e.emailFile);
 						if(function != null) {
-							inbox.add(function.toEmail());
+							inbox.addEmail(function.toEmail());
 						}
 					}
 				}else {
 					EmailFunction function = EmailUtils.findFunction(e.emailFile);
 					if(function != null) {
-						inbox.add(function.toEmail());
+						inbox.addEmail(function.toEmail());
 					}
 				}
 			}

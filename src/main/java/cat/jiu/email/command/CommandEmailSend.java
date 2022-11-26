@@ -11,7 +11,7 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.EmailFunction;
-import cat.jiu.email.element.Message;
+import cat.jiu.email.element.Text;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
@@ -42,7 +42,7 @@ class CommandEmailSend extends CommandBase {
 			}
 		}
 		if(cmdSender instanceof EntityPlayer) {
-			function.sender = cmdSender.getName();
+			function.sender = new Text(cmdSender.getName());
 		}
 		String addresser = function.addresser;
 		if("@a".equals(addresser)) {
@@ -83,8 +83,8 @@ class CommandEmailSend extends CommandBase {
 		EmailAPI.sendCommandEmail(addresser, function.toEmail());
 	}
 	
-	private void replaceAbstract(String name, List<Message> msgs) {
-		for(Message msg : msgs) {
+	private void replaceAbstract(String name, List<Text> msgs) {
+		for(Text msg : msgs) {
 			Object[] args = msg.getArgs();
 			for(int i = 0; i < args.length; i++) {
 				Object arg = args[i];

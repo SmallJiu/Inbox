@@ -1,6 +1,7 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailDeleteEvent;
 import cat.jiu.email.util.EmailUtils;
@@ -28,9 +29,9 @@ public class MsgDeleteEmail {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					if(inbox.has(this.msgID)) {
+					if(inbox.hasEmail(this.msgID)) {
 						if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, this.msgID, false, false))) {
-							inbox.delete(msgID);
+							inbox.deleteEmail(msgID);
 						}
 					}
 					EmailUtils.saveInboxToDisk(inbox, 10);
@@ -54,11 +55,11 @@ public class MsgDeleteEmail {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.count(); i++) {
-						cat.jiu.email.element.Email email = inbox.get(i);
+					for(int i = 0; i < inbox.emailCount(); i++) {
+						Email email = inbox.getEmail(i);
 						if(email.isRead() && !email.hasItems()) {
 							if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, true, false))) {
-								inbox.delete(i);
+								inbox.deleteEmail(i);
 							}
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, true, false));
@@ -82,10 +83,10 @@ public class MsgDeleteEmail {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.count(); i++) {
-						cat.jiu.email.element.Email email = inbox.get(i);
+					for(int i = 0; i < inbox.emailCount(); i++) {
+						Email email = inbox.getEmail(i);
 						if(email.isReceived() && !MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
-							inbox.delete(i);
+							inbox.deleteEmail(i);
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));
 					}

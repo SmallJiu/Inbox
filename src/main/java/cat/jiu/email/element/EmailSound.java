@@ -2,8 +2,6 @@ package cat.jiu.email.element;
 
 import com.google.gson.JsonObject;
 
-import cat.jiu.email.util.EmailSenderSndSound.Time;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.SoundEvent;
 
@@ -91,5 +89,18 @@ public class EmailSound {
 			return new EmailSound(new Time(json.get("time").getAsLong()), SoundEvent.REGISTRY.getObjectById(json.get("id").getAsInt()), json.get("volume").getAsFloat(), json.get("pitch").getAsFloat());
 		}
 		return null;
+	}
+	
+	public static class Time {
+		public final long tick;
+		public Time(long tick) {
+			this(0,0,tick);
+		}
+		public Time(long m, long s, long tick) {
+			this.tick = parseTick(0,0,m,s,tick);
+		}
+		public static long parseTick(long day, long h, long m, long s, long tick) {
+			return (((((((day*24)+h)*60)+m)*60)+s)*20)+tick;
+		}
 	}
 }
