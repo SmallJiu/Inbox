@@ -291,7 +291,7 @@ public class GuiEmailMain extends GuiContainer {
 	private void init() {
 		if(this.size == -1) this.size = this.container.getInbox().emailCount();
 		if(this.msgKeyMap == null && this.size > 0) {
-			this.msgKeyMap = new int[this.size];
+			this.msgKeyMap = new int[this.container.getInbox().emailCount()];
 			for(int i = 0; i < this.container.getInbox().emailCount(); i++) {
 				this.msgKeyMap[i] = i;
 			}
@@ -301,7 +301,7 @@ public class GuiEmailMain extends GuiContainer {
 		}
 		if(this.size != this.container.getInbox().emailCount()) {
 			this.size = this.container.getInbox().emailCount();
-			this.msgKeyMap = new int[this.size];
+			this.msgKeyMap = new int[this.container.getInbox().emailCount()];
 			for(int i = 0; i < this.container.getInbox().emailCount(); i++) {
 				this.msgKeyMap[i] = i;
 			}

@@ -12,15 +12,17 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.base.BaseNBT;
 import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.util.JsonToStackUtil;
-import cat.jiu.email.util.NBTTagNull;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
+import net.minecraftforge.fml.common.Loader;
 
 public class Email implements ISerializable {
 	protected Text title;
@@ -144,29 +146,46 @@ public class Email implements ISerializable {
 			}
 			if(json.has("msgs")) {
 				this.msgs = Lists.newArrayList();
-				JsonObject msgs = json.getAsJsonObject("msgs");
-				
-				for(Entry<String, JsonElement> msg : msgs.entrySet()) {
-					String key = msg.getKey();
-					JsonElement a = msg.getValue();
-					if(a.isJsonArray()) {
-						JsonArray argJson = a.getAsJsonArray();
-						Object[] args = new Object[argJson.size()];
-						for(int i = 0; i < args.length; i++) {
-							args[i] = argJson.get(i).getAsString();
+				JsonElement msgElement = json.get("msgs");
+				if(msgElement.isJsonObject()) {
+					JsonObject msgs = msgElement.getAsJsonObject();
+					for(Entry<String, JsonElement> msg : msgs.entrySet()) {
+						String key = msg.getKey();
+						JsonElement a = msg.getValue();
+						if(a.isJsonArray()) {
+							JsonArray argJson = a.getAsJsonArray();
+							Object[] args = new Object[argJson.size()];
+							for(int i = 0; i < args.length; i++) {
+								args[i] = argJson.get(i).getAsString();
+							}
+							this.msgs.add(new Text(key, args));
+						}else {
+							this.msgs.add(new Text(key));
 						}
-						this.msgs.add(new Text(key, args));
-					}else {
-						this.msgs.add(new Text(key));
+					}
+				}else if(msgElement.isJsonArray()) {
+					JsonArray msgs = msgElement.getAsJsonArray();
+					for(int i = 0; i < msgs.size(); i++) {
+						this.msgs.add(new Text(msgs.get(i).getAsString()));
 					}
 				}
 			}
 		}
 	}
 
-	static final boolean debug = true;
-	static final NBTBase emptyTag = debug ? new NBTTagNull() : new NBTTagByte((byte)0);
-
+	protected static final NBTBase emptyTag = getEmptyTag();
+	private static NBTBase getEmptyTag() {
+		try {
+			Class.forName("org.spongepowered.asm.launch.MixinBootstrap");
+			if(Loader.isModLoaded("jiucore") && BaseNBT.hasNBT(-1)) {
+				return new cat.jiu.core.util.mc.NBTTagNull();
+			}else {
+				return new cat.jiu.email.util.NBTTagNull();
+			}
+		}catch(Exception e) {}
+		return new NBTTagByte((byte)0);
+	}
+	
 	@Override
 	public NBTTagCompound write(NBTTagCompound nbt) {
 		if(nbt==null) nbt = new NBTTagCompound();
@@ -227,7 +246,9 @@ public class Email implements ISerializable {
 				for(int i = 0; i < keys.size(); i++) {
 					String key = keys.get(i);
 					NBTBase msg = msgs.getTag(key);
-					if(msg instanceof NBTTagNull || msg instanceof NBTTagByte) {
+					if(msg instanceof cat.jiu.email.util.NBTTagNull
+					|| msg instanceof NBTTagByte
+					|| (Loader.isModLoaded("jiucore") && msg instanceof cat.jiu.core.util.mc.NBTTagNull)) {
 						this.msgs.add(new Text(key));
 					}else if(msg instanceof NBTTagList) {
 						NBTTagList argNBT = (NBTTagList) msg;
@@ -244,7 +265,7 @@ public class Email implements ISerializable {
 	
 	@Override
 	public String toString() {
-		return this.write(new JsonObject()).toString();
+		return this.writeTo(JsonObject.class).toString();
 	}
 
 	@Override

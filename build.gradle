@@ -1,16 +1,25 @@
 buildscript {
     repositories {
+        mavenCentral()
         jcenter()
- //       maven { url = "https://maven.mcmoddev.com" }
-        maven { url = "https://files.minecraftforge.net/maven" }
+        maven { 
+			name = 'forge'
+			url = "https://files.minecraftforge.net/maven" 
+		}
+		maven { 
+			name = 'sponge'
+			url = 'https://repo.spongepowered.org/maven'
+		}
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+		classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
 
-version = "1.0.2-a1-20220928013822"
+version = "1.0.2-a2"
 group = "cat.jiu.email"
 archivesBaseName = "Email"
 
@@ -23,25 +32,62 @@ minecraft {
     version = "1.12.2-14.23.5.2847"
     runDir = "run"
     mappings = "snapshot_20171003"
-}
+	
+	def jvms = [
+				'-Dfml.coreMods.load=cat.jiu.email.mixin.Configuration',
+				'-Dmixin.checks.interfaces=true',
+				'-Dmixin.hotSwap=true"',
+				'-Dmixin.debug.export=true'
+			]
+	def runArgs = ['--mixin email.mixin.json']
 
-def commonManifest = {
-    attributes('FMLAT': 'email_at.cfg')
+    clientJvmArgs.addAll(jvms)
+    clientRunArgs.addAll(runArgs)
+
+    serverJvmArgs.addAll(jvms)
+    serverRunArgs.addAll(runArgs)
+    serverRunArgs.addAll('nogui')
 }
 
 jar {
-	manifest commonManifest
+	manifest {
+        attributes([
+			"FMLAT": "email_at.cfg",
+			"Rsrc-Class-Path": "./ gson-2.8.0.jar",
+			"Class-Path": ".",
+			"Rsrc-Main-Class": "cat.jiu.email.FormatUtil",
+			"Main-Class": "org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader",
+			
+			"FMLCorePluginContainsFMLMod": "false",
+			"ForceLoadAsMod": "true",
+            "FMLCorePlugin": "cat.jiu.email.mixin.Configuration",
+            "TweakClass": "org.spongepowered.asm.launch.MixinTweaker"
+        ])
+    }
 }
 
-task deobfJar(type: Jar) {
-    manifest commonManifest
+mixin {
+    add sourceSets.main, "email.mixin.refmap.json"
 }
 
-artifacts {
-    deobfJar
+repositories {
+    mavenLocal()
+	maven { 
+		name 'sponge'
+		url 'https://repo.spongepowered.org/maven'
+	}
+//	maven {url "https://maven.cleanroommc.com"}
 }
 
-dependencies {}
+dependencies {
+	compile fileTree(dir:'./lib', include:['JiuCore-1.12.2-1.1.3-a0-dev.jar'])
+	provided('org.spongepowered:mixin:0.8') {
+        exclude module: 'guava'
+        exclude module: 'commons-io'
+        exclude module: 'gson'
+    }
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version

@@ -196,9 +196,11 @@ public final class Inbox implements ISerializable {
 		if(json==null) json = new JsonObject();
 		if(this.dev) json.addProperty("dev", true);
 		if(!this.isEmptyEmails()) {
+			JsonObject emails = new JsonObject();
 			for(int i = 0; i < this.emails.size(); i++) {
-				json.add(Integer.toString(i), this.emails.get(i).writeTo(JsonObject.class));
+				emails.add(Integer.toString(i), this.emails.get(i).writeTo(JsonObject.class));
 			}
+			json.add("emails", emails);
 		}
 		if(!this.isEmptyCustomValues()) {
 			JsonObject customObj = new JsonObject();
@@ -220,25 +222,36 @@ public final class Inbox implements ISerializable {
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			for(Entry<String, JsonElement> emails : json.entrySet()) {
-				if(emails.getKey().equalsIgnoreCase("dev")) {
-					this.dev = emails.getValue().getAsBoolean();
-				}else if(emails.getKey().equalsIgnoreCase("custom")) {
-					for(Entry<String, JsonElement> custom : emails.getValue().getAsJsonObject().entrySet()) {
-						JsonElement value = custom.getValue();
-						if(value.isJsonPrimitive()) {
-							JsonPrimitive primitive = value.getAsJsonPrimitive();
-							if(primitive.isBoolean()) {
-								this.customValue.put(custom.getKey(), primitive.getAsBoolean());
-							}else if(primitive.isNumber()) {
-								this.customValue.put(custom.getKey(), primitive.getAsNumber());
-							}else {
-								this.customValue.put(custom.getKey(), primitive.getAsString());
-							}
+			if(json.has("dev")) {
+				this.dev = json.get("dev").getAsBoolean();
+			}
+			if(json.has("custom")) {
+				for(Entry<String, JsonElement> custom : json.getAsJsonObject("custom").entrySet()) {
+					JsonElement value = custom.getValue();
+					if(value.isJsonPrimitive()) {
+						JsonPrimitive primitive = value.getAsJsonPrimitive();
+						if(primitive.isBoolean()) {
+							this.customValue.put(custom.getKey(), primitive.getAsBoolean());
+						}else if(primitive.isNumber()) {
+							this.customValue.put(custom.getKey(), primitive.getAsNumber());
+						}else {
+							this.customValue.put(custom.getKey(), primitive.getAsString());
 						}
 					}
-				}else {
-					this.emails.add(new Email(emails.getValue().getAsJsonObject()));
+				}
+			}
+			if(json.has("emails")) {
+				JsonObject emails = json.getAsJsonObject("emails");
+				for(Entry<String, JsonElement> email : emails.entrySet()) {
+					this.emails.add(new Email(email.getValue().getAsJsonObject()));
+				}
+			}else {// for old version
+				for(Entry<String, JsonElement> emails : json.entrySet()) {
+					if(emails.getKey().equalsIgnoreCase("dev")) { continue;
+					}else if(emails.getKey().equalsIgnoreCase("custom")) { continue;
+					}else {
+						this.emails.add(new Email(emails.getValue().getAsJsonObject()));
+					}
 				}
 			}
 		}

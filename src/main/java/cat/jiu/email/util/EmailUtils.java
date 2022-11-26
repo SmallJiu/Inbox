@@ -66,7 +66,7 @@ public class EmailUtils {
 				succes = true;
 				break;
 			}
-			if(retry == maxRetryCount) {
+			if(retry >= maxRetryCount) {
 				break;
 			}
 			retry++;
