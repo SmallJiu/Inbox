@@ -1,11 +1,6 @@
 Manifest-Version: 1.0
 Rsrc-Class-Path: ./ gson-2.8.0.jar
-FMLCorePluginContainsFMLMod: false
 FMLAT: email_at.cfg
 Class-Path: .
-TweakClass: org.spongepowered.asm.launch.MixinTweaker
-ForceLoadAsMod: true
 Rsrc-Main-Class: cat.jiu.email.FormatUtil
-FMLCorePlugin: cat.jiu.email.mixin.Configuration
-Main-Class: org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader
 

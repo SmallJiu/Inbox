@@ -60,13 +60,13 @@ public class ContainerEmailMain extends Container {
 		this.putStack(emptyStacks);
 	}
 	
-	private int currenMsg = -1;
-	private int lastCurrenMsg = -1;
-	public void setCurrenMsg(int msgID) {
+	private long currenMsg = -1;
+	private long lastCurrenMsg = -1;
+	public void setCurrenMsg(long msgID) {
 		this.lastCurrenMsg = this.currenMsg;
 		this.currenMsg = msgID;
 	}
-	public int getCurrenMsg() {return currenMsg;}
+	public long getCurrenMsg() {return currenMsg;}
 	public boolean isSameMsg() {
 		boolean lag = this.currenMsg == this.lastCurrenMsg;
 		if(!lag) this.lastCurrenMsg = this.currenMsg;;

@@ -36,7 +36,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class GuiEmailSend extends GuiContainer {
-	public static ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_send.png");
+	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_send.png");
 	public static final ResourceLocation ANVIL_RESOURCE = new ResourceLocation("textures/gui/container/anvil.png");
     private GuiTextField nameField;
     private GuiTextField titleField;
@@ -59,13 +59,13 @@ public class GuiEmailSend extends GuiContainer {
 		this.nameField = new NameGuiTextField(nextID(), this.fontRenderer, this.getGuiLeft() + 39, this.getGuiTop() + 6, 109, 11);
         this.nameField.setTextColor(-1);
         this.nameField.setDisabledTextColour(-1);
-        this.nameField.setMaxStringLength(50);
+        this.nameField.setMaxStringLength(100);
         this.nameField.setEnableBackgroundDrawing(false);
         
         this.titleField = new GuiTextField(nextID(), this.fontRenderer, this.getGuiLeft() + 39, this.getGuiTop() + 20, 109, 11);
         this.titleField.setTextColor(-1);
         this.titleField.setDisabledTextColour(-1);
-        this.titleField.setMaxStringLength(50);
+        this.titleField.setMaxStringLength(100);
         this.titleField.setEnableBackgroundDrawing(false);
         this.initText();
         
@@ -109,7 +109,7 @@ public class GuiEmailSend extends GuiContainer {
 									char ch = msg.charAt(k);
 									if(ch == '&' && k+1 < msg.length()) {
 										if(isFormatChar(msg.charAt(k+1))) {
-											sb.append("§");
+											sb.append('\u00a7');
 										}else {
 											sb.append(ch);
 										}
@@ -138,6 +138,20 @@ public class GuiEmailSend extends GuiContainer {
             	}
             });
         }
+	}
+	
+	private void initText() {
+		int x = (this.width - this.xSize) / 2;
+		int y = (this.height - this.ySize) / 2;
+		for(int i = 0; i < this.textFields.length; i++) {
+			this.textFields[i] = new GuiTextField(nextID(), this.fontRenderer, x+9, y+34 + (12 * i), 155, 12);
+			
+			GuiTextField field = this.textFields[i];
+			field.setTextColor(Color.WHITE.getRGB());
+			field.setDisabledTextColour(Color.WHITE.getRGB());
+			field.setMaxStringLength(100);
+			field.setEnableBackgroundDrawing(false);
+		}
 	}
 	
 	private boolean isFormatChar(char c) {
@@ -170,20 +184,6 @@ public class GuiEmailSend extends GuiContainer {
 		this.renderText = null;
 		this.renderColor = null;
 		this.renderTicks = 0;
-	}
-	
-	private void initText() {
-		int x = (this.width - this.xSize) / 2;
-		int y = (this.height - this.ySize) / 2;
-		for(int i = 0; i < this.textFields.length; i++) {
-			this.textFields[i] = new GuiTextField(nextID(), this.fontRenderer, x+9, y+34 + (12 * i), 155, 12);
-			
-			GuiTextField field = this.textFields[i];
-			field.setTextColor(Color.WHITE.getRGB());
-			field.setDisabledTextColour(Color.WHITE.getRGB());
-			field.setMaxStringLength(50);
-			field.setEnableBackgroundDrawing(false);
-		}
 	}
 	
 	private long renderTicks = 0;
@@ -221,8 +221,12 @@ public class GuiEmailSend extends GuiContainer {
 			 this.container.renderTicks--;
 		 }
 		 if(this.container.isCooling()) {
-			 long t_t = this.container.getCoolingTick() % 20;
-			 long t_s = this.container.getCoolingTick() / 20;
+			 long millis = this.container.getCoolingMillis() - System.currentTimeMillis();
+			 long t_0 = millis % 1000;
+			 long t_mi = t_0 % 50;
+			 long t_t = t_0 / 50;
+			 
+			 long t_s = millis / 1000;
 			 long t_m = 0;
 			 if(t_s >= 60) {
 				 t_m = t_s / 60;
@@ -243,8 +247,9 @@ public class GuiEmailSend extends GuiContainer {
 			 String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			 String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
 			 String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
+			 String mi = t_t < 10 ? "0" + t_t : Long.toString(t_mi);
 			 
-			 fontRenderer.drawString(I18n.format("info.email.cooling", d, h, m, s, t), 45, 60, Color.RED.getRGB());
+			 fontRenderer.drawString(I18n.format("info.email.cooling", d, h, m, s, t, mi), 45, 60, Color.RED.getRGB());
 		 }
 		 if(this.titleField.getText().isEmpty()) {
 			 this.fontRenderer.drawString(I18n.format("info.email.default_title"), 39, 21, Color.BLACK.getRGB());

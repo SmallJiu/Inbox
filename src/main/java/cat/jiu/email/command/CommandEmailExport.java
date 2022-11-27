@@ -10,6 +10,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 import cat.jiu.email.util.JsonUtil;
@@ -46,7 +47,7 @@ class CommandEmailExport extends CommandBase {
 					stacks.add(JsonToStackUtil.toJson(stack));
 				}
 			}
-			String path = EmailUtils.exportPath + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
+			String path = EmailAPI.getExportPath() + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, stacks, false);
 			try {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.export.all.success", TextFormatting.GREEN, new File(path).getCanonicalPath()));
@@ -59,7 +60,7 @@ class CommandEmailExport extends CommandBase {
 				throw new CommandException("email.command.export.empty_item");
 			}
 			ResourceLocation name = stack.getItem().getRegistryName();
-			String path = EmailUtils.exportPath + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
+			String path = EmailAPI.getExportPath() + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, JsonToStackUtil.toJson(stack), false);
 			try {
 				player.sendMessage(EmailUtils.createTextComponent("email.command.export.success", TextFormatting.GREEN, name.toString(), new File(path).getCanonicalPath()));

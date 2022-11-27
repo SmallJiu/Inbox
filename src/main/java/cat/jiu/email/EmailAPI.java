@@ -16,6 +16,7 @@ import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.net.msg.MsgSendInboxToClient;
 import cat.jiu.email.net.msg.MsgUnread;
 import cat.jiu.email.net.msg.MsgUnreceive;
+import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
 
@@ -43,7 +44,7 @@ public class EmailAPI {
 				Inbox inbox = Inbox.get(EmailUtils.getUUID(addressee));
 				inbox.addEmail(email);
 				
-				if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+				if(EmailUtils.saveInboxToDisk(inbox)) {
 					EmailMain.log.info("{} send a email to Player: {}, UUID: {}", email.getSender(), addressee, inbox.getOwnerAsUUID());
 					MsgSend.sendLog(email.getSender().getKey(), addressee, inbox.getOwnerAsUUID());
 					EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(inbox.getOwnerAsUUID());
@@ -59,7 +60,50 @@ public class EmailAPI {
 		}
 	}
 	
-	private static final String globalEmailListPath = "./email.json";
+	static String EmailPath = null;
+	static String EmailRootPath = null;
+	static String typePath = getSaveEmailRootPath() + File.separator + "email" + File.separator + "type" + File.separator;
+	static String exportPath = typePath + "export" + File.separator;
+	
+	public static String getSaveEmailRootPath() {
+		if(EmailRootPath == null) {
+			if(EmailConfigs.Save_To_Minecraft_Root_Directory || EmailMain.server == null) {
+				EmailRootPath = ".";
+			}else {
+				EmailRootPath = EmailMain.server.getEntityWorld().getSaveHandler().getWorldDirectory().toString();
+			}
+		}
+		
+		return EmailRootPath;
+	}
+	public static String getTypePath() {
+		if(typePath == null) {
+			typePath = getSaveEmailRootPath() + File.separator + "email" + File.separator + "type" + File.separator;
+		}
+		return typePath;
+	}
+	public static String getExportPath() {
+		if(exportPath == null) {
+			exportPath = typePath + "export" + File.separator;
+		}
+		return exportPath;
+	}
+	
+	public static String getSaveEmailPath() {
+		if(EmailPath == null) {
+			EmailPath = getSaveEmailRootPath() + File.separator + "email" + File.separator;
+		}
+		return EmailPath;
+	}
+	
+	public static void clearEmailPath() {
+		EmailRootPath = null;
+		EmailPath = null;
+		typePath = null;
+		exportPath = null;
+	}
+	
+	public static final String globalEmailListPath = "./email.json";
 	
 	public static boolean addToWhiteList(String name, UUID uid) {
 		return addToList(name, uid, false);

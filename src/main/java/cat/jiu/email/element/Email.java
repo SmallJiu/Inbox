@@ -12,7 +12,6 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import cat.jiu.core.api.handler.ISerializable;
-import cat.jiu.core.util.base.BaseNBT;
 import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.util.JsonToStackUtil;
 
@@ -22,7 +21,6 @@ import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
-import net.minecraftforge.fml.common.Loader;
 
 public class Email implements ISerializable {
 	protected Text title;
@@ -173,17 +171,12 @@ public class Email implements ISerializable {
 		}
 	}
 
-	protected static final NBTBase emptyTag = getEmptyTag();
-	private static NBTBase getEmptyTag() {
-		try {
-			Class.forName("org.spongepowered.asm.launch.MixinBootstrap");
-			if(Loader.isModLoaded("jiucore") && BaseNBT.hasNBT(-1)) {
-				return new cat.jiu.core.util.mc.NBTTagNull();
-			}else {
-				return new cat.jiu.email.util.NBTTagNull();
-			}
-		}catch(Exception e) {}
-		return new NBTTagByte((byte)0);
+	protected static NBTBase emptyTag = null;
+	public static NBTBase getEmptyTag() {
+		if(emptyTag==null) {
+			emptyTag = new NBTTagByte((byte)0);
+		}
+		return emptyTag;
 	}
 	
 	@Override
@@ -214,7 +207,7 @@ public class Email implements ISerializable {
 					}
 					msgs.setTag(msg.key, args);
 				}else {
-					msgs.setTag(msg.key, emptyTag);
+					msgs.setTag(msg.key, getEmptyTag());
 				}
 			}
 			nbt.setTag("msgs", msgs);
@@ -246,9 +239,7 @@ public class Email implements ISerializable {
 				for(int i = 0; i < keys.size(); i++) {
 					String key = keys.get(i);
 					NBTBase msg = msgs.getTag(key);
-					if(msg instanceof cat.jiu.email.util.NBTTagNull
-					|| msg instanceof NBTTagByte
-					|| (Loader.isModLoaded("jiucore") && msg instanceof cat.jiu.core.util.mc.NBTTagNull)) {
+					if(msg instanceof NBTTagByte) {
 						this.msgs.add(new Text(key));
 					}else if(msg instanceof NBTTagList) {
 						NBTTagList argNBT = (NBTTagList) msg;

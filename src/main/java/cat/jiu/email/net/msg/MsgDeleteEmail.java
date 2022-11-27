@@ -15,13 +15,13 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgDeleteEmail {
 	public static class Delete implements IMessage {
-		protected int msgID;
+		protected long msgID;
 		public Delete() {}
-		public Delete(int msgID) {
+		public Delete(long msgID) {
 			this.msgID = msgID;
 		}
-		public void fromBytes(ByteBuf buf) {this.msgID = buf.readInt();}
-		public void toBytes(ByteBuf buf) {buf.writeInt(this.msgID);}
+		public void fromBytes(ByteBuf buf) {this.msgID = buf.readLong();}
+		public void toBytes(ByteBuf buf) {buf.writeLong(this.msgID);}
 		public IMessage handler(MessageContext ctx) {
 			if(ctx.side.isServer()) {
 				EntityPlayerMP player = ctx.getServerHandler().player;
@@ -34,7 +34,7 @@ public class MsgDeleteEmail {
 							inbox.deleteEmail(msgID);
 						}
 					}
-					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailUtils.saveInboxToDisk(inbox);
 					EmailAPI.sendInboxToClient(inbox, player);
 					MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, this.msgID, false, false));
 				});
@@ -55,7 +55,7 @@ public class MsgDeleteEmail {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.emailCount(); i++) {
+					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
 						if(email.isRead() && !email.hasItems()) {
 							if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, true, false))) {
@@ -64,7 +64,7 @@ public class MsgDeleteEmail {
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, true, false));
 					}
-					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailUtils.saveInboxToDisk(inbox);
 					EmailAPI.sendInboxToClient(inbox, player);
 				});
 			}
@@ -83,14 +83,14 @@ public class MsgDeleteEmail {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.emailCount(); i++) {
+					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
 						if(email.isReceived() && !MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
 							inbox.deleteEmail(i);
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));
 					}
-					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailUtils.saveInboxToDisk(inbox);
 					EmailAPI.sendInboxToClient(inbox, player);
 				});
 			}

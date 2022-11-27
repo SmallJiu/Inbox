@@ -12,6 +12,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.element.event.EventCondition;
@@ -49,7 +50,7 @@ public class EmailExecuteEvent {
 								if(function != null) {
 									inbox.addEmail(function.toEmail());
 								}
-								EmailUtils.saveInboxToDisk(inbox, 10);
+								EmailUtils.saveInboxToDisk(inbox);
 							}
 						}
 					}else {
@@ -172,7 +173,7 @@ public class EmailExecuteEvent {
 	public static void init() {
 		events.clear();
 		defaultValue.clear();
-		File dir = new File(EmailUtils.typePath + "event" + File.separator);
+		File dir = new File(EmailAPI.getTypePath() + "event" + File.separator);
 		if(dir.exists() && dir.isDirectory()) {
 			List<File> eventFiles = EmailUtils.getAllFiles(dir);
 			for(File file : eventFiles) {

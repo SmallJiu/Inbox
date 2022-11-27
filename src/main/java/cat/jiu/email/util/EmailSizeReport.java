@@ -2,10 +2,10 @@ package cat.jiu.email.util;
 
 public class EmailSizeReport {
 	public static final EmailSizeReport SUCCES = new EmailSizeReport(-1, -1, 0);
-	public final int id;
+	public final long id;
 	public final int slot;
 	public final long size;
-	public EmailSizeReport(int id, int slot, long size) {
+	public EmailSizeReport(long id, int slot, long size) {
 		this.id = id;
 		this.slot = slot;
 		this.size = size;

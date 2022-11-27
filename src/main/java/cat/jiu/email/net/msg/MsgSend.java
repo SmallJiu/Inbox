@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
@@ -27,6 +28,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -128,7 +130,7 @@ public class MsgSend implements IMessage {
 			
 			MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
 			
-			if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+			if(EmailUtils.saveInboxToDisk(inbox)) {
 				EmailMain.log.info("{} send a email to Player: {}, UUID: {}", this.email.getSender(), this.addresserName, addresserUUID);
 				MsgSend.sendLog(this.email.getSender().getKey(), this.addresserName, addresserUUID);
 				EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
@@ -174,7 +176,7 @@ public class MsgSend implements IMessage {
 		
 		MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
 		
-		if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+		if(EmailUtils.saveInboxToDisk(inbox)) {
 			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", this.email.getSender(), this.addresserName, addresserUUID);
 			MsgSend.sendLog(this.email.getSender().getKey(), this.addresserName, addresserUUID);
 			EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(addresserUUID);
@@ -239,10 +241,10 @@ public class MsgSend implements IMessage {
 					MinecraftForge.EVENT_BUS.post(new EmailSendEvent.Post(EmailMain.server, this.group, addresserUUID, email));
 					
 					container.setLock(false);
-					if(EmailUtils.saveInboxToDisk(inbox, 10)) {
+					if(EmailUtils.saveInboxToDisk(inbox)) {
 						EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.GREEN, EmailUtils.parseTick(5, 0), "info.email.send.success"), player);
 	        			if(EmailConfigs.Send.Enable_Send_Cooling) {
-	        				EmailMain.net.sendMessageToPlayer(new SendCooling(EmailUtils.getCoolingTicks()), player);
+	        				Cooling.cooling(player.getName(), EmailUtils.getCoolingTicks() * 50);
 	        			}
 	        			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", sender, this.addresserName, addresserUUID);
 						MsgSend.sendLog(sender, this.addresserName, addresserUUID);
@@ -274,7 +276,7 @@ public class MsgSend implements IMessage {
     						if(EmailUtils.saveInboxToDisk(inbox, 10)) {
     							EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.GREEN, EmailUtils.parseTick(5, 0), "info.email.send.success"), player);
     		        			if(EmailConfigs.Send.Enable_Send_Cooling) {
-    		        				EmailMain.net.sendMessageToPlayer(new SendCooling(EmailUtils.getCoolingTicks()), player);
+    		        				Cooling.cooling(player.getName(), EmailUtils.getCoolingTicks() * 50);
     		        			}
     		        			EmailMain.log.info("{} send a email to Player: {}, UUID: {}", sender, this.addresserName, addresserUUID);
     							MsgSend.sendLog(sender, this.addresserName, addresserUUID);
@@ -373,7 +375,10 @@ public class MsgSend implements IMessage {
 			buf.writeLong(this.tick);
 		}
 		public IMessage handler(MessageContext ctx) {
-			((ContainerEmailSend)Minecraft.getMinecraft().player.openContainer).sendCooling(this.tick);
+			Container con = Minecraft.getMinecraft().player.openContainer;
+			if(con instanceof ContainerEmailSend) {
+				((ContainerEmailSend)con).setCooling(this.tick);
+			}
 			return null;
 		}
 	}

@@ -20,15 +20,8 @@ public class MsgOpenGui implements IMessage {
 		this.guiID = guiID;
 	}
 	
-	@Override
-	public void fromBytes(ByteBuf buf) {
-		this.guiID = buf.readInt();
-	}
-	
-	@Override
-	public void toBytes(ByteBuf buf) {
-		buf.writeInt(this.guiID);
-	}
+	public void fromBytes(ByteBuf buf) {this.guiID = buf.readInt();}
+	public void toBytes(ByteBuf buf) {buf.writeInt(this.guiID);}
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {

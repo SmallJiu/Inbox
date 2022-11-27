@@ -21,13 +21,13 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgReceiveEmail  {
 	public static class Receive implements IMessage {
-		protected int msgID;
+		protected long msgID;
 		public Receive() {}
-		public Receive(int msgID) {
+		public Receive(long msgID) {
 			this.msgID = msgID;
 		}
-		public void fromBytes(ByteBuf buf) {this.msgID = buf.readInt();}
-		public void toBytes(ByteBuf buf) {buf.writeInt(this.msgID);}
+		public void fromBytes(ByteBuf buf) {this.msgID = buf.readLong();}
+		public void toBytes(ByteBuf buf) {buf.writeLong(this.msgID);}
 		public IMessage handler(MessageContext ctx) {
 			if(ctx.side.isServer()) {
 				EntityPlayerMP player = ctx.getServerHandler().player;
@@ -57,7 +57,7 @@ public class MsgReceiveEmail  {
 							((ContainerEmailMain) player.openContainer).setInbox(inbox);
 							EmailAPI.sendInboxToClient(inbox, player);
 							MinecraftForge.EVENT_BUS.post(new EmailReceiveEvent.Post(player, inbox, email, false));
-							EmailUtils.saveInboxToDisk(inbox, 10);
+							EmailUtils.saveInboxToDisk(inbox);
 						}
 					}
 				});
@@ -76,7 +76,7 @@ public class MsgReceiveEmail  {
 				world.addScheduledTask(()->{
 					Inbox inbox = Inbox.get(player);
 					
-					for(int i = 0; i < inbox.emailCount(); i++) {
+					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
 						EmailReceiveEvent.Pre pre = new EmailReceiveEvent.Pre(player, inbox, email, true);
 						if(MinecraftForge.EVENT_BUS.post(pre)) continue;
@@ -97,7 +97,7 @@ public class MsgReceiveEmail  {
 					}
 					((ContainerEmailMain) player.openContainer).setInbox(inbox);
 					EmailAPI.sendInboxToClient(inbox, player);
-					EmailUtils.saveInboxToDisk(inbox, 10);
+					EmailUtils.saveInboxToDisk(inbox);
 				});
 			}
 			return null;

@@ -102,7 +102,7 @@ public final class EmailConfigs {
 					public int X = 88;
 					public int Y = 6;
 					@Config.LangKey("email.config.main.pos.title.time")
-					@Config.Comment("send time position")
+					@Config.Comment("send millis position")
 					public Time Time = new Time();
 					public class Time {
 						public int X = 161;
@@ -155,12 +155,12 @@ public final class EmailConfigs {
 	public static class Send {
 		@Config.LangKey("email.config.send.blacklist")
 		@Config.Comment("enable send email black list, \n"
-					+ "§cCannot enable at the same time as White List")
+					+ "§cCannot enable at the same millis as White List")
 		public boolean Enable_Send_BlackList = false;
 		
 		@Config.LangKey("email.config.send.whitelist")
 		@Config.Comment("enable send email white list, \n"
-					+ "§cCannot enable at the same time as Black List")
+					+ "§cCannot enable at the same millis as Black List")
 		public boolean Enable_Send_WhiteList = false;
 		
 		@Config.LangKey("email.config.send.send_to_self")
@@ -176,7 +176,7 @@ public final class EmailConfigs {
 		public boolean Enable_Inbox_Button = false;
 		
 		@Config.LangKey("email.config.send.cooling.time")
-		@Config.Comment("send email cooling time")
+		@Config.Comment("send email cooling millis")
 		public Cooling cooling = new Cooling();
 		public class Cooling {
 			@Config.LangKey("email.config.send.cooling.time.day")

@@ -1,19 +1,23 @@
 package cat.jiu.email.element;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
 
@@ -25,9 +29,10 @@ public final class Inbox implements ISerializable {
 	
 	/** all custom value will serialize to string */
 	private final HashMap<String, Object> customValue = Maps.newHashMap();
-	private final ArrayList<Email> emails = Lists.newArrayList();
+	private final LinkedHashMap<Long, Email> emails = Maps.newLinkedHashMap();
 	private final String owner;
 	private boolean dev;
+	private long emailHistoryCount = 0;
 	
 	private Inbox(UUID owner, NBTTagCompound inboxTag) {
 		this.owner = owner.toString();
@@ -40,6 +45,10 @@ public final class Inbox implements ISerializable {
 		this.owner = owner;
 		this.read(inboxJson);
 	}
+	/**
+	 * @return emails id
+	 */
+	public Set<Long> getEmailIDs() {return Sets.newLinkedHashSet(this.emails.keySet());}
 	/**
 	 * @return true if this email list contains no emails.
 	 */
@@ -82,7 +91,7 @@ public final class Inbox implements ISerializable {
 	 * @return inbox serialize size, for send network pack
 	 */
 	public long getInboxSize() {
-		return EmailUtils.getSize(this.write(new NBTTagCompound()));
+		return EmailUtils.getSize(this.writeTo(NBTTagCompound.class));
 	}
 	/**
 	 * get inbox unread email count
@@ -90,8 +99,8 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnRead() {
 		int i = 0;
-		for(Email email : emails) {
-			if(!email.isRead()) i++;
+		for(Entry<Long, Email> email : emails.entrySet()) {
+			if(!email.getValue().isRead()) i++;
 		}
 		return i;
 	}
@@ -101,8 +110,8 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnReceived() {
 		int i = 0;
-		for(Email email : emails) {
-			if(email.hasItems() && !email.isReceived()) i++;
+		for(Entry<Long, Email> email : emails.entrySet()) {
+			if(email.getValue().hasItems() && !email.getValue().isReceived()) i++;
 		}
 		return i;
 	}
@@ -110,40 +119,39 @@ public final class Inbox implements ISerializable {
 	 * @param id email id
 	 * @return true if inbox has email by id
 	 */
-	public boolean hasEmail(int id) {
-		int size = this.emails!=null ? this.emails.size() : 0;
-		return size > 0 && id < size && id >=0;
+	public boolean hasEmail(long id) {
+		return this.emails.containsKey(id);
 	}
 	/**
 	 * get email from id
 	 * @param id email id
 	 * @return emial by id
 	 */
-	public Email getEmail(int id) {
+	public Email getEmail(long id) {
 		return this.hasEmail(id) ? this.emails.get(id) : null;
 	}
 	/**
 	 * remove email by id
-	 * @return the id pos old email
+	 * @return the previous email associated with id
 	 */
-	public Email deleteEmail(int id) {
+	public Email deleteEmail(long id) {
 		return this.hasEmail(id) ? this.emails.remove(id) : null;
 	}
 	/**
 	 * set new email to id
 	 * @param id 
 	 * @param newEmail 
-	 * @return the old email
+	 * @return the previous email associated with id
 	 */
-	public Email setEmail(int id, Email newEmail) {
-		return this.hasEmail(id) ? this.emails.set(id, newEmail) : null;
+	public Email setEmail(long id, Email newEmail) {
+		return this.hasEmail(id) ? this.emails.put(id, newEmail) : null;
 	}
 	/**
 	 * add email to inbox
-	 * @return true if add email success
+	 * @return the previous email associated with id
 	 */
-	public boolean addEmail(Email email) {
-		return this.emails.add(email);
+	public Email addEmail(Email email) {
+		return this.emails.put(this.emailHistoryCount++, email);
 	}
 	
 	/**
@@ -176,7 +184,7 @@ public final class Inbox implements ISerializable {
 	 * @return true if save success
 	 */
 	public boolean save() {
-		return JsonUtil.toJsonFile(EmailUtils.getSaveEmailPath() + owner + ".json", this.writeTo(JsonObject.class), false);
+		return JsonUtil.toJsonFile(EmailAPI.getSaveEmailPath() + owner + ".json", this.writeTo(JsonObject.class), false);
 	}
 	
 	/**
@@ -195,10 +203,12 @@ public final class Inbox implements ISerializable {
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
 		if(this.dev) json.addProperty("dev", true);
+		json.addProperty("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
+		
 		if(!this.isEmptyEmails()) {
 			JsonObject emails = new JsonObject();
-			for(int i = 0; i < this.emails.size(); i++) {
-				emails.add(Integer.toString(i), this.emails.get(i).writeTo(JsonObject.class));
+			for(Entry<Long, Email> email : this.emails.entrySet()) {
+				emails.add(String.valueOf(email.getKey()), email.getValue().writeTo(JsonObject.class));
 			}
 			json.add("emails", emails);
 		}
@@ -219,12 +229,13 @@ public final class Inbox implements ISerializable {
 		return json;
 	}
 
+	static final List<String> old_version_black_key = Lists.newArrayList("dev", "custom", "historySize");
+
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			if(json.has("dev")) {
-				this.dev = json.get("dev").getAsBoolean();
-			}
+			if(json.has("dev")) this.dev = json.get("dev").getAsBoolean();
+			
 			if(json.has("custom")) {
 				for(Entry<String, JsonElement> custom : json.getAsJsonObject("custom").entrySet()) {
 					JsonElement value = custom.getValue();
@@ -243,15 +254,20 @@ public final class Inbox implements ISerializable {
 			if(json.has("emails")) {
 				JsonObject emails = json.getAsJsonObject("emails");
 				for(Entry<String, JsonElement> email : emails.entrySet()) {
-					this.emails.add(new Email(email.getValue().getAsJsonObject()));
+					this.emails.put(Long.valueOf(email.getKey()), new Email(email.getValue().getAsJsonObject()));
 				}
 			}else {// for old version
 				for(Entry<String, JsonElement> emails : json.entrySet()) {
-					if(emails.getKey().equalsIgnoreCase("dev")) { continue;
-					}else if(emails.getKey().equalsIgnoreCase("custom")) { continue;
-					}else {
-						this.emails.add(new Email(emails.getValue().getAsJsonObject()));
+					if(!old_version_black_key.contains(emails.getKey())) {
+						this.emails.put(Long.valueOf(emails.getKey()), new Email(emails.getValue().getAsJsonObject()));
 					}
+				}
+			}
+			this.emailHistoryCount = this.emails.size();
+			if(json.has("historySize")) {
+				long historySize = json.get("historySize").getAsLong();
+				if(historySize > this.emails.size()) {
+					this.emailHistoryCount = historySize;
 				}
 			}
 		}
@@ -261,10 +277,12 @@ public final class Inbox implements ISerializable {
 	public NBTTagCompound write(NBTTagCompound nbt) {
 		if(nbt==null) nbt = new NBTTagCompound();
 		if(this.dev) nbt.setBoolean("dev", true);
+		nbt.setLong("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
+		
 		if(!this.isEmptyEmails()) {
 			NBTTagCompound emails = new NBTTagCompound();
-			for(int i = 0; i < this.emails.size(); i++) {
-				emails.setTag(Integer.toString(i), this.emails.get(i).writeTo(NBTTagCompound.class));
+			for(Entry<Long, Email> email : this.emails.entrySet()) {
+				emails.setTag(String.valueOf(email.getKey()), email.getValue().writeTo(NBTTagCompound.class));
 			}
 			nbt.setTag("emails", emails);
 		}
@@ -288,30 +306,35 @@ public final class Inbox implements ISerializable {
 	@Override
 	public void read(NBTTagCompound nbt) {
 		if(nbt!=null && nbt.getSize()>0) {
-			for(String email : nbt.getKeySet()) {
-				if(email.equalsIgnoreCase("dev")) {
-					this.dev = nbt.getBoolean(email);
-					continue;
-				}else if(email.equalsIgnoreCase("custom")) {
-					NBTTagCompound customTag = nbt.getCompoundTag(email);
-					for(String custom : customTag.getKeySet()) {
-						NBTBase customValue = customTag.getTag(custom);
-						if(customValue instanceof NBTTagByte) {
-							this.customValue.put(custom, ((NBTTagByte)customValue).getByte()==1);
-						}else if(customValue instanceof NBTTagInt) {
-							this.customValue.put(custom, ((NBTTagInt)customValue).getInt());
-						}else {
-							this.customValue.put(custom, customValue.toString());
-						}
+			if(nbt.hasKey("dev")) this.dev = nbt.getBoolean("dev");
+			
+			if(nbt.hasKey("custom")) {
+				NBTTagCompound customTag = nbt.getCompoundTag("custom");
+				for(String custom : customTag.getKeySet()) {
+					NBTBase customValue = customTag.getTag(custom);
+					if(customValue instanceof NBTTagByte) {
+						this.customValue.put(custom, ((NBTTagByte)customValue).getByte()==1);
+					}else if(customValue instanceof NBTTagInt) {
+						this.customValue.put(custom, ((NBTTagInt)customValue).getInt());
+					}else {
+						this.customValue.put(custom, customValue.toString());
 					}
-					continue;
-				}else if(email.equalsIgnoreCase("emails")) {
-					NBTTagCompound emailTag = nbt.getCompoundTag(email);
-					if(emailTag.getSize()>0) {
-						for(String emailKey : emailTag.getKeySet()) {
-							this.emails.add(new Email(emailTag.getCompoundTag(emailKey)));
-						}
+				}
+			}
+			
+			if(nbt.hasKey("emails")) {
+				NBTTagCompound emailTag = nbt.getCompoundTag("emails");
+				if(emailTag.getSize()>0) {
+					for(String emailKey : emailTag.getKeySet()) {
+						this.emails.put(Long.valueOf(emailKey), new Email(emailTag.getCompoundTag(emailKey)));
 					}
+				}
+			}
+			this.emailHistoryCount = this.emails.size();
+			if(nbt.hasKey("historySize")) {
+				long historySize = nbt.getLong("historySize");
+				if(historySize > this.emails.size()) {
+					this.emailHistoryCount = historySize;
 				}
 			}
 		}

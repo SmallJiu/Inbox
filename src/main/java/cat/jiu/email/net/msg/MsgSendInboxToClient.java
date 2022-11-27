@@ -93,7 +93,7 @@ public class MsgSendInboxToClient implements IMessage {
 				NBTTagCompound nbt = new NBTTagCompound();
 				
 				nbt.setBoolean("ToBig", true);
-				nbt.setInteger("id", report.id);
+				nbt.setLong("id", report.id);
 				nbt.setInteger("slot", report.slot);
 				nbt.setLong("size", report.size);
 				

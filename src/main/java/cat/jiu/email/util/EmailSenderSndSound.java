@@ -15,8 +15,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class EmailSenderSndSound extends MovingSound {
 	protected final EntityPlayerSP player;
 	protected long time;
-	private int id;
-	public EmailSenderSndSound(EmailSound sound, int msgID) {
+	private long id;
+	public EmailSenderSndSound(EmailSound sound, long msgID) {
 		super(sound.getSound(), SoundCategory.PLAYERS);
 		this.player = Minecraft.getMinecraft().player;
 		this.time = sound.getTime().tick;

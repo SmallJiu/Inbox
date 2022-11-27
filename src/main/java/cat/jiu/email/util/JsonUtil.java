@@ -49,7 +49,7 @@ public final class JsonUtil {
 	}
 	
 	public static boolean toJsonFile(String path, Object src, boolean format) {
-		String json = gson.toJson(src);
+		String json = src instanceof JsonElement ? String.valueOf(src) : gson.toJson(src);
 		
 		try {
 			File file = new File(path);

@@ -14,21 +14,14 @@ public class MsgUnreceive implements IMessage {
 		this.accept = accept;
 	}
 	
-	@Override
-	public void fromBytes(ByteBuf buf) {
-		this.accept = buf.readInt();
-	}
-
-	@Override
-	public void toBytes(ByteBuf buf) {
-		buf.writeInt(this.accept);
-	}
+	public void fromBytes(ByteBuf buf) {this.accept = buf.readInt();}
+	public void toBytes(ByteBuf buf) {buf.writeInt(this.accept);}
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {
 			EmailMain.execute(args->{
 				EmailMain.setAccept(this.accept);
-			}, 100);
+			}, 50);
 		}
 		return null;
 	}

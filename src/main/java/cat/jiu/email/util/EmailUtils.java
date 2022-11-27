@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.EmailFunction;
@@ -52,24 +53,19 @@ import net.minecraft.world.World;
 import net.minecraftforge.items.ItemStackHandler;
 
 public class EmailUtils {
-	private static String EmailPath = null;
-	private static String EmailRootPath = null;
 	public static final JsonParser parser = new JsonParser();
-	public static final String typePath = getSaveEmailRootPath() + File.separator + "email" + File.separator + "type" + File.separator;
-	public static final String exportPath = typePath + "export" + File.separator;
 	
+	public static boolean saveInboxToDisk(Inbox inbox) {
+		return saveInboxToDisk(inbox, 10);
+	}
 	public static boolean saveInboxToDisk(Inbox inbox, int maxRetryCount) {
 		int retry = 0;
 		boolean succes = false;
-		while(true) {
+		for(; retry < maxRetryCount; retry++) {
 			if(inbox.save()) {
 				succes = true;
 				break;
 			}
-			if(retry >= maxRetryCount) {
-				break;
-			}
-			retry++;
 		}
 		
 		if(succes) {
@@ -93,7 +89,7 @@ public class EmailUtils {
 	}
 	
 	public static EmailFunction findFunction(String file) {
-		File functionFile = findFunctionFile(new File(typePath), file);
+		File functionFile = findFunctionFile(new File(EmailAPI.getTypePath()), file);
 		if(functionFile != null) {
 			JsonElement e = JsonUtil.parse(functionFile);
 			if(e != null && e.isJsonObject()) {
@@ -130,7 +126,7 @@ public class EmailUtils {
 							items = Lists.newArrayList(stack);
 						}else {
 							String path = function.get("items").getAsString();
-							JsonElement itemsE = JsonUtil.parse(exportPath + path);
+							JsonElement itemsE = JsonUtil.parse(EmailAPI.getExportPath() + path);
 							if(itemsE!=null) {
 								items = JsonToStackUtil.toStacks(itemsE);
 							}
@@ -143,7 +139,7 @@ public class EmailUtils {
 								if(stack!=null) {
 									items.add(stack);
 								}else {
-									JsonElement itemsE = JsonUtil.parse(exportPath + item.getValue().getAsJsonPrimitive().getAsString());
+									JsonElement itemsE = JsonUtil.parse(EmailAPI.getExportPath() + item.getValue().getAsJsonPrimitive().getAsString());
 									if(itemsE!=null) {
 										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
 											if(stack0!=null) {
@@ -165,7 +161,7 @@ public class EmailUtils {
 								if(stack!=null) {
 									items.add(stack);
 								}else {
-									JsonElement itemsE = JsonUtil.parse(exportPath + item.getAsJsonPrimitive().getAsString());
+									JsonElement itemsE = JsonUtil.parse(EmailAPI.getExportPath() + item.getAsJsonPrimitive().getAsString());
 									if(itemsE!=null) {
 										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
 											if(stack0!=null) {
@@ -188,7 +184,7 @@ public class EmailUtils {
 				if(function.has("sound")) {
 					JsonObject jsonSound = function.getAsJsonObject("sound");
 					sound = new EmailSound(
-							new EmailSound.Time(jsonSound.get("time").getAsLong()), 
+							new EmailSound.Time(jsonSound.get("millis").getAsLong()), 
 							SoundEvent.REGISTRY.getObject(new ResourceLocation(jsonSound.get("name").getAsString())),
 							jsonSound.get("volume").getAsFloat(),
 							jsonSound.get("pitch").getAsFloat());
@@ -230,7 +226,7 @@ public class EmailUtils {
 	public static EmailSizeReport checkInboxSize(Inbox inbox) {
 		if(inbox == null || inbox.isEmptyEmails()) return EmailSizeReport.SUCCES;
 		
-		for(int id = 0; id < inbox.emailCount(); id++) {
+		for(long id : inbox.getEmailIDs()) {
 			Email email = inbox.getEmail(id);
 			if(email.hasItems()) {
 				List<ItemStack> items = email.getItems();
@@ -352,32 +348,8 @@ public class EmailUtils {
 		return Sets.newHashSet(NameToUUID.keySet());
 	}
 	
-	public static String getSaveEmailRootPath() {
-		if(EmailRootPath == null) {
-			if(EmailConfigs.Save_To_Minecraft_Root_Directory) {
-				EmailRootPath = ".";
-			}else {
-				EmailRootPath = EmailMain.server.getEntityWorld().getSaveHandler().getWorldDirectory().toString();
-			}
-		}
-		
-		return EmailRootPath;
-	}
-	
-	public static String getSaveEmailPath() {
-		if(EmailPath == null) {
-			EmailPath = getSaveEmailRootPath() + File.separator + "email" + File.separator;
-		}
-		return EmailPath;
-	}
-	
-	public static void clearEmailPath() {
-		EmailRootPath = null;
-		EmailPath = null;
-	}
-	
 	public static JsonObject getInboxJson(String uid) {
-		File email = new File(getSaveEmailPath() + uid + ".json");
+		File email = new File(EmailAPI.getSaveEmailPath() + uid + ".json");
 		if(email.exists()) {
 			JsonElement file = JsonUtil.parse(email);
 			if(file != null && file.isJsonObject()) {
@@ -487,7 +459,7 @@ public class EmailUtils {
 
 	public static boolean isInfiniteSize() {
 		return EmailMain.proxy.isClient()
-			&& EmailConfigs.Enable_MailBox_Infinite_Storage_Cache
-			&& Minecraft.getMinecraft().isSingleplayer();
+			&& Minecraft.getMinecraft().isSingleplayer()
+			&& EmailConfigs.Enable_MailBox_Infinite_Storage_Cache;
 	}
 }

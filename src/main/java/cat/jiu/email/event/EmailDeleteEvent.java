@@ -9,10 +9,10 @@ public class EmailDeleteEvent {
 	@Cancelable
 	public static class Pre extends Event {
 		public final Inbox email;
-		public final int message;
+		public final long message;
 		public final boolean isDeleteAllRead;
 		public final boolean isDeleteAllReceive;
-		public Pre(Inbox email, int messageID, boolean isDeleteAllRead, boolean isDeleteAllReceive) {
+		public Pre(Inbox email, long messageID, boolean isDeleteAllRead, boolean isDeleteAllReceive) {
 			this.email = email;
 			this.message = messageID;
 			this.isDeleteAllRead = isDeleteAllRead;
@@ -22,10 +22,10 @@ public class EmailDeleteEvent {
 	
 	public static class Post extends Event {
 		public final Inbox email;
-		public final int messageID;
+		public final long messageID;
 		public final boolean isDeleteAllRead;
 		public final boolean isDeleteAllReceive;
-		public Post(Inbox email, int messageID, boolean isDeleteAllRead, boolean isDeleteAllReceive) {
+		public Post(Inbox email, long messageID, boolean isDeleteAllRead, boolean isDeleteAllReceive) {
 			this.email = email;
 			this.messageID = messageID;
 			this.isDeleteAllRead = isDeleteAllRead;

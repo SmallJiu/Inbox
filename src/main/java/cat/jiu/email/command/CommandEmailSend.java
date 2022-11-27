@@ -10,6 +10,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Text;
 import cat.jiu.email.util.EmailConfigs;
@@ -47,23 +48,23 @@ class CommandEmailSend extends CommandBase {
 		String addresser = function.addresser;
 		if("@a".equals(addresser)) {
 			cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.ing", TextFormatting.YELLOW));
-			new Thread(()->{
+			EmailMain.execute(a->{
 				for(String name : EmailUtils.getAllName()) {
 					replaceAbstract(name, function.msgs);
 					EmailAPI.sendCommandEmail(name, function.toEmail());
 				}
 				cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.success.all", TextFormatting.GREEN));
-			}).start();
+			},0);
 			return;
 		}else if("@a-online".equals(addresser)) {
 			cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.ing", TextFormatting.YELLOW));
-			new Thread(()->{
+			EmailMain.execute(a->{
 				for(String name : server.getOnlinePlayerNames()) {
 					replaceAbstract(name, function.msgs);
 					EmailAPI.sendCommandEmail(name, function.toEmail());
 				}
 				cmdSender.sendMessage(EmailUtils.createTextComponent("email.command.send.success.all.online", TextFormatting.GREEN));
-			}).start();
+			},0);
 			return;
 		}else if("@p".equals(addresser)) {
 			if(args!=null && args.length >= 2) {
@@ -99,7 +100,7 @@ class CommandEmailSend extends CommandBase {
 	@Override
 	public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, BlockPos targetPos) {
 		if(args.length == 1) {
-			File originDir = new File(EmailUtils.typePath);
+			File originDir = new File(EmailAPI.getTypePath());
 			if(originDir.exists()) {
 				List<String> functions = Lists.newArrayList();
 				this.getAllFunction(functions, originDir);

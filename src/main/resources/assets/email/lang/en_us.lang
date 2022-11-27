@@ -29,9 +29,9 @@ info.email.msgs=Messages
 info.email.items=Items
 info.email.default_msg=From the Void
 info.email.default_title=A email from the Void
-info.email.cooling=Cooling -> %s:%s
+info.email.cooling=Cooling -> %s:%s:%s:%s:%s:%s
 info.email.from=You have a new E-mail from %s
-info.email.send.warn=Warning: Use this button receive email maybe will miss items
+info.email.send.warn=Warning: Use this button receive email maybe will lose items.
 
 info.email.error.not_found_player=Can not found Player: %s !
 info.email.error.empty_name=Addressee can not be empty !
@@ -43,6 +43,9 @@ info.email.error.send.to_big.email=Send email to big, Please reduce the e-mail s
 info.email.send.success=Send e-mail success.
 
 #command
+email.command.send.event=/email event_reload - reload event
+email.command.send.cooling=/email cooling_reload - reload send email cooling
+
 email.command.send=/email send <File> [Player]
 email.command.send.file_not_found=File not found, Path: %s
 email.command.send.msg=/email sendmsg <Sender> <Addressee> <Title> <Messages>
@@ -50,6 +53,10 @@ email.command.send.success.all=Send e-mail to all storage in 'usernamecache.json
 email.command.send.success.all.online=Send e-mail to all 'online' players success.
 email.command.send.error.abstract_name=Can not use abstract name in not a player: %s。
 email.command.send.ing=Sending, please wait... It is normal that the line may be disconnected during this period.
+
+email.command.delete=/email delete <Player> <email id> - delete player email
+email.command.delete.email_not_found=Not found Email: %s
+email.command.delete.success=Delete player %s Email %s success.
 
 email.command.export=/email export - Export hand item to can be parsed json file
 email.command.export.only_player=This command only use on player

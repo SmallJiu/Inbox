@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.collect.Lists;
 
 import cat.jiu.core.api.handler.IFunction;
-import cat.jiu.core.util.base.BaseNBT;
 import cat.jiu.email.command.EmailCommands;
+import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.element.Text;
@@ -32,7 +32,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
@@ -41,7 +40,6 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -67,7 +65,7 @@ public class EmailMain {
 	public static final String MODID = "email";
 	public static final String NAME = "E-mail";
 	public static final String OWNER = "small_jiu";
-	public static final String VERSION = "1.0.2-a2";
+	public static final String VERSION = "1.0.3-a0";
 	public static EmailNetworkHandler net;
 	public static final Logger log = LogManager.getLogger("Email");
 	public static final String SYSTEM = "?????";
@@ -90,16 +88,6 @@ public class EmailMain {
 		new EmailGuiHandler();
 		net = new EmailNetworkHandler();
 		
-		if(!(Loader.isModLoaded("jiucore") && BaseNBT.hasNBT(-1))) {
-			
-			String[] old = NBTBase.NBT_TYPES;
-			NBTBase.NBT_TYPES = new String[NBTBase.NBT_TYPES.length+1];
-			for(int i = 0; i < old.length; i++) {
-				NBTBase.NBT_TYPES[i] = old[i];
-			}
-			NBTBase.NBT_TYPES[old.length] = "NULL";
-		}
-		
 		if(EmailConfigs.Send.Enable_Send_BlackList && EmailConfigs.Send.Enable_Send_WhiteList) {
 			EmailConfigs.Send.Enable_Send_BlackList = false;
 			EmailConfigs.Send.Enable_Send_WhiteList = false;
@@ -108,19 +96,17 @@ public class EmailMain {
 
 	@Mod.EventHandler
 	public void onServerStart(FMLServerStartingEvent event) {
-		if(server == null) {
-			server = event.getServer();
-		}
-		EmailUtils.getSaveEmailPath();
+		server = event.getServer();
+		EmailAPI.clearEmailPath();
 		EmailUtils.initNameAndUUID(event.getServer());
 		EmailExecuteEvent.init();
+		Cooling.load();
 		event.registerServerCommand(new EmailCommands());
 	}
 
 	@Mod.EventHandler
 	public void onServerClose(FMLServerStoppedEvent event) {
 		server = null;
-		EmailUtils.clearEmailPath();
 	}
 	
 	static final Text title = new Text("email.dev_message.title", "");
@@ -146,7 +132,7 @@ public class EmailMain {
 				
 				EmailExecuteEvent.initDefaultCustomValue(inbox);
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(event.player, inbox));
-				EmailUtils.saveInboxToDisk(inbox, 10);
+				EmailUtils.saveInboxToDisk(inbox);
 			}
 		}
 	}
@@ -407,6 +393,7 @@ public class EmailMain {
 	}
 	
 	// for network delay, need send after
+	public static void execute(IFunction function) {execute(function, 50);}
 	public static void execute(IFunction function, long delay) {
 		new Thread(()->{
 			try {Thread.sleep(delay);}catch(InterruptedException e) { e.printStackTrace();}

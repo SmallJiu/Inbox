@@ -6,30 +6,45 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 
+import cat.jiu.email.EmailMain;
+import cat.jiu.email.element.Cooling;
+import cat.jiu.email.net.msg.MsgSend.SendCooling;
+import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
 public class ContainerEmailSend extends Container {
-	private InventoryPlayer inventory;
+	private final EntityPlayer player;
 	private final ItemStackHandler handler = new ItemStackHandler(16);
 	
 	public ContainerEmailSend(World world, EntityPlayer player) {
-		this.inventory = player.inventory;
+		this.player = player;
 		this.addHandlerSlot(this.handler, 17, 100, 8, 2);
 		this.addPlayerInventorySlot(8, 151);
+		if(player instanceof EntityPlayerMP) {
+			EntityPlayerMP mp = (EntityPlayerMP) player;
+			if(Cooling.isCooling(player.getName())) {
+				long m = Cooling.getCoolingTimeMillis(mp.getName());
+				cooling = m;
+				EmailMain.execute(a->EmailMain.net.sendMessageToPlayer(new SendCooling(m), mp));
+			}
+		}
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 	
 	protected void addHandlerSlot(ItemStackHandler handler, int x, int y, int slotWidth, int slotHeight) {
@@ -46,33 +61,41 @@ public class ContainerEmailSend extends Container {
 	protected void addPlayerInventorySlot(int x, int y) {
 		int slotIndex = 0;
 		for(int slotX = 0; slotX < 9; slotX++) {
-			this.addSlotToContainer(new Slot(this.inventory, slotIndex, x + 18 * slotX, y + (18 * 2) + 22));
+			this.addSlotToContainer(new Slot(this.player.inventory, slotIndex, x + 18 * slotX, y + (18 * 2) + 22));
 			slotIndex += 1;
 		}
 		for(int slotY = 0; slotY < 3; slotY++) {
 			for(int slotX = 0; slotX < 9; slotX++) {
-				this.addSlotToContainer(new Slot(this.inventory, slotIndex, x + 18 * slotX, y + (18 * slotY)));
+				this.addSlotToContainer(new Slot(this.player.inventory, slotIndex, x + 18 * slotX, y + (18 * slotY)));
 				slotIndex += 1;
 			}
 		}
 	}
 	
-	private static long coolingTicks = 0;
-	public boolean isCooling() {
-		return coolingTicks > 0;
-	}
-	public void sendCooling(long tick) {
-		coolingTicks = tick;
-		new Thread(()->{
-			while(coolingTicks > 0) {
-				try {
-					Thread.sleep(50);
-					coolingTicks--;
-				}catch(InterruptedException e) {e.printStackTrace();}
+	@SubscribeEvent
+	public void cooling(SendEmailCoolingEvent event) {
+		if(this.player.getName().equals(event.name)) {
+			if(!this.player.world.isRemote) {
+				EmailMain.execute(a->EmailMain.net.sendMessageToPlayer(new SendCooling(event.millis), (EntityPlayerMP) this.player));
 			}
-		}).start();
+			cooling = event.millis;
+		}
 	}
-	public long getCoolingTick() {return coolingTicks;}
+	
+	private static long cooling = 0;
+	public boolean isCooling() {
+		return cooling > System.currentTimeMillis();
+	}
+	
+	@Deprecated
+	public void sendCooling(long millis) {setCooling(millis);}
+	public void setCooling(long millis) {
+		cooling = millis;
+	}
+	
+	@Deprecated
+	public long getCoolingTick() {return getCoolingMillis();}
+	public long getCoolingMillis() {return cooling;}
 	
 	boolean isLock = false;
 	boolean t_isLock = false;
@@ -99,6 +122,9 @@ public class ContainerEmailSend extends Container {
 		switch(id) {
 			case 1001:
 				this.isLock = data == 1;
+				break;
+			case 1002:
+				cooling = data;
 				break;
 		}
 	}
@@ -145,7 +171,7 @@ public class ContainerEmailSend extends Container {
 	}
 	
 	/**
-	 * will clear slots to create a JsonArray
+	 * will clear slots to create a JsonObject
 	 */
 	public JsonObject toItemArray(boolean check) {
 		List<ItemStack> stacks = Lists.newArrayList();

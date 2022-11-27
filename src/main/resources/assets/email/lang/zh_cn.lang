@@ -29,7 +29,7 @@ info.email.msgs=信息
 info.email.items=物品
 info.email.default_msg=一封来自虚空的邮件
 info.email.default_title=来自虚空的邮件
-info.email.cooling=冷却中 -> %s:%s:%s:%s:%s
+info.email.cooling=冷却中 -> %s:%s:%s:%s:%s:%s
 info.email.from=你有一封来自%s的新邮件
 info.email.send.warn=警告: 使用此按钮领取邮件可能会导致领取的物品丢失
 
@@ -43,6 +43,7 @@ info.email.send.success=邮件发出成功
 
 #command
 email.command.send.event=/email event_reload - 重载事件处理器
+email.command.send.cooling=/email cooling_reload - 重载寄送邮件冷却时间
 
 email.command.send=/email send <文件名称> [玩家] - 发送解析后的邮件给玩家
 email.command.send.file_not_found=找不到文件. 路径: %s
@@ -51,6 +52,10 @@ email.command.send.success.all=邮件发出至 存储在'usernamecache.json'内�
 email.command.send.success.all.online=邮件发出至 '全部在线玩家' 成功.
 email.command.send.error.abstract_name=不能在不是玩家的情况下使用模糊的收件人: %s。
 email.command.send.ing=发送中，请稍后... 期间可能会掉线，属于正常情况
+
+email.command.delete=/email delete <玩家> <邮件id> - 删除玩家的邮件
+email.command.delete.email_not_found=找不到邮件: %s
+email.command.delete.success=删除玩家 %s 的邮件 %s 成功.
 
 email.command.export=/email export [all] - 导出手上或背包物品到文件
 email.command.export.only_player=此命令只能由玩家执行

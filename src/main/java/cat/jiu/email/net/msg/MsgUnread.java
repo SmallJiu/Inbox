@@ -14,15 +14,8 @@ public class MsgUnread implements IMessage {
 		this.unread = unread;
 	}
 	
-	@Override
-	public void fromBytes(ByteBuf buf) {
-		this.unread = buf.readInt();
-	}
-
-	@Override
-	public void toBytes(ByteBuf buf) {
-		buf.writeInt(this.unread);
-	}
+	public void fromBytes(ByteBuf buf) {this.unread = buf.readInt();}
+	public void toBytes(ByteBuf buf) {buf.writeInt(this.unread);}
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {

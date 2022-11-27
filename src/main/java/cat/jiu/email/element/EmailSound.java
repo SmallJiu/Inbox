@@ -28,7 +28,7 @@ public class EmailSound {
 		nbt.setInteger("sound", SoundEvent.REGISTRY.getIDForObject(this.sound));
 		nbt.setFloat("volume", this.volume);
 		nbt.setFloat("pitch", this.pitch);
-		nbt.setLong("time", this.time.tick);
+		nbt.setLong("millis", this.time.tick);
 		return nbt;
 	}
 	
@@ -37,7 +37,7 @@ public class EmailSound {
 		json.addProperty("id", SoundEvent.REGISTRY.getIDForObject(this.sound));
 		json.addProperty("pitch", this.pitch);
 		json.addProperty("volume", this.volume);
-		json.addProperty("time", this.time.tick);
+		json.addProperty("millis", this.time.tick);
 		return json;
 	}
 	
@@ -80,13 +80,13 @@ public class EmailSound {
 
 	public static EmailSound from(NBTTagCompound nbt) {
 		if(nbt!=null) {
-			return new EmailSound(new Time(nbt.getLong("time")), SoundEvent.REGISTRY.getObjectById(nbt.getInteger("sound")), nbt.getFloat("volume"), nbt.getFloat("pitch"));
+			return new EmailSound(new Time(nbt.getLong("millis")), SoundEvent.REGISTRY.getObjectById(nbt.getInteger("sound")), nbt.getFloat("volume"), nbt.getFloat("pitch"));
 		}
 		return null;
 	}
 	public static EmailSound from(JsonObject json) {
 		if(json!=null&&json.size()>0) {
-			return new EmailSound(new Time(json.get("time").getAsLong()), SoundEvent.REGISTRY.getObjectById(json.get("id").getAsInt()), json.get("volume").getAsFloat(), json.get("pitch").getAsFloat());
+			return new EmailSound(new Time(json.get("millis").getAsLong()), SoundEvent.REGISTRY.getObjectById(json.get("id").getAsInt()), json.get("volume").getAsFloat(), json.get("pitch").getAsFloat());
 		}
 		return null;
 	}
