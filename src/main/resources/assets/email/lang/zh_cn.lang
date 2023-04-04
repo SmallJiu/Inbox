@@ -14,11 +14,22 @@ info.email.delete_accept=删除已领
 info.email.delete_read=删除已读
 info.email.delete=删除所选
 info.email.accept=领取所选
+info.email.read=阅读所选
+info.email.read_accept=阅读并领取
 info.email.read_all=全部读取
 info.email.accept_all=全部领取
 info.email.storage=邮箱:
 info.email.out_size=邮箱过大，请删除部分邮件
 info.email.main.from=来自: %s
+info.email.black=管理黑名单
+info.email.black.back=返回
+info.email.play_sound=播放
+info.email.play_sound.stop=停止
+info.email.refresh=刷新邮箱
+info.email.refreshing=刷新中...
+info.email.refresh.cooling=冷却中...
+info.email.email_size=邮件大小: %s Bytes
+info.email.remain_expiration_time=邮件过期时间: %s:%s:%s:%s
 
 #send
 info.email.send=发送
@@ -32,14 +43,29 @@ info.email.default_title=来自虚空的邮件
 info.email.cooling=冷却中 -> %s:%s:%s:%s:%s:%s
 info.email.from=你有一封来自%s的新邮件
 info.email.send.warn=警告: 使用此按钮领取邮件可能会导致领取的物品丢失
+info.email.send.not_op=无法使用模糊发送: %s, 请联系管理员。
+info.email.send.abs=已发送邮件至 %s 个玩家的邮箱内。(耗时 %s ms)
+info.email.@p=在线玩家
+info.email.@a=已知玩家
 
 info.email.error.not_found_player=找不到玩家: %s ！
 info.email.error.empty_name=收件人不能为空！
-info.email.error.send_self=你不能发送邮件给自己！
+info.email.error.send_self=由于服务器设置，你不能发送邮件给自己！
 info.email.error.empty_msgs_item=物品或消息必须有一个不为空！
 info.email.error.send.to_big=邮件物品体积过大，请减小体积. 槽位: %s, Size: %s / 2097152 Bytes
 info.email.error.send.to_big.email=发出的邮件过大，请减小体积。%s / 2097152 Bytes
-info.email.send.success=邮件发出成功
+info.email.send.success=邮件发出至 %s 成功
+info.email.send.fail=邮件发出失败，检查日志并找到原因.
+info.email.send.fail.blacklist=邮件发出失败，已被收件人拒收！
+
+#blacklist
+info.email.black.title=邮件拒收名单
+info.email.black.info=把不喜欢的玩家添加进邮件拒收名单
+info.email.black.add=添加
+info.email.black.add.success=已将 %s 添加进拒收名单
+info.email.black.add.fail.whitelist=此ID为白名单，无法添加进拒收名单
+info.email.black.remove=移除
+info.email.black.remove.success=移除 %s 的拒收名单成功
 
 #command
 email.command.send.event=/email event_reload - 重载事件处理器
@@ -54,8 +80,8 @@ email.command.send.error.abstract_name=不能在不是玩家的情况下使用�
 email.command.send.ing=发送中，请稍后... 期间可能会掉线，属于正常情况
 
 email.command.delete=/email delete <玩家> <邮件id> - 删除玩家的邮件
-email.command.delete.email_not_found=找不到邮件: %s
-email.command.delete.success=删除玩家 %s 的邮件 %s 成功.
+email.command.delete.email_not_found=找不到ID为 %s 的邮件.
+email.command.delete.success=成功删除玩家 %s 的ID为 %s 的邮件.
 
 email.command.export=/email export [all] - 导出手上或背包物品到文件
 email.command.export.only_player=此命令只能由玩家执行
@@ -85,16 +111,25 @@ email.command.send.no_permission.black=你有服务器的邮寄黑名单, 请联
 email.command.send.no_permission.white=你没有服务器的邮寄白名单, 请联系管理员添加
 
 #config
+email.config.time.tick=刻
+email.config.time.second=秒
+email.config.time.minute=分
+email.config.time.hour=时
+email.config.time.day=天
+
 email.config.title=标题
 email.config.msg=消息
 email.config.sender=发送者
 
 email.config.infinite_size=邮箱无限空间
 email.config.save_to_root_directory=保存至根目录
+email.config.save_inbox_to_sql=使用数据库保存邮箱(未完成)
+email.config.save_inbox_to_sql.not_load_sql=未加载SQLite mod
 
 email.config.main=主界面
 email.config.main.show_text_rows=显示行数
 email.config.main.show_text_spacing=显示间距
+email.config.main.vanilla_wrap=使用原版的文本换行方式
 
 email.config.main.size=界面大小
 email.config.main.size.width=宽
@@ -110,6 +145,12 @@ email.config.main.number_of_words=文本字数
 email.config.main.number_of_words.current=已选邮件
 email.config.main.number_of_words.candidate=候选邮件
 
+email.config.expiration=邮件过期时间
+email.config.expiration.can=是否可过期
+email.config.expiration.ed=已过期
+email.config.expiration.no_item=没有物品的过期时间
+email.config.expiration.have_item=包含物品的过期时间
+
 email.config.send=寄送邮件
 email.config.send.blacklist=黑名单制
 email.config.send.whitelist=白名单制
@@ -118,18 +159,13 @@ email.config.send.cooling=发送冷却
 email.config.send.inbox_button=邮箱按钮
 
 email.config.send.cooling.time=冷却时间
-email.config.send.cooling.time.tick=刻
-email.config.send.cooling.time.second=秒
-email.config.send.cooling.time.minute=分
-email.config.send.cooling.time.hour=时
-email.config.send.cooling.time.day=天
 
 email.dev_message.sender=某玖_Damon
 email.dev_message.title=你好，%s
 email.dev_message.0=你好，%s，谢谢您使用此mod。
 email.dev_message.1=教程不会用这个写，会另外单独制作。
 email.dev_message.2=这里只说这个mod可以实现的功能：
-email.dev_message.3=  一：可以发送信息，也可以发送物品，物品可以带NBT。
-email.dev_message.4=  二：你完全可以使用此mod来代替发放物品所需的功能。
-email.dev_message.5=  三：你完全可以使用此mod来制作带剧情的地图或mod
+email.dev_message.3=&il一：可以发送信息，也可以发送物品，物品可以带NBT。
+email.dev_message.4=&il二：你完全可以使用此mod来代替发放物品所需的功能。
+email.dev_message.5=&il三：你完全可以使用此mod来制作带剧情的地图或mod
 email.dev_message.6=至此，祝您游戏愉快 

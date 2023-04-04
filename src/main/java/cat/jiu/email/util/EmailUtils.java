@@ -1,5 +1,6 @@
 package cat.jiu.email.util;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -13,6 +14,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.JDBCType;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -26,10 +31,18 @@ import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.EmailFunction;
-import cat.jiu.email.element.EmailSound;
+import cat.jiu.email.element.InboxSound;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.element.Text;
-
+import cat.jiu.email.element.InboxText;
+import cat.jiu.email.element.InboxTime;
+import cat.jiu.email.iface.IInboxText;
+import cat.jiu.sql.SQLDatabase;
+import cat.jiu.sql.SQLOperator;
+import cat.jiu.sql.SQLSelect;
+import cat.jiu.sql.SQLSelectType;
+import cat.jiu.sql.SQLTableKey;
+import cat.jiu.sql.SQLValues;
+import cat.jiu.sql.select.Where;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 
@@ -54,15 +67,31 @@ import net.minecraftforge.items.ItemStackHandler;
 
 public class EmailUtils {
 	public static final JsonParser parser = new JsonParser();
+	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+	public static String getTime() {
+		return dateFormat.format(new Date());
+	}
+	
+	public static void sendMessage(EntityPlayer player, TextFormatting color, String key, Object... args) {
+		player.sendMessage(createTextComponent(color, key, args));
+	}
+	public static void sendMessage(EntityPlayer player, String key, Object... args) {
+		player.sendMessage(createTextComponent(key, args));
+	}
 	
 	public static boolean saveInboxToDisk(Inbox inbox) {
 		return saveInboxToDisk(inbox, 10);
 	}
 	public static boolean saveInboxToDisk(Inbox inbox, int maxRetryCount) {
+		if(EmailMain.proxy.isClient()
+		&& !Minecraft.getMinecraft().isIntegratedServerRunning()) {
+			EmailMain.log.error("Client can not save inbox to Server!");
+			return false;
+		}
 		int retry = 0;
 		boolean succes = false;
 		for(; retry < maxRetryCount; retry++) {
-			if(inbox.save()) {
+			if(inbox.saveToDisk()) {
 				succes = true;
 				break;
 			}
@@ -94,16 +123,16 @@ public class EmailUtils {
 			JsonElement e = JsonUtil.parse(functionFile);
 			if(e != null && e.isJsonObject()) {
 				JsonObject function = e.getAsJsonObject();
-				List<Text> msgs = null;
+				List<IInboxText> msgs = null;
 				if(function.has("msgs")) {
 					msgs = Lists.newArrayList();
 					JsonElement msgE = function.get("msgs");
 					if(msgE.isJsonPrimitive()) {
-						msgs.add(new Text(msgE.getAsString()));
+						msgs.add(new InboxText(msgE.getAsString()));
 					}else if(msgE.isJsonArray()) {
 						JsonArray msgsArray = msgE.getAsJsonArray();
 						for(int i = 0; i < msgsArray.size(); i++) {
-							msgs.add(new Text(msgsArray.get(i).getAsString()));
+							msgs.add(new InboxText(msgsArray.get(i).getAsString()));
 						}
 					}else if(msgE.isJsonObject()) {
 						for(Entry<String, JsonElement> msg : msgE.getAsJsonObject().entrySet()) {
@@ -112,7 +141,7 @@ public class EmailUtils {
 							for(int i = 0; i < arg.length; i++) {
 								arg[i] = argJson.get(i).getAsString();
 							}
-							msgs.add(new Text(msg.getKey(), arg));
+							msgs.add(new InboxText(msg.getKey(), arg));
 						}
 					}
 				}
@@ -180,20 +209,20 @@ public class EmailUtils {
 					}
 				}
 				
-				EmailSound sound = null;
+				InboxSound sound = null;
 				if(function.has("sound")) {
 					JsonObject jsonSound = function.getAsJsonObject("sound");
-					sound = new EmailSound(
-							new EmailSound.Time(jsonSound.get("millis").getAsLong()), 
+					sound = new InboxSound(
+							new InboxTime(jsonSound.get("millis").getAsLong()), 
 							SoundEvent.REGISTRY.getObject(new ResourceLocation(jsonSound.get("name").getAsString())),
 							jsonSound.get("volume").getAsFloat(),
 							jsonSound.get("pitch").getAsFloat());
 				}
 				
 				return new EmailFunction(
-						new Text(function.get("sender")),
+						new InboxText(function.get("sender")),
 						function.get("addresser").getAsString(),
-						new Text(function.get("title")),
+						new InboxText(function.get("title")),
 						items, msgs, sound);
 			}
 		}
@@ -218,38 +247,53 @@ public class EmailUtils {
 		return new TextComponentTranslation(arg, objs);
 	}
 	
-	public static ITextComponent createTextComponent(String arg, TextFormatting color, Object... objs) {
+	public static ITextComponent createTextComponent(TextFormatting color, String arg, Object... objs) {
 		ITextComponent text = new TextComponentTranslation(arg, objs);
 		return text.setStyle(text.getStyle().setColor(color)); 
 	}
 	
-	public static EmailSizeReport checkInboxSize(Inbox inbox) {
-		if(inbox == null || inbox.isEmptyEmails()) return EmailSizeReport.SUCCES;
+	public static SizeReport checkEmailSize(Email email) {
+		if(email == null) return SizeReport.SUCCES;
+		if(email.hasItems()) {
+			List<ItemStack> items = email.getItems();
+			for(int slot = 0; slot < items.size(); slot++) {
+				long size = getSize(items.get(slot).writeToNBT(new NBTTagCompound()));
+				if(size >= 2097152L) {
+					return new SizeReport(-1, slot, size);
+				}
+			}
+		}
+		long size = getSize(email.writeTo(NBTTagCompound.class));
+		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCES;
+	}
+	
+	public static SizeReport checkInboxSize(Inbox inbox) {
+		if(inbox == null || inbox.isEmptyInbox()) return SizeReport.SUCCES;
 		
 		for(long id : inbox.getEmailIDs()) {
 			Email email = inbox.getEmail(id);
+			if(email == null) {
+				inbox.deleteEmail(id);
+				continue;
+			}
+			long emailSize = getSize(email.writeTo(NBTTagCompound.class));
+			if(emailSize >= 2097152L) {
+				return new SizeReport(id, -1, emailSize);
+			}
+			
 			if(email.hasItems()) {
 				List<ItemStack> items = email.getItems();
 				for(int slot = 0; slot < items.size(); slot++) {
 					long size = getSize(items.get(slot).writeToNBT(new NBTTagCompound()));
 					if(size >= 2097152L) {
-						return new EmailSizeReport(id, slot, size);
+						return new SizeReport(id, slot, size);
 					}
 				}
 			}
 		}
 		
 		long size = inbox.getInboxSize();
-		return size >= 2097152L ? new EmailSizeReport(-1, -1, size) : EmailSizeReport.SUCCES;
-	}
-	
-	private static class Tracker extends NBTSizeTracker {
-		public Tracker() {
-			super(0);
-		}
-		public void read(long bits) {
-    		this.read += bits / 8L;
-    	}
+		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCES;
 	}
 	
 	public static long getSize(NBTTagCompound nbt) {
@@ -261,20 +305,113 @@ public class EmailUtils {
         if(pb.readByte() == 0) return 0;
         pb.readerIndex(index);
         
-        Tracker tracker = new Tracker();
+        NBTSizeTracker tracker = new NBTSizeTracker(0) {
+        	public void read(long bits) {
+        		this.read += bits / 8L;
+        	}
+        };
+        
         try {
         	CompressedStreamTools.read(new ByteBufInputStream(pb), tracker);
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
-		
+        
 		return tracker.read;
+	}
+	
+	public static boolean saveInboxToDB(Inbox inbox) {
+		if(EmailMain.SQLite_INIT) {
+			SQLDatabase db = null;
+			try {
+				synchronized(EmailUtils.class) {
+					db = new SQLDatabase(org.sqlite.JDBC.PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db");
+					db.prepared.createTable("inboxs", new SQLTableKey()
+							.put("uuid", db.createKey(JDBCType.VARCHAR)
+									.setNotNull(true)
+									.setPrimaryKey(true))
+							.put("inbox", db.createKey(JDBCType.VARCHAR)
+									.setNotNull(true)));
+					
+					db.prepared.delete("inboxs", new SQLSelect(SQLSelectType.WHERE, inbox.getOwner())
+							.add(new Where("uuid", SQLOperator.EQUAL, "?", null)));
+					
+					db.prepared.insert("inboxs", inbox.writeTo(SQLValues.class));
+					try {
+						db.close();
+					}catch(SQLException e) {}
+				}
+				return true;
+			}catch(Exception e) {
+				EmailMain.log.error("{}", e.getMessage());
+				return false;
+			}finally {
+				if(db!=null) {
+					try {
+						db.close();
+					}catch(SQLException e1) {}
+				}
+			}
+		}
+		return false;
+	}
+	
+	public static JsonObject getInboxJson(String uid) {
+		if(EmailConfigs.Save_Inbox_To_SQL) {
+			if(EmailMain.SQLite_INIT) {
+				SQLDatabase db = null;
+				try {
+					synchronized(EmailUtils.class) {
+						db = new SQLDatabase(org.sqlite.JDBC.PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db"); 
+						ResultSet rs = db.prepared.select("inboxs", new SQLSelect(SQLSelectType.WHERE, uid)
+								.add(new Where("uuid", SQLOperator.EQUAL, "?", null)));
+						JsonObject json = null;
+						while(rs.next()) {
+							String str = rs.getString("inbox");
+							if(str.isEmpty()) {
+								json = new JsonObject();
+							}else {
+								json = JsonUtil.parser.parse(str).getAsJsonObject();
+							}
+							break;
+						}
+						try {
+							db.close();
+						}catch(SQLException e) {}
+						return json;
+					}
+				}catch(Exception e) {
+					EmailMain.log.warn("found inbox data has error: {}", e.getLocalizedMessage());
+				}finally {
+					if(db!=null) {
+						try {
+							db.close();
+						}catch(SQLException e1) {}
+					}
+				}
+			}
+		}else {
+			File email = new File(EmailAPI.getSaveInboxPath() + uid + ".json");
+			if(email.exists()) {
+				JsonElement file = JsonUtil.parse(email);
+				if(file != null && file.isJsonObject()) {
+					return file.getAsJsonObject();
+				}else {
+					return new JsonObject();
+				}
+			}
+		}
+		return new JsonObject();
 	}
 	
 	private static final HashMap<String, UUID> NameToUUID = Maps.newHashMap();
 	private static final HashMap<UUID, String> UUIDToName = Maps.newHashMap();
 
 	public static void initNameAndUUID(@Nullable MinecraftServer server) {
+		if(EmailMain.proxy.isClient()
+		&& !Minecraft.getMinecraft().isIntegratedServerRunning()) {
+			return;
+		}
 		if(server != null) {
 			server.getPlayerProfileCache().save();
 			server.getPlayerProfileCache().load();
@@ -298,17 +435,17 @@ public class EmailUtils {
 			}
 		}
 	}
-
-	public static boolean hasNameOrUUID(String name) {
+	
+	public static boolean hasName(String name) {
 		return NameToUUID.containsKey(name) && UUIDToName.containsValue(name);
 	}
 
-	public static boolean hasNameOrUUID(UUID uid) {
+	public static boolean hasUUID(UUID uid) {
 		return UUIDToName.containsKey(uid) && NameToUUID.containsValue(uid);
 	}
 
 	public static UUID getUUID(String name) {
-		if(hasNameOrUUID(name)) {
+		if(hasName(name)) {
 			UUID uid = NameToUUID.get(name);
 			if(uid==null) {
 				for(Entry<UUID, String> uuid : UUIDToName.entrySet()) {
@@ -325,7 +462,7 @@ public class EmailUtils {
 	}
 
 	public static String getName(UUID uid) {
-		if(hasNameOrUUID(uid)) {
+		if(hasUUID(uid)) {
 			String name = UUIDToName.get(uid);
 			if(name==null) {
 				for(Entry<String, UUID> names : NameToUUID.entrySet()) {
@@ -346,19 +483,6 @@ public class EmailUtils {
 	}
 	public static Set<String> getAllName(){
 		return Sets.newHashSet(NameToUUID.keySet());
-	}
-	
-	public static JsonObject getInboxJson(String uid) {
-		File email = new File(EmailAPI.getSaveEmailPath() + uid + ".json");
-		if(email.exists()) {
-			JsonElement file = JsonUtil.parse(email);
-			if(file != null && file.isJsonObject()) {
-				return file.getAsJsonObject();
-			}else {
-				return new JsonObject();
-			}
-		}
-		return null;
 	}
 	
 	public static boolean equalsStack(ItemStack stackA, ItemStack stackB, boolean checkDamage, boolean checkAmout, boolean checkNBT) {
@@ -436,30 +560,23 @@ public class EmailUtils {
 		}
 	}
 	
-	public static long getCoolingTicks() {
+	public static long getCoolingMillis() {
 		EmailConfigs.Send.Cooling cooling = EmailConfigs.Send.cooling;
-		return parseTick(cooling.Day, cooling.Hour, cooling.Minute, cooling.Second, cooling.Tick);
+		return parseTick(cooling.Day, cooling.Hour, cooling.Minute, cooling.Second, cooling.Tick) * 50 + cooling.Millis;
 	}
 	
-	public static long parseTick(long s) {
-		return parseTick(s, 0);
-	}
-	public static long parseTick(long s, long tick) {
-		return parseTick(0, s, tick);
-	}
-	public static long parseTick(long m, long s, long tick) {
-		return parseTick(0, m, s, tick);
-	}
-	public static long parseTick(long h, long m, long s, long tick) {
-		return parseTick(0, h, m, s, tick);
-	}
 	public static long parseTick(long day, long h, long m, long s, long tick) {
 		return (((((((day*24)+h)*60)+m)*60)+s)*20)+tick;
 	}
+	public static long parseMillis(long day, long h, long m, long s, long tick, long ms) {
+		return parseMillis(day, h, m, s, tick*50 + ms);
+	}
+	public static long parseMillis(long day, long h, long m, long s, long ms) {
+		return (((((((day*24)+h)*60)+m)*60)+s)*1000)+ms;
+	}
 
+	@Deprecated
 	public static boolean isInfiniteSize() {
-		return EmailMain.proxy.isClient()
-			&& Minecraft.getMinecraft().isSingleplayer()
-			&& EmailConfigs.Enable_MailBox_Infinite_Storage_Cache;
+		return EmailConfigs.isInfiniteSize();
 	}
 }

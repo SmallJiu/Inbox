@@ -13,7 +13,7 @@ buildscript {
 }
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "1.0.3-a0"
+version = "1.0.3-a1"
 group = "cat.jiu.email"
 archivesBaseName = "Email"
 
@@ -38,14 +38,6 @@ jar {
 			"Main-Class": "org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"
         ])
     }
-}
-
-repositories {
-    mavenLocal()
-}
-
-dependencies {
-	
 }
 
 processResources {

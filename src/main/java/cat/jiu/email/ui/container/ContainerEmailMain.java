@@ -15,15 +15,16 @@ import net.minecraftforge.items.SlotItemHandler;
 
 public class ContainerEmailMain extends Container {
 	public static final long EmailMaxSize = 2 * 1024 * 1024;
-	private Inbox inbox;
 	private static final NonNullList<ItemStack> emptyStacks = NonNullList.withSize(16, ItemStack.EMPTY);
+	
 	private final ItemStackHandler handler = new ItemStackHandler(16);
+	private Inbox inbox;
 	
 	public ContainerEmailMain() {
 		int slotIndex = 0;
-		for(int slotY = 0; slotY < 2; slotY++) {
+		lable: for(int slotY = 0; slotY < 2; slotY++) {
 			for(int slotX = 0; slotX < 8; slotX++) {
-				if(slotIndex >= 16) return;
+				if(slotIndex >= 16) break lable;
 				this.addSlotToContainer(new SlotItemHandler(handler, slotIndex, EmailConfigs.Main.Position.Current_Email.Items.X + (18 * slotX), EmailConfigs.Main.Position.Current_Email.Items.Y + (18 * slotY)) {
 					public boolean canTakeStack(EntityPlayer playerIn) {
 						return false;
@@ -34,12 +35,16 @@ public class ContainerEmailMain extends Container {
 		}
 	}
 	
-	private long inboxSize = 0;
+	private boolean refresh = true;
+	private long inboxSize = -1;
+	public void setRefresh(boolean refresh) {this.refresh = refresh;}
+	public boolean isRefresh() {return refresh;}
 	public Inbox getInbox() {return inbox;}
-	public long getEmailSize() {return inboxSize;}
+	public long getInboxSize() {return inboxSize;}
 	public void setInbox(Inbox inbox) {
 		this.inbox = inbox;
 		this.inboxSize = inbox.getInboxSize();
+		this.setRefresh(false);
 	}
 	
 	public void putStack(List<ItemStack> items) {
@@ -60,16 +65,16 @@ public class ContainerEmailMain extends Container {
 		this.putStack(emptyStacks);
 	}
 	
-	private long currenMsg = -1;
-	private long lastCurrenMsg = -1;
-	public void setCurrenMsg(long msgID) {
-		this.lastCurrenMsg = this.currenMsg;
-		this.currenMsg = msgID;
+	private long currenEmail = -1;
+	private long lastCurrenEmail = -1;
+	public void setCurrenEmail(long emailID) {
+		this.lastCurrenEmail = this.currenEmail;
+		this.currenEmail = emailID;
 	}
-	public long getCurrenMsg() {return currenMsg;}
-	public boolean isSameMsg() {
-		boolean lag = this.currenMsg == this.lastCurrenMsg;
-		if(!lag) this.lastCurrenMsg = this.currenMsg;;
+	public long getCurrenEmail() {return currenEmail;}
+	public boolean isSameEmail() {
+		boolean lag = this.currenEmail == this.lastCurrenEmail;
+		if(!lag) this.lastCurrenEmail = this.currenEmail;;
 		return lag;
 	}
 

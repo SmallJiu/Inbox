@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Cooling;
-import cat.jiu.email.net.msg.MsgSend.SendCooling;
+import cat.jiu.email.net.msg.SendCooling;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
@@ -87,32 +87,18 @@ public class ContainerEmailSend extends Container {
 		return cooling > System.currentTimeMillis();
 	}
 	
-	@Deprecated
-	public void sendCooling(long millis) {setCooling(millis);}
 	public void setCooling(long millis) {
 		cooling = millis;
 	}
 	
-	@Deprecated
-	public long getCoolingTick() {return getCoolingMillis();}
 	public long getCoolingMillis() {return cooling;}
 	
 	boolean isLock = false;
-	boolean t_isLock = false;
 	public boolean isLock() {return isLock;}
 	public void setLock(boolean isSending) {
 		this.isLock = isSending;
-		this.detectAndSendChanges();
-	}
-	
-	@Override
-	public void detectAndSendChanges() {
-		super.detectAndSendChanges();
-		if(this.t_isLock != this.isLock) {
-			this.t_isLock = this.isLock;
-			for(IContainerListener listener : this.listeners) {
-				listener.sendWindowProperty(this, 1001, this.isLock ? 1 : 0);
-			}
+		for(IContainerListener listener : this.listeners) {
+			listener.sendWindowProperty(this, 1001, this.isLock ? 1 : 0);
 		}
 	}
 	
@@ -122,9 +108,6 @@ public class ContainerEmailSend extends Container {
 		switch(id) {
 			case 1001:
 				this.isLock = data == 1;
-				break;
-			case 1002:
-				cooling = data;
 				break;
 		}
 	}
@@ -173,22 +156,24 @@ public class ContainerEmailSend extends Container {
 	/**
 	 * will clear slots to create a JsonObject
 	 */
-	public JsonObject toItemArray(boolean check) {
+	public JsonObject toItemArray(boolean copy) {
 		List<ItemStack> stacks = Lists.newArrayList();
 		for(int i = 0; i < this.handler.getSlots(); i++) {
 			stacks.add(this.handler.getStackInSlot(i));
-			if(!check) {
+			if(!copy) {
 				this.handler.setStackInSlot(i, ItemStack.EMPTY);
 			}
 		}
 		return JsonToStackUtil.toJsonObject(stacks, false);
 	}
 	
-	public List<ItemStack> toItemList() {
+	public List<ItemStack> toItemList(boolean copy) {
 		List<ItemStack> stacks = Lists.newArrayList();
 		for(int i = 0; i < this.handler.getSlots(); i++) {
 			stacks.add(this.handler.getStackInSlot(i));
-			this.handler.setStackInSlot(i, ItemStack.EMPTY);
+			if(!copy) {
+				this.handler.setStackInSlot(i, ItemStack.EMPTY);
+			}
 		}
 		return stacks;
 	}
@@ -208,7 +193,7 @@ public class ContainerEmailSend extends Container {
 		this.setRenderText(text, Color.RED);
 	}
 	public void setRenderText(String text, Color color) {
-		this.setRenderText(text, color, EmailUtils.parseTick(15, 0));
+		this.setRenderText(text, color, EmailUtils.parseTick(0,0,0,15, 0));
 	}
 	public void setRenderText(String text, Color color, long ticks) {
 		this.renderText = text;

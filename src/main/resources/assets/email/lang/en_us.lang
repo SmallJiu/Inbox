@@ -16,9 +16,18 @@ info.email.delete=Delete
 info.email.accept=Receive
 info.email.read_all=Read all
 info.email.accept_all=Receive all
-info.email.storage=Inbox:
+info.email.storage=Inbox: 
 info.email.out_size=Inbox to big，please delete some email
 info.email.main.from=From: %s
+info.email.black=Blacklist
+info.email.black.back=Back
+info.email.play_sound=Play
+info.email.play_sound.stop=Stop
+info.email.refresh=Refresh Inbox
+info.email.refreshing=Refreshing...
+info.email.refresh.cooling=Cooling...
+info.email.email_size=Email Size: %s Bytes
+info.email.remain_expiration_time=Expiration remaining: %s:%s:%s:%s
 
 #send
 info.email.send=Push
@@ -32,15 +41,29 @@ info.email.default_title=A email from the Void
 info.email.cooling=Cooling -> %s:%s:%s:%s:%s:%s
 info.email.from=You have a new E-mail from %s
 info.email.send.warn=Warning: Use this button receive email maybe will lose items.
+info.email.send.abs=Send email to %s players. (took %s ms)
+info.email.@p=Online Players
+info.email.@a=Save Players
 
 info.email.error.not_found_player=Can not found Player: %s !
 info.email.error.empty_name=Addressee can not be empty !
-info.email.error.send_self=You can't send e-mail to your self !
+info.email.error.send_self=Server setting, You can't send e-mail to your self !
 info.email.error.empty_msgs_item=item or message can not be empty!
 
-info.email.error.send.to_big=Email item is to big, please remove some item or nbt. Slot: %s, NBT: %s / 2097152 Bytes
+info.email.error.send.to_big=Email item is to big, please remove some item or nbt. Slot: %s, Size: %s / 2097152 Bytes
 info.email.error.send.to_big.email=Send email to big, Please reduce the e-mail size. %s / 2097152 Bytes
-info.email.send.success=Send e-mail success.
+info.email.send.success=Send e-mail to player %s success.
+info.email.send.fail=Failed to send the email, check log find the reason.
+info.email.send.fail.blacklist=Failed to send the email, You have been block by the Addressee!
+
+#blacklist
+info.email.black.title=Block receive player email
+info.email.black.info=Add players you don't like to the email rejection list.
+info.email.black.add=Add
+info.email.black.add.success=%s has been added to the reject email list.
+info.email.black.add.fail.whitelist=This ID is in whitelist, can not add to shield receive list.
+info.email.black.remove=Remove
+info.email.black.remove.success=%s has been removed on the reject email list.
 
 #command
 email.command.send.event=/email event_reload - reload event
@@ -55,8 +78,8 @@ email.command.send.error.abstract_name=Can not use abstract name in not a player
 email.command.send.ing=Sending, please wait... It is normal that the line may be disconnected during this period.
 
 email.command.delete=/email delete <Player> <email id> - delete player email
-email.command.delete.email_not_found=Not found Email: %s
-email.command.delete.success=Delete player %s Email %s success.
+email.command.delete.email_not_found=Not found ID of Email: %s
+email.command.delete.success=Delete player %s ID of Email %s success.
 
 email.command.export=/email export - Export hand item to can be parsed json file
 email.command.export.only_player=This command only use on player
@@ -86,16 +109,25 @@ email.command.send.no_permission.black=You has server send email blacklist, plea
 email.command.send.no_permission.white=You not has server send e-mail whitelist, please call admin to add.
 
 #config
+
+email.config.time.tick=Tick
+email.config.time.second=Second
+email.config.time.minute=Minute
+email.config.time.hour=Hour
+email.config.time.day=Day
+
 email.config.title=Title
 email.config.msg=Message
 email.config.sender=Sender
 
 email.config.infinite_size=Inbox infinite storage
 email.config.save_to_root_directory=Save email to root directory
+email.config.save_inbox_to_sql=Use database storage inbox(Unfinish)
 
 email.config.main=Main Menu
 email.config.main.show_text_rows=Show Rows
 email.config.main.show_text_spacing=Rows Spacing
+email.config.main.vanilla_wrap=Use vanilla to fromat Text 
 
 email.config.main.size=Gui size
 email.config.main.size.width=Width
@@ -109,6 +141,12 @@ email.config.main.number_of_words=Number of words
 email.config.main.number_of_words.current=Current Email
 email.config.main.number_of_words.candidate=Candidate Email
 
+email.config.expiration=Email Expiration
+email.config.expiration.can=Can Expiration
+email.config.expiration.ed=Is Expiration
+email.config.expiration.no_item=No item Expiration Time
+email.config.expiration.have_item=Have item Expiration Time
+
 email.config.send=Send E-mail
 email.config.send.blacklist=Enable BlackList
 email.config.send.whitelist=Enable WhiteList
@@ -117,18 +155,13 @@ email.config.send.inbox_button=Enable Inbox Button
 
 email.config.send.cooling=Send cooling
 email.config.send.cooling.time=Cooling time
-email.config.send.cooling.time.tick=Tick
-email.config.send.cooling.time.second=Second
-email.config.send.cooling.time.minute=Minute
-email.config.send.cooling.time.hour=Hour
-email.config.send.cooling.time.day=Day
 
 email.dev_message.sender=small_jiu
 email.dev_message.title=Hello %s
 email.dev_message.0=Hello %s, thank you use this mod.
 email.dev_message.1=usage will not use this to add, will use other to add.
 email.dev_message.2=This only say the functions: 
-email.dev_message.3=First: You can send message, or send item, item can have the NBT.
-email.dev_message.4=Second: You can use this mod to replace the functions required to distribute items.
-email.dev_message.5=Third: You can use this mod to create a story with map or mod.
+email.dev_message.3=&ilFirst: You can send message, or send item, item can have the NBT.
+email.dev_message.4=&ilSecond: You can use this mod to replace the functions required to distribute items.
+email.dev_message.5=&ilThird: You can use this mod to create a story with map or mod.
 email.dev_message.6=And, have a good game.

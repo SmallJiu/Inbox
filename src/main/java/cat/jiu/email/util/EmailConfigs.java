@@ -2,6 +2,8 @@ package cat.jiu.email.util;
 
 import cat.jiu.email.EmailMain;
 
+import net.minecraft.client.Minecraft;
+
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
@@ -15,9 +17,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 @Mod.EventBusSubscriber(modid = EmailMain.MODID)
 public final class EmailConfigs {
 	@Config.LangKey("email.config.infinite_size")
-	@Config.Comment("enable mailbox infinite storage cache, \n"
+	@Config.Comment("enable inbox infinite storage cache, \n"
 				 + "§cWarning: only enable on Single player.")
-	public static boolean Enable_MailBox_Infinite_Storage_Cache = false;
+	public static boolean Enable_Inbox_Infinite_Storage_Cache = false;
 	
 	@Config.RequiresWorldRestart
 	@Config.LangKey("email.config.save_to_root_directory")
@@ -25,6 +27,12 @@ public final class EmailConfigs {
 			+ "save email to world directory if false\n"
 			+ "can cross you saves send email if true")
 	public static boolean Save_To_Minecraft_Root_Directory = false;
+	
+	@Config.RequiresWorldRestart
+	@Config.LangKey("email.config.save_inbox_to_sql")
+	@Config.Comment("save inbox to sql file(inboxs.db)\n"
+			+ "§cWarning: you need backup old inbox files!")
+	public static boolean Save_Inbox_To_SQL = false;
 	
 	@Config.LangKey("email.config.main")
 	@Config.Comment("email main")
@@ -37,8 +45,12 @@ public final class EmailConfigs {
 		
 		@Config.LangKey("email.config.main.show_text_spacing")
 		@Config.Comment("selected text spacing")
-		@Config.RangeInt(min = 9)
-		public int Selected_Text_Spacing = 12;
+		@Config.RangeInt(min = 0)
+		public int Selected_Text_Spacing = 3;
+		
+		@Config.LangKey("email.config.main.vanilla_wrap")
+		@Config.Comment("use vanilla to wrap text if true, else will use Single char wrap.")
+		public boolean Enable_Vanilla_Wrap_Text = true;
 		
 		@Config.LangKey("email.config.main.size")
 		@Config.Comment("inbox gui size")
@@ -46,10 +58,10 @@ public final class EmailConfigs {
 		public class Size {
 			@Config.LangKey("email.config.main.size.width")
 			@Config.Comment("gui width")
-			public int Width = 230;
+			public int Width = 236;
 			@Config.LangKey("email.config.main.size.height")
 			@Config.Comment("gui height")
-			public int Height = 164;
+			public int Height = 168;
 		}
 		
 		@Config.LangKey("email.config.main.pos")
@@ -62,39 +74,24 @@ public final class EmailConfigs {
 			public class CurrentEmail {
 				@Config.LangKey("email.config.main.pos.row")
 				@Config.Comment("row position")
-				public Row Row = new Row();
-				public class Row {
-					public int X = 93;
-					public int Y = 33;
-				}
+				public Pos Row = new Pos(93, 33);
+				
 				@Config.LangKey("email.config.msg")
 				@Config.Comment("message position")
-				public Message Msg = new Message();
-				public class Message {
-					public int X = 101;
-					public int Y = 33;
-				}
+				public Pos Msg = new Pos(101, 33);
+				
 				@Config.LangKey("email.config.sender")
 				@Config.Comment("sender position")
-				public Sender Sender = new Sender();
-				public class Sender {
-					public int X = 88;
-					public int Y = 20;
-				}
+				public Pos Sender = new Pos(88, 20);
+				
 				@Config.LangKey("email.config.main.pos.current.msgid")
 				@Config.Comment("current msg ID position")
-				public MsgID MsgID = new MsgID();
-				public class MsgID {
-					public int X = 80;
-					public int Y = 6;
-				}
+				public Pos MsgID = new Pos(80, 6);
+				
 				@Config.LangKey("email.config.main.pos.current.items")
 				@Config.Comment("items position")
-				public Items Items = new Items();
-				public class Items {
-					public int X = 45;
-					public int Y = 109;
-				}
+				public Pos Items = new Pos(48, 109);
+				
 				@Config.LangKey("email.config.title")
 				@Config.Comment("title position")
 				public Title Title = new Title();
@@ -102,22 +99,14 @@ public final class EmailConfigs {
 					public int X = 88;
 					public int Y = 6;
 					@Config.LangKey("email.config.main.pos.title.time")
-					@Config.Comment("send millis position")
-					public Time Time = new Time();
-					public class Time {
-						public int X = 161;
-						public int Y = 20;
-					}
+					@Config.Comment("send time position")
+					public Pos Time = new Pos(161, 20);
 				}
 			}
 			
 			@Config.LangKey("email.config.main.number_of_words.candidate")
 			@Config.Comment("candidate msgs")
-			public CandidateEmail Candidate_Email = new CandidateEmail();
-			public class CandidateEmail {
-				public int X = 18;
-				public int Y = 19;
-			}
+			public Pos Candidate_Email = new Pos(18, 11);
 		}
 		
 		@Config.LangKey("email.config.main.number_of_words")
@@ -131,9 +120,11 @@ public final class EmailConfigs {
 				@Config.LangKey("email.config.msg")
 				@Config.RangeInt(min = 1)
 				public int Message = 106;
+				
 				@Config.LangKey("email.config.title")
 				@Config.RangeInt(min = 1)
 				public int Title = 125;
+				
 				@Config.LangKey("email.config.sender")
 				@Config.RangeInt(min = 1)
 				public int Sender = 61;
@@ -144,7 +135,7 @@ public final class EmailConfigs {
 			public class CandidateEmail {
 				@Config.LangKey("email.config.sender")
 				@Config.RangeInt(min = 1)
-				public int Sender = 37;
+				public int Sender = 44;
 			}
 		}
 	}
@@ -155,12 +146,12 @@ public final class EmailConfigs {
 	public static class Send {
 		@Config.LangKey("email.config.send.blacklist")
 		@Config.Comment("enable send email black list, \n"
-					+ "§cCannot enable at the same millis as White List")
+					+ "§cCannot enable at the same time as White List")
 		public boolean Enable_Send_BlackList = false;
 		
 		@Config.LangKey("email.config.send.whitelist")
 		@Config.Comment("enable send email white list, \n"
-					+ "§cCannot enable at the same millis as Black List")
+					+ "§cCannot enable at the same time as Black List")
 		public boolean Enable_Send_WhiteList = false;
 		
 		@Config.LangKey("email.config.send.send_to_self")
@@ -176,33 +167,38 @@ public final class EmailConfigs {
 		public boolean Enable_Inbox_Button = false;
 		
 		@Config.LangKey("email.config.send.cooling.time")
-		@Config.Comment("send email cooling millis")
+		@Config.Comment("send email cooling time")
 		public Cooling cooling = new Cooling();
 		public class Cooling {
-			@Config.LangKey("email.config.send.cooling.time.day")
+			@Config.LangKey("email.config.time.day")
 			@Config.Comment("send cooling of day")
 			@Config.RangeInt(min = 0)
 			public int Day = 0;
 			
-			@Config.LangKey("email.config.send.cooling.time.hour")
+			@Config.LangKey("email.config.time.hour")
 			@Config.Comment("send cooling of hour")
 			@Config.RangeInt(min = 0)
 			public int Hour = 0;
 			
-			@Config.LangKey("email.config.send.cooling.time.minute")
+			@Config.LangKey("email.config.time.minute")
 			@Config.Comment("send cooling of minute")
 			@Config.RangeInt(min = 0)
 			public int Minute = 0;
 			
-			@Config.LangKey("email.config.send.cooling.time.second")
+			@Config.LangKey("email.config.time.second")
 			@Config.Comment("send cooling of second")
 			@Config.RangeInt(min = 2)
 			public int Second = 5;
 		
-			@Config.LangKey("email.config.send.cooling.time.tick")
+			@Config.LangKey("email.config.time.tick")
 			@Config.Comment("send cooling of tick")
 			@Config.RangeInt(min = 0)
 			public int Tick = 0;
+			
+			@Config.LangKey("email.config.time.millis")
+			@Config.Comment("send cooling of millis")
+			@Config.RangeInt(min = 0)
+			public int Millis = 0;
 		}
 	}
 	
@@ -215,5 +211,20 @@ public final class EmailConfigs {
 			}
 			ConfigManager.sync(EmailMain.MODID, Config.Type.INSTANCE);
 		}
+	}
+	
+	public static class Pos {
+		public int X;
+		public int Y;
+		public Pos(int x, int y) {
+			this.X = x;
+			this.Y = y;
+		}
+	}
+	
+	public static boolean isInfiniteSize() {
+		return EmailMain.proxy.isClient()
+			&& Minecraft.getMinecraft().isSingleplayer()
+			&& EmailConfigs.Enable_Inbox_Infinite_Storage_Cache;
 	}
 }

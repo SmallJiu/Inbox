@@ -25,7 +25,7 @@ class CommandEmailDelete extends CommandBase {
 		if(inbox.hasEmail(id)) {
 			inbox.deleteEmail(id);
 			EmailUtils.saveInboxToDisk(inbox);
-			sender.sendMessage(EmailUtils.createTextComponent("email.command.delete.success", TextFormatting.GREEN, (Object[])args));
+			sender.sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "email.command.delete.success", (Object[])args));
 		}else {
 			throw new CommandException("email.command.delete.email_not_found", id);
 		}

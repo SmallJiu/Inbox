@@ -38,7 +38,7 @@ public class MsgReadEmail implements IMessage {
 					if(!email.isRead()) {
 						EmailReadEvent.Pre pre = new EmailReadEvent.Pre(player, inbox, email, false);
 						if(MinecraftForge.EVENT_BUS.post(pre)) {
-							inbox.save();
+							inbox.saveToDisk();
 							return;
 						}
 						email = pre.getEmail();

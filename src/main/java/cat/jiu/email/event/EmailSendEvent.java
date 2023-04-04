@@ -7,8 +7,29 @@ import cat.jiu.email.element.Email;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 
-public class EmailSendEvent {
+@Cancelable
+public class EmailSendEvent extends Event {
+	public final Phase phase;
+	public final EmailSenderGroup group;
+	public final String addresser;
+	public final Email email;
+	
+	public EmailSendEvent(Phase phase, EmailSenderGroup group, String addresser, Email email) {
+		this.phase = phase;
+		this.group = group;
+		this.addresser = addresser;
+		this.email = email;
+	}
+	@Override
+	public final void setCanceled(boolean cancel) {
+		if(this.phase == Phase.START) {
+			super.setCanceled(cancel);
+		}
+	}
+	
+	@Deprecated
 	@Cancelable
 	public static class Pre extends Event {
 		public final MinecraftServer server;
@@ -25,7 +46,8 @@ public class EmailSendEvent {
 			this.email = email;
 		}
 	}
-	
+
+	@Deprecated
 	public static class Post extends Event {
 		public final MinecraftServer server;
 		public final EmailSenderGroup group;
@@ -41,26 +63,21 @@ public class EmailSendEvent {
 	}
 	
 	public static enum EmailSenderGroup {
-		SYSTEM, PLAYER, COMMAND;
+		SYSTEM, PLAYER;
 		public static EmailSenderGroup getGroupByID(int id) {
 			switch(id) {
 				case 1: return PLAYER;
-				case 2: return COMMAND;
 				default: return SYSTEM;
 			}
 		}
 		public static int getIDByGroup(EmailSenderGroup sender) {
 			switch(sender) {
 				case PLAYER: return 1;
-				case COMMAND: return 2;
 				default: return 0;
 			}
 		}
 		public boolean isPlayerSend() {
 			return this == PLAYER;
-		}
-		public boolean isCommandSend() {
-			return this == COMMAND;
 		}
 		public boolean isSystemSend() {
 			return this == SYSTEM;

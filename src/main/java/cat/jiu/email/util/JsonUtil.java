@@ -19,29 +19,29 @@ import com.google.gson.JsonSyntaxException;
 public final class JsonUtil {
 	public static final Gson gson = new GsonBuilder().serializeNulls().create();
 	public static final JsonParser parser = new JsonParser();
-	public static <E extends JsonElement> E parse(File file) {
+	public static <T extends JsonElement> T parse(File file) {
 		if(!file.exists()) return null;
 		try {
-			return (E) parser.parse(new InputStreamReader(new FileInputStream(file)));
+			return (T) parser.parse(new InputStreamReader(new FileInputStream(file)));
 		}catch(JsonIOException | JsonSyntaxException | FileNotFoundException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
-	public static <E extends JsonElement> E parse(String path) {
+	public static <T extends JsonElement> T parse(String path) {
 		try {
 			File file = new File(path);
 			if(!file.exists()) return null;
-			return (E) parser.parse(new InputStreamReader(new FileInputStream(file)));
+			return (T) parser.parse(new InputStreamReader(new FileInputStream(file)));
 		}catch(JsonIOException | JsonSyntaxException | FileNotFoundException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
 	
-	public static <E extends JsonElement> E parse(InputStream path) {
+	public static <T extends JsonElement> T parse(InputStream path) {
 		try {
-			return (E) parser.parse(new InputStreamReader(path));
+			return (T) parser.parse(new InputStreamReader(path));
 		}catch(JsonIOException | JsonSyntaxException e) {
 			e.printStackTrace();
 			return null;

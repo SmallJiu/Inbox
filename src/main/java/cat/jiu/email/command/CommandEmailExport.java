@@ -50,7 +50,7 @@ class CommandEmailExport extends CommandBase {
 			String path = EmailAPI.getExportPath() + "inventory"  + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, stacks, false);
 			try {
-				player.sendMessage(EmailUtils.createTextComponent("email.command.export.all.success", TextFormatting.GREEN, new File(path).getCanonicalPath()));
+				player.sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "email.command.export.all.success", new File(path).getCanonicalPath()));
 			}catch(IOException e) {
 				throw new CommandException(e.getLocalizedMessage());
 			}
@@ -63,7 +63,7 @@ class CommandEmailExport extends CommandBase {
 			String path = EmailAPI.getExportPath() + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, JsonToStackUtil.toJson(stack), false);
 			try {
-				player.sendMessage(EmailUtils.createTextComponent("email.command.export.success", TextFormatting.GREEN, name.toString(), new File(path).getCanonicalPath()));
+				player.sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "email.command.export.success", name.toString(), new File(path).getCanonicalPath()));
 			}catch(IOException e) {
 				throw new CommandException(e.getLocalizedMessage());
 			}

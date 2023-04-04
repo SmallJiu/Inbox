@@ -4,16 +4,18 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import cat.jiu.email.iface.IInboxSound;
+import cat.jiu.email.iface.IInboxText;
 import net.minecraft.item.ItemStack;
 
 public class EmailFunction {
-	public Text sender;
+	public IInboxText sender;
 	public final String addresser;
-	public final Text title;
+	public final IInboxText title;
 	public final List<ItemStack> items;
-	public final EmailSound sound;
-	public final List<Text> msgs;
-	public EmailFunction(Text sender, String addresser, Text title, List<ItemStack> items, List<Text> msgs, @Nullable EmailSound sound) {
+	public final IInboxSound sound;
+	public final List<IInboxText> msgs;
+	public EmailFunction(IInboxText sender, String addresser, IInboxText title, List<ItemStack> items, List<IInboxText> msgs, @Nullable IInboxSound sound) {
 		this.sender = sender;
 		this.addresser = addresser;
 		this.title = title;

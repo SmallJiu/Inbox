@@ -11,7 +11,8 @@ import com.google.common.collect.Lists;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
-import cat.jiu.email.element.Text;
+import cat.jiu.email.element.InboxText;
+import cat.jiu.email.iface.IInboxText;
 import cat.jiu.email.net.msg.MsgOpenGui;
 import cat.jiu.email.ui.EmailGuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailSend;
@@ -27,7 +28,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
@@ -93,37 +93,33 @@ public class GuiEmailSend extends GuiContainer {
             			return;
             		}
             		
-            		List<Text> msgs = Lists.newArrayList();
+            		List<IInboxText> msgs = Lists.newArrayList();
             		if(!textsIsEmpty()) {
             			for(int i = 0; i < textFields.length; i++) {
     						String msg = textFields[i].getText();
-    						if(msg != null && !msg.isEmpty()) {
-    							if(i!=0 && i<4) {
-    								String previous = textFields[i+1].getText();
-    								if(previous == null || previous.isEmpty()) {
-    									msgs.add(Text.empty);
-    								}
-    							}
-    							StringBuilder sb = new StringBuilder();
-    							for(int k = 0; k < msg.length(); k++) {
-									char ch = msg.charAt(k);
-									if(ch == '&' && k+1 < msg.length()) {
-										if(isFormatChar(msg.charAt(k+1))) {
-											sb.append('\u00a7');
-										}else {
-											sb.append(ch);
-										}
-									}else {
-										sb.append(ch);
+    						if(msg.isEmpty()) {
+								msgs.add(InboxText.empty);
+								continue;
+							}
+							
+							StringBuilder sb = new StringBuilder();
+							for(int k = 0; k < msg.length(); k++) {
+								char ch = msg.charAt(k);
+								if(ch == '&' && k+1 < msg.length()) {
+									if(isFormatChar(msg.charAt(k+1))) {
+										sb.append('\u00a7');
 									}
+									sb.append(ch);
+								}else {
+									sb.append(ch);
 								}
-    							msgs.add(new Text(sb.toString()));
-    						}
+							}
+							msgs.add(new InboxText(sb.toString()));
     					}
             		}else {
-            			msgs.add(new Text("info.email.default_msg"));
+            			msgs.add(new InboxText("info.email.default_msg"));
             		}
-            		EmailAPI.sendPlayerEmail(name, new Email(new Text(title), new Text(Minecraft.getMinecraft().player.getName()), null, null, msgs));
+            		EmailAPI.sendPlayerEmail(mc.player, name, new Email(new InboxText(title), new InboxText(Minecraft.getMinecraft().player.getName()), null, null, msgs));
             		clearRenderText();
         		}
         	}
@@ -149,7 +145,7 @@ public class GuiEmailSend extends GuiContainer {
 			GuiTextField field = this.textFields[i];
 			field.setTextColor(Color.WHITE.getRGB());
 			field.setDisabledTextColour(Color.WHITE.getRGB());
-			field.setMaxStringLength(100);
+			field.setMaxStringLength(256);
 			field.setEnableBackgroundDrawing(false);
 		}
 	}
@@ -173,7 +169,7 @@ public class GuiEmailSend extends GuiContainer {
 		this.setRenderText(text, Color.RED);
 	}
 	public void setRenderText(String text, Color color) {
-		this.setRenderText(text, color, EmailUtils.parseTick(15, 0));
+		this.setRenderText(text, color, EmailUtils.parseTick(0,0,0,15, 0));
 	}
 	public void setRenderText(String text, Color color, long ticks) {
 		this.renderText = text;
@@ -198,26 +194,14 @@ public class GuiEmailSend extends GuiContainer {
          this.fontRenderer.drawString(I18n.format("info.email.addressee") + ":", 6, 6, Color.BLACK.getRGB());
 		 this.fontRenderer.drawString(I18n.format("info.email.title") + ":", 10, 21, Color.BLACK.getRGB());
 		 
-		 if(this.renderTicks > 0) {
-			 int l1 = (int)(this.renderTicks * 255.0F / 20.0F);
-	         if (l1 > 255) l1 = 255;
-	         if (l1 > 8) {
-	        	 int color = MathHelper.hsvToRGB(this.renderTicks / 50.0F, 0.7F, 0.6F) & (this.renderColor.getRGB()-1);
-	        	 super.fontRenderer.drawString(this.renderText, (88 - fontRenderer.getStringWidth(this.renderText) / 2), 138, color + (l1 << 24 & -this.renderColor.getRGB()));
-	         }
-			 
-//			 fontRenderer.drawString(this.renderText, (88 - fontRenderer.getStringWidth(this.renderText) / 2), 138, this.renderColor.getRGB());
-			 this.renderTicks--;
-			 if(this.renderTicks < 1) clearRenderText();
+		 if(this.renderTicks > 0 && this.renderText != null && this.renderColor != null) {
+			 if(this.renderTicks <= 0) clearRenderText();
+			 super.fontRenderer.drawString(this.renderText, (88 - fontRenderer.getStringWidth(this.renderText) / 2), 138, this.renderColor.getRGB());
+	         this.renderTicks--;
 		 }
 		 if(this.container.renderTicks > 0 && this.container.renderText != null && this.container.renderColor != null) {
-			 if(this.renderTicks > 0) this.clearRenderText();
-			 int l1 = (int)(this.renderTicks * 255.0F / 20.0F);
-	         if (l1 > 255) l1 = 255;
-	         if (l1 > 8) {
-	        	 super.fontRenderer.drawString(this.container.renderText, (88 - fontRenderer.getStringWidth(this.container.renderText) / 2), 138, this.container.renderColor.getRGB() + (l1 << 24 & -this.container.renderColor.getRGB()));
-	         }
-//			 fontRenderer.drawString(this.container.renderText, (88 - fontRenderer.getStringWidth(this.container.renderText) / 2), 138, this.container.renderColor.getRGB());
+			 if(this.container.renderTicks <= 0) this.clearRenderText();
+			 super.fontRenderer.drawString(this.container.renderText, (88 - fontRenderer.getStringWidth(this.container.renderText) / 2), 138, this.container.renderColor.getRGB());
 			 this.container.renderTicks--;
 		 }
 		 if(this.container.isCooling()) {
@@ -335,13 +319,14 @@ public class GuiEmailSend extends GuiContainer {
 		super.renderHoveredToolTip(mouseX, mouseY);
 		this.titleField.drawTextBox();
         this.nameField.drawTextBox();
-        for(GuiTextField textField : this.textFields) {
-        	textField.drawTextBox();
+        for(GuiTextField tf : this.textFields) {
+        	tf.drawTextBox();
+    		this.fontRenderer.drawString(tf.getText().length()+"/"+tf.getMaxStringLength(), tf.x+tf.width+13, tf.y+2, Color.WHITE.getRGB(), true);
         }
         if(EmailConfigs.Send.Enable_Inbox_Button) {
             int x = (this.width - this.xSize) / 2;
             int y = (this.height - this.ySize) / 2;
-    		if(EmailGuiHandler.isInRange(mouseX, mouseY, x+149, y+20, 22, 10)) {
+    		if(GuiEmailMain.isInRange(mouseX, mouseY, x+149, y+20, 22, 10)) {
     			super.drawHoveringText(TextFormatting.RED + I18n.format("info.email.send.warn"), mouseX, y+48);
     		}
         }
@@ -366,31 +351,61 @@ public class GuiEmailSend extends GuiContainer {
 		public NameGuiTextField(int componentId, FontRenderer fontrendererObj, int x, int y, int par5Width, int par6Height) {
 			super(componentId, fontrendererObj, x, y, par5Width, par6Height);
 		}
+		
 		private int index = 0;
 		@Override
 		public boolean textboxKeyTyped(char typedChar, int keyCode) {
 			boolean lag = super.textboxKeyTyped(typedChar, keyCode);
-			if(!lag && keyCode == Keyboard.KEY_TAB) {
+			if(!lag && this.isFocused() && keyCode == Keyboard.KEY_TAB) {
 				List<EntityPlayer> playerList = Minecraft.getMinecraft().player.world.playerEntities;
-				if(this.index >= playerList.size()) {
-					this.index = 0;
-				}
-				String name = playerList.get(this.index).getName();
-				if(EmailConfigs.Send.Enable_Send_To_Self) {
-					super.setText(name);
-					this.index++;
-				}else if(playerList.size() > 1) {
-					if(name.equals(Minecraft.getMinecraft().player.getName())) {
-						this.index++;
-						return this.textboxKeyTyped(typedChar, keyCode);
-					}else {
+				String name;
+				
+				if(this.index < playerList.size()) {
+					name = playerList.get(this.index).getName();
+					if(name.equals(Minecraft.getMinecraft().player.getName())
+					&& EmailConfigs.Send.Enable_Send_To_Self) {
 						super.setText(name);
+						this.index++;
+						return lag;
 					}
+					super.setText(name);
 					lag = true;
 					this.index++;
+				}else if(this.index < playerList.size() + 2) {
+					this.absIndex++;
+					if(this.absIndex==1) {
+						super.setText("@p");
+					}else if(this.absIndex==2) {
+						super.setText("@a");
+					}
+					if(this.absIndex >= 2) {
+						this.absIndex = 0;
+						this.index = 0;
+					}
 				}
 			}
 			return lag;
+		}
+		
+		protected int absIndex = 0;
+		
+		@Override
+		public void drawTextBox() {
+			super.drawTextBox();
+			if("@p".equals(this.getText())) {
+				drawAlignRightString(Minecraft.getMinecraft().fontRenderer, I18n.format("info.email.@p"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
+			}else if("@a".equals(this.getText())) {
+				drawAlignRightString(Minecraft.getMinecraft().fontRenderer, I18n.format("info.email.@a"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
+			}
+		}
+	}
+	
+	public static void drawAlignRightString(FontRenderer fr, String text, int x, int y, int color, boolean drawShadow) {
+		for(int i = text.length(); i > 0; i--) {
+			char c = text.charAt(i-1);
+			float width = fr.getCharWidth(c);
+			x -= width;
+			fr.drawString(String.valueOf(c), x, y, color, drawShadow);
 		}
 	}
 }

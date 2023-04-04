@@ -38,10 +38,4 @@ public class EmailGuiHandler implements IGuiHandler {
 
 		return null;
 	}
-	
-	public static boolean isInRange(int mouseX, int mouseY, int x, int y, int width, int height) {
-		int maxX = x + width;
-		int maxY = y + height;
-		return (mouseX >= x && mouseY >= y) && (mouseX <= maxX && mouseY <= maxY);
-	}
 }

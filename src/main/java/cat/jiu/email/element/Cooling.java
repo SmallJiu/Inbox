@@ -9,14 +9,20 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.iface.IInboxText;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
+import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
+import cat.jiu.email.util.TimeMillis;
 import net.minecraftforge.common.MinecraftForge;
 
 public class Cooling {
 	private static final HashMap<String, Long> coolings = Maps.newHashMap();
 	
-	public static void cooling(String name, CoolingMillis time) {
+	public static void cooling(String name) {
+		cooling(name, EmailUtils.getCoolingMillis());
+	}
+	public static void cooling(String name, TimeMillis time) {
 		cooling(name, time.millis);
 	}
 	public static void cooling(String name, long millis) {
@@ -44,7 +50,7 @@ public class Cooling {
 		}
 		return 0;
 	}
-	public static Text getLastCoolingTimeText(String name) {
+	public static IInboxText getLastCoolingTimeText(String name) {
 		if(isCooling(name)) {
 			long last = getLastCoolingTimeMillis(name);
 			long t_t = last % 1000;
@@ -69,9 +75,9 @@ public class Cooling {
 			 String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			 String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
 			 String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
-			 return new Text("info.email.cooling", d, h, m, s, t);
+			 return new InboxText("info.email.cooling", d, h, m, s, t);
 		}
-		return Text.empty;
+		return InboxText.empty;
 	}
 	
 	public static void save() {
@@ -113,16 +119,13 @@ public class Cooling {
 		}
 	}
 	
-	public static class CoolingMillis {
-		public final long millis;
+	@Deprecated
+	public static class CoolingMillis extends TimeMillis {
 		public CoolingMillis(long millis) {
 			this(0,0,millis);
 		}
 		public CoolingMillis(long m, long s, long millis) {
-			this.millis = parseTick(0,0,m,s,millis);
-		}
-		public static long parseTick(long day, long h, long m, long s, long millis) {
-			return (((((((day*24)+h)*60)+m)*60)+s)*1000)+millis;
+			super(m,s,millis);
 		}
 	}
 }

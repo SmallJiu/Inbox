@@ -7,6 +7,7 @@ import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReceiveEvent;
 import cat.jiu.email.ui.container.ContainerEmailMain;
+import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
 import io.netty.buffer.ByteBuf;
@@ -45,7 +46,7 @@ public class MsgReceiveEmail  {
 						inbox.setEmail(msgID, email);
 						
 						if(!email.isReceived() && email.hasItems()) {
-							if(inbox.getInboxSize()+55 >= 2097152L && !EmailUtils.isInfiniteSize()) {
+							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
 								return;
 							}
 							email.setAccept(true);
@@ -84,7 +85,7 @@ public class MsgReceiveEmail  {
 						inbox.setEmail(i, email);
 						
 						if(!email.isReceived() && email.hasItems()) {
-							if(inbox.getInboxSize()+55 >= 2097152L && !EmailUtils.isInfiniteSize()) {
+							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
 								return;
 							}
 							email.setAccept(true);

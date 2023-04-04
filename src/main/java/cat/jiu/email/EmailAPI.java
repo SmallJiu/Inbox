@@ -1,63 +1,107 @@
 package cat.jiu.email;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map.Entry;
 
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.element.InboxText;
+import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.event.EmailSendEvent.EmailSenderGroup;
+import cat.jiu.email.iface.IInboxText;
 import cat.jiu.email.net.msg.MsgSend;
-import cat.jiu.email.net.msg.MsgSendInboxToClient;
-import cat.jiu.email.net.msg.MsgUnread;
-import cat.jiu.email.net.msg.MsgUnreceive;
+import cat.jiu.email.net.msg.MsgInboxToClient;
 import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.util.SizeReport;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 
 public class EmailAPI {
-	public static void sendPlayerEmail(String addressee, Email email) {
-		sendEmail(EmailSenderGroup.PLAYER, addressee, email);
+	public static void sendPlayerEmail(EntityPlayer player, String addressee, Email email) {
+		sendEmail(player, EmailSenderGroup.PLAYER, addressee, email);
 	}
 	
-	public static void sendCommandEmail(String addressee, Email email) {
-		sendEmail(EmailSenderGroup.COMMAND, addressee, email);
+	private static final IInboxText SYSTEM = new InboxText(EmailMain.SYSTEM);
+	public static void sendSystemEmail(EntityPlayer player, String addressee, Email email) {
+		email.setSender(SYSTEM);
+		sendEmail(player, EmailSenderGroup.SYSTEM, addressee, email);
 	}
 	
-	public static void sendSystemEmail(String addressee, Email email) {
-		sendEmail(EmailSenderGroup.SYSTEM, addressee, email);
-	}
-	
-	private static void sendEmail(EmailSenderGroup type, String addressee, Email email) {
-		if(EmailMain.proxy.isClient()) {
-			EmailMain.net.sendMessageToServer(new MsgSend(type, addressee, email));
+	public static void sendEmail(EntityPlayer player, EmailSenderGroup group, String addresser, Email email) {
+		if(player.world.isRemote) {
+			EmailMain.net.sendMessageToServer(new MsgSend(group, addresser, email));
 		}else {
-			if(EmailUtils.hasNameOrUUID(addressee)) {
-				Inbox inbox = Inbox.get(EmailUtils.getUUID(addressee));
-				inbox.addEmail(email);
-				
-				if(EmailUtils.saveInboxToDisk(inbox)) {
-					EmailMain.log.info("{} send a email to Player: {}, UUID: {}", email.getSender(), addressee, inbox.getOwnerAsUUID());
-					MsgSend.sendLog(email.getSender().getKey(), addressee, inbox.getOwnerAsUUID());
-					EntityPlayer addresser = EmailMain.server.getEntityWorld().getPlayerEntityByUUID(inbox.getOwnerAsUUID());
-					if(addresser!=null) {
-						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), (EntityPlayerMP) addresser);
-						if(email.hasItems()) {
-							EmailMain.net.sendMessageToPlayer(new MsgUnreceive(inbox.getUnReceived()), (EntityPlayerMP) addresser);
-						}
-						addresser.sendMessage(EmailUtils.createTextComponent("info.email.from", email.getSender()));
-					}
-				}
+			sendEmail(group, addresser, email);
+		}
+	}
+	
+	public static boolean sendEmail(EmailSenderGroup group, String addresser, Email email) {
+		EmailUtils.initNameAndUUID(EmailMain.server);
+		Inbox inbox = Inbox.get(addresser);
+		
+		if(!EmailConfigs.isInfiniteSize()
+		&& email.hasItems() && !checkEmailSize(inbox, email, email.getItems())) {
+			return false;
+		}
+		
+		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, group, addresser, email))) return false;
+		
+		inbox.addEmail(email, true);
+		
+		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, group, addresser, email));
+		
+		if(EmailMain.server != null) {
+			EntityPlayerMP player;
+			try {
+				player = EmailMain.server.getPlayerList().getPlayerByUUID(UUID.fromString(addresser));
+			}catch(Exception e) {
+				player = EmailMain.server.getPlayerList().getPlayerByUsername(addresser);
+			}
+			if(player != null) {
+				EmailUtils.sendMessage(player, "info.email.from", email.getSender());
 			}
 		}
+		return true;
+	}
+	
+	private static boolean checkEmailSize(Inbox inbox, Email email, List<ItemStack> stacks) {
+		SizeReport report = EmailUtils.checkEmailSize(email);
+		if(!SizeReport.SUCCES.equals(report)) {
+			return false;
+		}
+		
+		long size = inbox.getInboxSize() + EmailUtils.getSize(email.writeTo(NBTTagCompound.class));
+		if(size >= 2097152L) {
+			return false;
+		}
+		return true;
+	}
+	
+	private static final List<String> whitelist = Lists.newArrayList();
+	public static void addBlockReceiveWhitelist(String name) {
+		if(!isInBlockReceiveWhitelist(name)) {
+			whitelist.add(name);
+		}
+	}
+	
+	public static boolean isInBlockReceiveWhitelist(String name) {
+		return whitelist.contains(name);
 	}
 	
 	static String EmailPath = null;
@@ -89,7 +133,7 @@ public class EmailAPI {
 		return exportPath;
 	}
 	
-	public static String getSaveEmailPath() {
+	public static String getSaveInboxPath() {
 		if(EmailPath == null) {
 			EmailPath = getSaveEmailRootPath() + File.separator + "email" + File.separator;
 		}
@@ -235,7 +279,7 @@ public class EmailAPI {
 
 	public static void sendInboxToClient(Inbox inbox, EntityPlayerMP player) {
 		EmailMain.execute(args->{
-			EmailMain.net.sendMessageToPlayer(new MsgSendInboxToClient(inbox), player);
+			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
 		}, 100);
 	}
 }

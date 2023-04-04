@@ -10,10 +10,8 @@ import net.minecraftforge.server.command.CommandTreeBase;
 
 public final class EmailCommands extends CommandTreeBase {
 	public EmailCommands() {
-		super.addSubcommand(new CommandEmailSend());
 		super.addSubcommand(new CommandEmailSendBlackList());
 		super.addSubcommand(new CommandEmailSendWhiteList());
-		super.addSubcommand(new CommandEmailSendMsgs());
 		super.addSubcommand(new CommandEmailExport());
 		super.addSubcommand(new CommandEmailExecute());
 		super.addSubcommand(new CommandEmailReloadCooling());

@@ -28,16 +28,14 @@ public class MsgOpenGui implements IMessage {
 			Minecraft.getMinecraft().player.openGui(EmailMain.MODID, this.guiID, Minecraft.getMinecraft().player.world, 0,0,0);
 		}else {
 			EntityPlayerMP player = ctx.getServerHandler().player;
-			player.getServerWorld().addScheduledTask(()->{
-				player.openGui(EmailMain.MODID, this.guiID, player.world, 0,0,0);
-				if(player.openContainer instanceof ContainerEmailMain) {
-					Inbox inbox = Inbox.get(player);
-					if(inbox != null) {
-						((ContainerEmailMain) player.openContainer).setInbox(inbox);
-						EmailAPI.sendInboxToClient(inbox, player);
-					}
+			player.openGui(EmailMain.MODID, this.guiID, player.world, 0,0,0);
+			if(player.openContainer instanceof ContainerEmailMain) {
+				Inbox inbox = Inbox.get(player);
+				if(inbox != null) {
+					((ContainerEmailMain) player.openContainer).setInbox(inbox);
+					EmailAPI.sendInboxToClient(inbox, player);
 				}
-			});
+			}
 		}
 		return null;
 	}
