@@ -1,0 +1,185 @@
+{
+  "info.email.name": "Inbox",
+  "info.email.has_unread": "You inbox has %s message unread.",
+  "info.email.has_unreceive": "You inbox has %s message unreceive.",
+  "info.email.has_unread_and_unreceive": "You inbox has %s message unread, and %s message unreceive.",
+
+  "info.email.error.to_big.0": "§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.",
+  "info.email.error.to_big.1": "§7Emain ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes",
+
+  #main
+  "info.email.dispatch": "Push",
+  "info.email.un_read": "Unread",
+  "info.email.un_accept": "Unreceive",
+  "info.email.delete_accept": "Delete receive",
+  "info.email.delete_read": "Delete Read",
+  "info.email.delete": "Delete",
+  "info.email.accept": "Receive",
+  "info.email.read": "Read",
+  "info.email.read_accept": "Read and Receive",
+  "info.email.read_all": "Read all",
+  "info.email.accept_all": "Receive all",
+  "info.email.storage": "Inbox: ",
+  "info.email.out_size": "Inbox to big，please delete some email",
+  "info.email.main.from": "From: %s",
+  "info.email.black": "Blacklist",
+  "info.email.black.back": "Back",
+  "info.email.play_sound": "Play",
+  "info.email.play_sound.stop": "Stop",
+  "info.email.refresh": "Refresh Inbox",
+  "info.email.refreshing": "Refreshing...",
+  "info.email.refresh.cooling": "Cooling...",
+  "info.email.email_size": "Email Size: %s Bytes",
+  "info.email.remain_expiration_time": "Expiration remaining: %s",
+  "info.email.confirm": "Confirm",
+  "info.email.cancel": "Cancel",
+  "info.email.delete_email": "Determine delete the unreceive emails?",
+  "info.email.filter": "Filter",
+
+  "info.email.filter.default": "Deafult",
+  "info.email.filter.has_sound": "Has sound",
+  "info.email.filter.is_read": "Read",
+  "info.email.filter.not_read": "Unread",
+
+  "info.email.filter.has_expiration": "Has expiration time",
+  "info.email.filter.is_expiration": "Was expiration",
+  "info.email.filter.not_expiration": "Not expiration",
+
+  "info.email.filter.has_item": "Has item",
+  "info.email.filter.is_accept": "Received",
+  "info.email.filter.not_accept": "Unreceive",
+
+  #send
+  "info.email.receiving": "Inbox",
+  "info.email.addressee": "Addressee",
+  "info.email.title": "Title",
+  "info.email.msgs": "Messages",
+  "info.email.items": "Items",
+  "info.email.default_msg": "From the Void",
+  "info.email.default_title": "A email from the Void",
+  "info.email.cooling": "Cooling -> %s:%s:%s:%s:%s:%s",
+  "info.email.from": "You have a new E-mail from %s",
+  "info.email.send.warn": "Warning: Use this button receive email maybe will lose items.",
+  "info.email.send.not_op.abs": "Can not use obscure addresser: %s, please call admin.",
+  "info.email.send.not_op.expiration": "Can not add expiration time to email, you are not Admin!",
+  "info.email.send.abs": "Send email to %s players. (took %s ms)",
+  "info.email.@p": "Online Players",
+  "info.email.@a": "Save Players",
+
+  "info.email.error.not_found_player": "Can not found Player: %s !",
+  "info.email.error.empty_name": "Addressee can not be empty !",
+  "info.email.error.send_self": "Server setting, You can't send e-mail to your self !",
+  "info.email.error.empty_msgs_item": "item or message can not be empty!",
+
+  "info.email.error.send.to_big": "Email item is to big, please remove some item or nbt. Slot: %s, Size: %s / 2097152 Bytes",
+  "info.email.error.send.to_big.email": "Send email to big, Please reduce the e-mail size. %s / 2097152 Bytes",
+  "info.email.send.success": "Send e-mail to player %s success.",
+  "info.email.send.fail": "Failed to send the email, check log find the reason.",
+  "info.email.send.fail.blacklist": "Failed to send the email, You have been block by the Addressee!",
+
+  #blacklist
+  "info.email.black.title": "Block receive player email",
+  "info.email.black.info": "Add players you don't like to the email rejection list.",
+  "info.email.black.add": "Add",
+  "info.email.black.add.success": "%s has been added to the reject email list.",
+  "info.email.black.add.fail.whitelist": "This ID is in whitelist, can not add to shield receive list.",
+  "info.email.black.remove": "Remove",
+  "info.email.black.remove.success": "%s has been removed on the reject email list.",
+
+  #command
+  "email.command.send.event": "/email event_reload - reload event",
+  "email.command.send.cooling": "/email cooling_reload - reload send email cooling",
+
+  "email.command.send": "/email send <File> [Player]",
+  "email.command.send.file_not_found": "File not found, Path: %s",
+  "email.command.send.msg": "/email sendmsg <Sender> <Addressee> <Title> <Messages>",
+  "email.command.send.success.all": "Send e-mail to all storage in 'usernamecache.json' players success.",
+  "email.command.send.success.all.online": "Send e-mail to all 'online' players success.",
+  "email.command.send.error.abstract_name": "Can not use abstract name in not a player: %s。",
+  "email.command.send.ing": "Sending, please wait... It is normal that the line may be disconnected during this period.",
+
+  "email.command.delete": "/email delete <Player> <email id> - delete player email",
+  "email.command.delete.email_not_found": "Not found ID of Email: %s",
+  "email.command.delete.success": "Delete player %s ID of Email %s success.",
+
+  "email.command.export": "/email export - Export hand item to can be parsed json file",
+  "email.command.export.only_player": "This command only use on player",
+  "email.command.export.empty_item": "Hand item can not be empty !",
+  "email.command.export.success": "Export item %s to file success, File path: %s",
+  "email.command.export.all.empty_item": "player inventory can not be empty !",
+  "email.command.export.all.success": "Export inventory items to file success, File path: %s",
+
+  "email.command.send.black.add": "/email blacklist add <Player> - Add player send email blacklist, note: only enable on config 'blacklist'",
+  "email.command.send.black.remove": "/email blacklist remove <Player> - Remove player send email blacklist",
+
+  "email.command.send.white.add": "/email whitelist add <Player> - Add player send email whitelist, note: only enable on config 'whitelist'",
+  "email.command.send.white.remove": "/email whitelist remove <Player> - Remove player send email whitelist",
+
+  "email.command.send.list.white": "White List",
+  "email.command.send.list.black": "Black List",
+
+  "email.command.send.list.unenable": "Server is not enable e-mail %s! please call you server admin to enable!",
+  "email.command.send.list.not_found_player": "not found player %s %s ",
+  "email.command.send.list.add.success": "success to add player %s Send e-mail %s",
+  "email.command.send.list.remove.success": "success to remove player %s send e-mail %s",
+  "email.command.send.list.already_exist": "Player %s is has e-mail send %s",
+  "email.command.send.list.error": "Unknow error, please check log.",
+  "email.command.send.list.file_not_found": "Not found file: %s",
+
+  "email.command.send.no_permission.black": "You has server send email blacklist, please call admin to remove.",
+  "email.command.send.no_permission.white": "You not has server send e-mail whitelist, please call admin to add.",
+
+  #config
+
+  "email.config.time.tick": "Ticks",
+  "email.config.time.millis": "Millis",
+  "email.config.time.second": "Seconds",
+  "email.config.time.minute": "Minutes",
+  "email.config.time.hour": "Hours",
+  "email.config.time.day": "Days",
+
+  "email.config.msg": "Message",
+  "email.config.sender": "Sender",
+
+  "email.config.infinite_size": "Inbox infinite storage",
+  "email.config.save_to_root_directory": "Save email to root directory",
+  "email.config.save_inbox_to_sql": "Use database storage inbox(Unfinish)",
+  "email.config.save_inbox_to_sql.not_load_sql": "Not load SQLite mod.",
+
+  "email.config.main": "Main Menu",
+  "email.config.main.show_text_rows": "Show Rows",
+  "email.config.main.show_text_spacing": "Rows Spacing",
+  "email.config.main.vanilla_wrap": "Use vanilla to fromat Text ",
+
+  "email.config.main.size.width": "Width",
+  "email.config.main.size.height": "Height",
+  "email.config.main.pos.current.msgid": "Email ID",
+  "email.config.main.pos.current.items": "Items",
+
+  "email.config.main.pos": "Text Position",
+  "email.config.main.pos.row": "Row",
+  "email.config.main.pos.title.time": "Send Time",
+
+  "email.config.expiration": "Email Expiration",
+  "email.config.expiration.can": "Can Expiration",
+  "email.config.expiration.ed": "Is Expiration",
+  "email.config.expiration.no_item": "No item Expiration Time",
+  "email.config.expiration.have_item": "Have item Expiration Time",
+
+  "email.config.send.blacklist": "Enable BlackList",
+  "email.config.send.whitelist": "Enable WhiteList",
+  "email.config.send.send_to_self": "Can send to Self",
+  "email.config.send.inbox_button": "Enable Inbox Button",
+
+  "email.config.send.cooling": "Send cooling",
+
+  "email.dev_message.sender": "small_jiu",
+  "email.dev_message.title": "Hello %s",
+  "email.dev_message.0": "Hello %s, thank you use this mod.",
+  "email.dev_message.1": "usage will not use this to add, will use other to add.",
+  "email.dev_message.2": "This only say the functions: ",
+  "email.dev_message.3": "&ilFirst: You can send message, or send item, item can have the NBT.",
+  "email.dev_message.4": "&ilSecond: You can use this mod to replace the functions required to distribute items.",
+  "email.dev_message.5": "&ilThird: You can use this mod to create a story with map or mod.",
+  "email.dev_message.6": "And, have a good game."
+}
