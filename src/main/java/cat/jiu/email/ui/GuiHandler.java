@@ -44,11 +44,13 @@ public class GuiHandler {
 		return new ContainerInboxBlacklist(windowId, inv, list);
 	});
 	public static final RegistryObject<ContainerType<ContainerEmailSend>> send_TYPE = registerType("email_send_container", (windowId, inv, data) -> {
-		CompoundNBT nbt = data.readCompoundTag();
 		ContainerEmailSend container = new ContainerEmailSend(windowId, inv);
-		if(nbt!=null && nbt.contains("cooling")){
-			container.setCooling(nbt.getLong("cooling"));
-		}
+		try {
+			CompoundNBT nbt = data.readCompoundTag();
+			if(nbt!=null && nbt.contains("cooling")){
+				container.setCooling(nbt.getLong("cooling"));
+			}
+		}catch (Exception ignored){}
 		return container;
 	});
 	public static final RegistryObject<ContainerType<ContainerEmailMain>> main_TYPE = registerType("email_main_container", (windowId, inv, data) ->

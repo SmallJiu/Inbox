@@ -106,10 +106,7 @@ public class EmailAPI {
 		}
 		
 		long size = inbox.getInboxSize() + EmailUtils.getSize(email.writeTo(CompoundNBT.class));
-		if(size >= 2097152L) {
-			return false;
-		}
-		return true;
+		return size < 2097152L;
 	}
 	
 	private static final List<String> whitelist = Lists.newArrayList();
@@ -148,7 +145,7 @@ public class EmailAPI {
 	}
 	public static String getExportPath() {
 		if(exportPath == null) {
-			exportPath = typePath + "export" + File.separator;
+			exportPath = getTypePath() + "export" + File.separator;
 		}
 		return exportPath;
 	}
@@ -298,11 +295,9 @@ public class EmailAPI {
 	}
 	
 	public static void sendInboxToClient(Inbox inbox, ServerPlayerEntity player) {
+		EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
 		EmailMain.execute(()->{
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
-			EmailMain.execute(()->{
-				EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), player);
-			}, 50);
-		}, 100);
+			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), player);
+		}, 50);
 	}
 }

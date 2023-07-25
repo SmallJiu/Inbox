@@ -12,7 +12,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '2.0.0-beta-a0'
+version = '2.0.0-snapshot'
 group = 'cat.jiu.email' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'Email'
 
@@ -54,6 +54,8 @@ minecraft {
             // You can set various levels here.
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             property 'forge.logging.console.level', 'debug'
+			
+            property '--username', 'small_jiu'
 
             mods {
                 examplemod {

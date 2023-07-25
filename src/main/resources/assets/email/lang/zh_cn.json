@@ -62,7 +62,7 @@
   "info.email.items": "物品",
   "info.email.default_msg": "一封来自虚空的邮件",
   "info.email.default_title": "来自虚空的邮件",
-  "info.email.cooling": "冷却中 -> %s:%s:%s:%s:%s:%s",
+  "info.email.cooling": "冷却中 -> %s:%s:%s:%s:%s",
   "info.email.from": "你有一封来自%s的新邮件",
   "info.email.send.warn": "警告: 使用此按钮领取邮件可能会导致领取的物品丢失",
   "info.email.send.not_op.abs": "无法使用模糊发送: %s, 请联系管理员。",

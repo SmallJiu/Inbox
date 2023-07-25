@@ -79,7 +79,7 @@ public final class Inbox implements ISerializable {
 	/**
 	 * @return true if this email list contains no emails.
 	 */
-	public boolean isEmptyInbox() {return this.emails.isEmpty();}
+	public boolean isEmptyInbox() {return this.emailHistoryCount <= 0 || this.emails.isEmpty();}
 	/**
 	 * @return true if this custom value list contains no values.
 	 */

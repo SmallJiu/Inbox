@@ -36,17 +36,14 @@ public class GuiConfig extends Screen {
     private Button done, undo, reset;
     public GuiConfig(String file, Screen parent, ForgeConfigSpec configSpec) {
         this(file, parent, configSpec, get(configSpec));
-        this.spec = configSpec;
     }
     public GuiConfig(String file, Screen parent, ForgeConfigSpec spec, Map<String, Object> configs, String path) {
-        super(ITextComponent.getTextComponentOrEmpty(path));
-        this.configFile = file;
+        this(file, parent, spec, configs);
         this.path = path;
-        this.parent = parent;
-        this.entries = create(this.path, spec, configs);
     }
-    public GuiConfig(String file, Screen parent, ForgeConfigSpec spec, Map<String, Object> configs) {
+    private GuiConfig(String file, Screen parent, ForgeConfigSpec spec, Map<String, Object> configs) {
         super(ITextComponent.getTextComponentOrEmpty(EmailMain.MODID));
+        this.spec = spec;
         this.configFile = file;
         this.parent = parent;
         this.entries = create(this.path, spec, configs);

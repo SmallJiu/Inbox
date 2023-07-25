@@ -64,7 +64,6 @@ public class GuiTime extends Screen {
 	@Override
 	public void render(MatrixStack matrix, int x, int y, float p_230430_4_) {
 		if(!this.isEnable) return;
-
 		final String[] times = {
 				I18n.format("email.config.time.day"),
 				I18n.format("email.config.time.hour"),

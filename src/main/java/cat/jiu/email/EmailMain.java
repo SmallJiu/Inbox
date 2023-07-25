@@ -1,15 +1,15 @@
 package cat.jiu.email;
 
+import cat.jiu.email.command.EmailCommands;
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.ui.GuiHandler;
-import cat.jiu.email.ui.gui.config.GuiConfig;
 import cat.jiu.email.util.EmailConfigs;
-import net.minecraft.client.Minecraft;
+import cat.jiu.email.util.EmailUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
@@ -80,21 +80,27 @@ public class EmailMain {
     }
     private void onClientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(GuiHandler::registerScreen);
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, ()->(mc, parent)->
-            new GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
-        );
+//        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, ()->(mc, parent)->
+//            new cat.jiu.email.ui.gui.config.GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
+//        );
     }
 
     @SubscribeEvent
     public void onServerStarting(FMLServerStartingEvent event) {
         proxy.isServerClosed = false;
         Cooling.load();
+        EmailUtils.initNameAndUUID(event.getServer());
         server = event.getServer();
     }
     @SubscribeEvent
     public void onServerStopped(FMLServerStoppedEvent event) {
         proxy.isServerClosed = true;
         server = null;
+    }
+
+    @SubscribeEvent
+    public void onCommandRegister(RegisterCommandsEvent event) {
+        new EmailCommands().register(event.getDispatcher());
     }
 
     public static void execute(Runnable function) {execute(function, 50);}

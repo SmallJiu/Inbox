@@ -68,7 +68,8 @@ public class GuiPopupMenu extends Screen {
 			if(popupMenuCurrentEmail >= 0) {
 				mc.getTextureManager().bindTexture(GuiEmailMain.BackGround);
 				this.blit(matrix, this.createX - 2 + 6, this.createY - 2, 4, 15, 12, 10);
-				this.font.drawStringWithShadow(matrix, String.valueOf(popupMenuCurrentEmail), this.createX - 8 + 12, this.createY - 1, Color.RED.getRGB());
+
+				this.font.drawString(matrix, String.valueOf(popupMenuCurrentEmail), this.createX - 2 + 12 - this.font.getStringWidth(String.valueOf(popupMenuCurrentEmail))/2f, this.createY - 1, Color.RED.getRGB());
 			}
 
 			for(Widget btn : this.buttons) {

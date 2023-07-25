@@ -76,7 +76,7 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
         ));
         
         this.addButton(new GuiImageButton(this, this.nameField.x+this.nameField.getWidth()+1, this.nameField.y-2, 22, this.nameField.getHeight()+2, I18n.format("info.email.dispatch"), BackGround,  256, 256, 176, 9, 59, 50, btn-> {
-			if(!(!container.isCooling() && !container.isLock())) {
+			if(!container.isCooling() && !container.isLock()) {
 				String name = nameField.getText();
 				if(StringUtils.isNullOrEmpty(name)) {
 					setRenderText(I18n.format("info.email.error.empty_name"), Color.RED);
@@ -293,7 +293,6 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 		if(this.container.isCooling()) {
 			long millis = this.container.getCoolingMillis() - System.currentTimeMillis();
 			long t_0 = millis % 1000;
-			long t_mi = t_0 % 50;
 			long t_t = t_0 / 50;
 
 			long t_s = millis / 1000;
@@ -317,9 +316,9 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 			String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
 			String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
-			String mi = t_t < 10 ? "0" + t_t : Long.toString(t_mi);
 
-			this.font.drawString(matrix, I18n.format("info.email.cooling", d, h, m, s, t, mi), 45, 60, Color.RED.getRGB());
+			String text = I18n.format("info.email.cooling", d, h, m, s, t);
+			this.font.drawString(matrix, text, this.xSize/2f - this.font.getStringWidth(text)/2f, 60, Color.RED.getRGB());
 		}
 		if(this.titleField.getText().isEmpty()) {
 			this.font.drawString(matrix, I18n.format("info.email.default_title"), 39, 21, Color.BLACK.getRGB());

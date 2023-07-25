@@ -864,7 +864,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		}
 	}
 
-	private static int refreshCoolingTicks = 0;
+	private int refreshCoolingTicks = 0;
 	private void refresh() {
 		if(refreshCoolingTicks<=0) {
 			EmailMain.net.sendMessageToServer(new MsgRefreshInbox());

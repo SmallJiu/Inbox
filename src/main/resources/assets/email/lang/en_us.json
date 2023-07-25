@@ -61,7 +61,7 @@
   "info.email.items": "Items",
   "info.email.default_msg": "From the Void",
   "info.email.default_title": "A email from the Void",
-  "info.email.cooling": "Cooling -> %s:%s:%s:%s:%s:%s",
+  "info.email.cooling": "Cooling -> %s:%s:%s:%s:%s",
   "info.email.from": "You have a new E-mail from %s",
   "info.email.send.warn": "Warning: Use this button receive email maybe will lose items.",
   "info.email.send.not_op.abs": "Can not use obscure addresser: %s, please call admin.",
