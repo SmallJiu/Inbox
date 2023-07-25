@@ -2,14 +2,12 @@ package cat.jiu.email.ui.container;
 
 import java.util.List;
 
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.init.ContainerTypes;
+import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.util.EmailConfigs;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
@@ -25,7 +23,7 @@ public class ContainerEmailMain extends Container {
 	private Inbox inbox;
 	
 	public ContainerEmailMain(int id, PlayerInventory inv, Inbox inbox) {
-		super(ContainerTypes.container_email_main.get(), id);
+		super(GuiHandler.main_TYPE.get(), id);
 		this.inbox = inbox;
 		if(this.inbox!=null){
 			this.refresh = false;

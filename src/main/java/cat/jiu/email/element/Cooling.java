@@ -19,7 +19,7 @@ import cat.jiu.email.util.TimeMillis;
 import net.minecraftforge.common.MinecraftForge;
 
 public class Cooling {
-	private static final HashMap<String, Long> coolings = Maps.newHashMap();
+	private static final HashMap<String, Long> cooling = Maps.newHashMap();
 	
 	public static void cooling(String name) {
 		cooling(name, EmailUtils.getCoolingMillis());
@@ -29,26 +29,26 @@ public class Cooling {
 	}
 	public static void cooling(String name, long millis) {
 		long m = System.currentTimeMillis() + millis;
-		coolings.put(name, m);
+		cooling.put(name, m);
 		MinecraftForge.EVENT_BUS.post(new SendEmailCoolingEvent(name, m));
 		save();
 	}
 	
 	public static boolean isCooling(String name) {
-		if(coolings.containsKey(name)) {
-			return coolings.get(name) > System.currentTimeMillis();
+		if(cooling.containsKey(name)) {
+			return cooling.get(name) > System.currentTimeMillis();
 		}
 		return false;
 	}
 	public static long getCoolingTimeMillis(String name) {
 		if(isCooling(name)) {
-			return coolings.get(name);
+			return cooling.get(name);
 		}
 		return 0;
 	}
 	public static long getLastCoolingTimeMillis(String name) {
 		if(isCooling(name)) {
-			return coolings.get(name) - System.currentTimeMillis();
+			return cooling.get(name) - System.currentTimeMillis();
 		}
 		return 0;
 	}
@@ -100,7 +100,7 @@ public class Cooling {
 			}
 		}
 		
-		for(Entry<String, Long> cooling : coolings.entrySet()) {
+		for(Entry<String, Long> cooling : cooling.entrySet()) {
 			list.addProperty(cooling.getKey(), cooling.getValue());
 		}
 		
@@ -109,13 +109,13 @@ public class Cooling {
 	}
 	
 	public static void load() {
-		coolings.clear();
+		cooling.clear();
 		File jsonFile = new File(EmailAPI.globalEmailListPath);
 		if(jsonFile.exists()) {
 			JsonElement e = JsonParser.parse(jsonFile);
 			if(e != null && e.isJsonObject() && e.getAsJsonObject().has("Cooling")) {
 				for(Entry<String, JsonElement> cooling : e.getAsJsonObject().getAsJsonObject("Cooling").entrySet()) {
-					coolings.put(cooling.getKey(), cooling.getValue().getAsLong());
+					Cooling.cooling.put(cooling.getKey(), cooling.getValue().getAsLong());
 				}
 			}
 		}

@@ -1,13 +1,11 @@
 package cat.jiu.email.ui.gui;
 
 import java.awt.Color;
-import java.io.IOException;
 import java.util.Arrays;
 
-import cat.jiu.email.net.msg.MsgOpenGui;
-import cat.jiu.email.ui.EmailGuiHandler;
+import cat.jiu.email.ui.GuiHandler;
+import cat.jiu.email.ui.gui.component.GuiImageButton;
 import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 
 import cat.jiu.email.EmailMain;
@@ -16,7 +14,6 @@ import cat.jiu.email.net.msg.refresh.MsgRefreshBlacklist;
 import cat.jiu.email.ui.container.ContainerInboxBlacklist;
 import cat.jiu.email.util.EmailUtils;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.resources.I18n;
@@ -25,7 +22,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -53,8 +49,8 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 		super.init();
 		EmailMain.net.sendMessageToServer(new MsgRefreshBlacklist.Refresh());
 
-		this.addButton(new Button(this.guiLeft + 6, this.guiTop + 159, 75, this.font.FONT_HEIGHT + 4, new TranslationTextComponent("info.email.black.back"), btn->EmailMain.net.sendMessageToServer(new MsgOpenGui(EmailGuiHandler.EMAIL_MAIN))));
-		this.addButton(new Button(this.guiLeft + 6 + 75, this.guiTop + 159, 75, this.font.FONT_HEIGHT + 4, new TranslationTextComponent("info.email.black.add"), btn-> getMinecraft().displayGuiScreen(new GuiAddBlacklist(GuiBlacklist.this, container.getBlacklist()))));
+		this.addButton(new Button(this.guiLeft + 6, this.guiTop + 159, 75, this.font.FONT_HEIGHT + 4, new TranslationTextComponent("info.email.black.back"), btn-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)));
+		this.addButton(new Button(this.guiLeft + 6 + 75, this.guiTop + 159, 75, this.font.FONT_HEIGHT + 4, new TranslationTextComponent("info.email.black.add"), btn-> getMinecraft().displayGuiScreen(new GuiAddBlacklist(container.getBlacklist()))));
 		this.addButton(new Button(this.guiLeft + this.xSize - 12 - 2, this.guiTop + 3,
 				11, this.font.FONT_HEIGHT + 2, ITextComponent.getTextComponentOrEmpty("R"), btn-> {
 			if(container.getBlacklist()!=null) {
@@ -96,6 +92,11 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 
 	@Override
 	protected void drawGuiContainerForegroundLayer(MatrixStack matrix, int mouseX, int mouseY) {
+		for(Widget btn : this.buttons) {
+			if(!(btn instanceof GuiImageButton) && btn.visible){
+				this.hLine(matrix, btn.x - this.guiLeft, btn.x + btn.getWidth() - 2 - this.guiLeft, btn.y + btn.getHeight()-1 - this.guiTop, (btn.isHovered() ? Color.WHITE : Color.BLACK).getRGB());
+			}
+		}
 		if(this.container.getBlacklist()==null || this.container.getBlacklist().isEmpty()) return;
 		if(this.currentShowName==null) {
 			this.goName(0);
@@ -204,7 +205,7 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 	@Override
 	public boolean charTyped(char typedChar, int keyCode) {
 		if (keyCode == 1 || this.getMinecraft().gameSettings.keyBindInventory.isActiveAndMatches(InputMappings.getInputByCode(keyCode, keyCode))) {
-			EmailMain.net.sendMessageToServer(new MsgOpenGui(EmailGuiHandler.EMAIL_MAIN));
+			GuiHandler.openGui(GuiHandler.EMAIL_MAIN);
 			return true;
         }else {
         	return super.charTyped(typedChar, keyCode);

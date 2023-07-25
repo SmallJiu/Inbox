@@ -3,7 +3,7 @@ package cat.jiu.email.ui.container;
 import java.awt.Color;
 import java.util.List;
 
-import cat.jiu.email.init.ContainerTypes;
+import cat.jiu.email.ui.GuiHandler;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 
@@ -19,14 +19,10 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.IContainerListener;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
 
 import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.items.ItemStackHandler;
@@ -37,7 +33,7 @@ public class ContainerEmailSend extends Container {
 	private final ItemStackHandler handler = new ItemStackHandler(16);
 	
 	public ContainerEmailSend(int id, PlayerInventory inventory) {
-		super(ContainerTypes.container_email_send.get(), 10);
+		super(GuiHandler.send_TYPE.get(), id);
 		this.player = inventory.player;
 		this.addHandlerSlot(this.handler, 17, 100, 8, 2);
 		this.addPlayerInventorySlot(8, 151);
@@ -79,9 +75,9 @@ public class ContainerEmailSend extends Container {
 	
 	@SubscribeEvent
 	public void cooling(SendEmailCoolingEvent event) {
-		if(this.player.getName().equals(event.name)) {
+		if(this.player.getName().getString().equals(event.name)) {
 			if(!this.player.getEntityWorld().isRemote()) {
-				EmailMain.execute(()->EmailMain.net.sendMessageToPlayer(new MsgSendCooling(event.millis), (ServerPlayerEntity) this.player));
+				EmailMain.net.sendMessageToPlayer(new MsgSendCooling(event.millis), (ServerPlayerEntity) this.player);
 			}
 			cooling = event.millis;
 		}

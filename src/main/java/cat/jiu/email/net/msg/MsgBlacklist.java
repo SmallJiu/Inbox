@@ -7,10 +7,8 @@ import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 
 import cat.jiu.email.net.msg.refresh.MsgRefreshBlacklist;
-import cat.jiu.email.ui.EmailGuiHandler;
+import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.util.EmailUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
 
@@ -50,7 +48,7 @@ public abstract class MsgBlacklist extends BaseMessage {
 					inbox.addSenderBlacklist(this.name);
 					inbox.saveToDisk();
 					ctx.get().getSender().sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.email.black.add.success", name), ctx.get().getSender().getUniqueID());
-					EmailGuiHandler.openGui(EmailGuiHandler.EMAIL_BLACKLIST, ctx.get().getSender());
+					GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST, ctx.get().getSender());
 				}
 			}
 			return true;

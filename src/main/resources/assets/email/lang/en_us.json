@@ -1,4 +1,8 @@
 {
+  "info.config.done": "Done",
+  "info.config.undo": "Undo Changes",
+  "info.config.reset": "Reset to Default",
+
   "info.email.name": "Inbox",
   "info.email.has_unread": "You inbox has %s message unread.",
   "info.email.has_unreceive": "You inbox has %s message unreceive.",
@@ -8,7 +12,7 @@
   "info.email.error.to_big.1": "§7Emain ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes",
 
   #main
-  "info.email.dispatch": "Push",
+  "info.email.dispatch": "Send Email",
   "info.email.un_read": "Unread",
   "info.email.un_accept": "Unreceive",
   "info.email.delete_accept": "Delete receive",
@@ -51,7 +55,7 @@
 
   #send
   "info.email.receiving": "Inbox",
-  "info.email.addressee": "Addressee",
+  "info.email.addressee": "Send to",
   "info.email.title": "Title",
   "info.email.msgs": "Messages",
   "info.email.items": "Items",
@@ -76,6 +80,7 @@
   "info.email.send.success": "Send e-mail to player %s success.",
   "info.email.send.fail": "Failed to send the email, check log find the reason.",
   "info.email.send.fail.blacklist": "Failed to send the email, You have been block by the Addressee!",
+  "info.email.send.fail.cooling": "? how are you pass the client check",
 
   #blacklist
   "info.email.black.title": "Block receive player email",
@@ -176,10 +181,33 @@
   "email.dev_message.sender": "small_jiu",
   "email.dev_message.title": "Hello %s",
   "email.dev_message.0": "Hello %s, thank you use this mod.",
-  "email.dev_message.1": "usage will not use this to add, will use other to add.",
-  "email.dev_message.2": "This only say the functions: ",
-  "email.dev_message.3": "&ilFirst: You can send message, or send item, item can have the NBT.",
-  "email.dev_message.4": "&ilSecond: You can use this mod to replace the functions required to distribute items.",
-  "email.dev_message.5": "&ilThird: You can use this mod to create a story with map or mod.",
-  "email.dev_message.6": "And, have a good game."
+  "email.dev_message.1": "以下为邮箱所有界面的操作介绍。",
+  "email.dev_message.2": "在游戏主界面，由三个区域组成，分别是：候选邮件(左)，所选邮件(右)，功能区",
+  "email.dev_message.3": "而\"候选邮件\"区域由以下部分组成：邮件ID，邮件发送人，发送日期，邮件状态。",
+  "email.dev_message.4": "\"候选邮件\"区域可以使用鼠标滚轮或右边的按钮以及按钮中间的空白区域进行翻页。",
+  "email.dev_message.5": "在\"候选邮件\"区域可以使用鼠标右键打开小菜单，可以快捷的进行一些操作。",
+  "email.dev_message.6": "而候选邮件的状态，有以下三种组成：",
+  "email.dev_message.7": "    \" §b*§r \"：邮件是否已阅读，已读为§a绿色§r，未读为§c红色§r.",
+  "email.dev_message.8": "    \" §b$§r \"：邮件是否已领取，已领为§a绿色§r，未领为§c红色§r.",
+  "email.dev_message.9": "    \" §b#§r \"：邮件是否已过期，已过期为§c红色§r，未过期为§a绿色§r.",
+  "email.dev_message.10": "==================",
+  "email.dev_message.11": "候选邮件区域介绍完，接下来是所选邮件区域：",
+  "email.dev_message.12": "位于上面，左边的空格为所选邮件的ID，而中间长条，为所选邮件的标题，如果所选邮件带有音频，则在长条的右边显示播放音频的按钮。",
+  "email.dev_message.13": "位于中间，左半部分为所选邮件的发送者；右半部分为所选邮件的发出日期。",
+  "email.dev_message.14": "位于下面，左边一小条为附带消息的行数，中间为附带的消息，右边为翻页区域，使用鼠标滚轮在附带消息或者右边两个翻页按钮中间的空白区域都可进行翻页。",
+  "email.dev_message.15": "而位于最下面的物品栏，则是所选邮件附带的物品。",
+  "email.dev_message.16": "==================",
+  "email.dev_message.17": "所选邮件区域介绍完，接下来是功能按钮，顺序为从左到右到下：",
+  "email.dev_message.18": "删除已领：删除所有已经领取过并且已经阅读过的邮件；此操作开发者可使用\"EmailDeleteEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.19": "删除已读：删除所有已经阅读过但不带有物品的邮件；此操作开发者可使用\"EmailDeleteEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.20": "发送邮件：打开发送邮件界面。",
+  "email.dev_message.21": "删除所选：删除所选的邮件，无论改邮件是否已经阅读过或已经领取过；此操作开发者可使用\"EmailDeleteEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.22": "领取所选：领取所选邮件，如果所选的邮件带有物品，则添加到玩家背包并标记为已领；此操作开发者可使用\"EmailReceiveEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.23": "阅读全部：阅读邮箱内未被阅读过的邮件；此操作开发者可使用\"EmailReadEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.24": "领取全部：领取邮箱内未被领取过的邮件；此操作开发者可使用\"EmailReceiveEvent.Pre\"事件拦截并取消。",
+  "email.dev_message.25": "过滤器：对邮箱内的邮件进行过滤并展示在候选区域；开发者可以使用\"InboxFilterEvent\"事件添加自定义的过滤器。",
+  "email.dev_message.26": "管理黑名单：显示所有不接收邮件的名单，如果某玩家在此名单内，则此玩家不可发送邮件至你的邮箱。",
+  "email.dev_message.27": "在主界面左下角为邮箱大小，超出该大小则玩家无法打开邮箱。",
+  "email.dev_message.28": "在主界面左上角为刷新邮箱按钮，可通过此按钮刷新邮箱以获取最新的邮件，刷新一次后有5秒冷却。",
+  "email.dev_message.29": "至此，祝您游戏愉快 "
 }

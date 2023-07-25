@@ -103,11 +103,20 @@ public class EmailUtils {
 	}
 	
 	public static void sendMessage(PlayerEntity player, TextFormatting color, String key, Object... args) {
-		player.sendMessage(new Text(key, args).toTextComponent(color), player.getUniqueID());
+		player.sendMessage(new Text(key, formatArgsTextToComponent(args)).toTextComponent(color), player.getUniqueID());
 	}
 	
 	public static void sendMessage(PlayerEntity player, String key, Object... args) {
-		player.sendMessage(new Text(key, args).toTextComponent(), player.getUniqueID());
+		player.sendMessage(new Text(key, formatArgsTextToComponent(args)).toTextComponent(), player.getUniqueID());
+	}
+
+	public static Object[] formatArgsTextToComponent(Object... args) {
+		for (int i = 0; i < args.length; i++) {
+			if(args[i] instanceof IText){
+				args[i] = ((IText)args[i]).toTextComponent();
+			}
+		}
+		return args;
 	}
 	
 	public static boolean saveInboxToDisk(Inbox inbox) {

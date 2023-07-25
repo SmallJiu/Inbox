@@ -63,30 +63,23 @@ public class GuiPopupMenu extends Screen {
 	}
 
 	public void drawPopupMenu(MatrixStack matrix, long popupMenuCurrentEmail, Minecraft mc, int x, int y, float partialTicks) {
-		this.font.drawString(matrix, String.valueOf(this.visible), this.createX, this.createY, Color.RED.getRGB());
+//		this.font.drawString(matrix, String.valueOf(this.visible), this.createX, this.createY, Color.RED.getRGB());
 		if(this.visible) {
 			if(popupMenuCurrentEmail >= 0) {
 				mc.getTextureManager().bindTexture(GuiEmailMain.BackGround);
-				this.blit(matrix, this.createX - 2 + 6, this.createY - 1, 4, 15, 12, 10);
-				this.font.drawStringWithShadow(matrix, String.valueOf(popupMenuCurrentEmail), this.createX - 2 + 12, this.createY + 1, Color.RED.getRGB());
+				this.blit(matrix, this.createX - 2 + 6, this.createY - 2, 4, 15, 12, 10);
+				this.font.drawStringWithShadow(matrix, String.valueOf(popupMenuCurrentEmail), this.createX - 8 + 12, this.createY - 1, Color.RED.getRGB());
 			}
-			
-			int maxHeight = 0;
-			for(Widget btn : this.buttons) {
-				maxHeight += btn.getHeight();
-			}
-			
-			if(this.createY + maxHeight + 8 >= this.height) {
-				this.createY = this.height - maxHeight - Minecraft.getInstance().fontRenderer.FONT_HEIGHT - 5;
-				this.setVisible(visible);
-            }
 
 			for(Widget btn : this.buttons) {
 				btn.render(matrix, x, y, partialTicks);
+				if(btn.isMouseOver(x,y)){
+					this.hLine(matrix, btn.x, btn.x + btn.getWidth() - 2, btn.y + btn.getHeight() - 1, Color.WHITE.getRGB());
+				}
 			}
 
-//			Widget btn = this.buttons.get(this.buttons.size()-1);
-//			this.font.draw(matrix, btn.x, btn.x + btn.getWidth() - 2, btn.y + btn.getHeight(), Color.BLACK.getRGB());
+			Widget btn = this.buttons.get(this.buttons.size()-1);
+			this.hLine(matrix, btn.x, btn.x + btn.getWidth() - 2, btn.y + btn.getHeight(), (btn.isMouseOver(x,y) ? Color.WHITE : Color.BLACK).getRGB());
 		}
 	}
 
@@ -95,10 +88,10 @@ public class GuiPopupMenu extends Screen {
 		boolean flag = false;
 		if(mouseButton == 0 && this.isVisible()) {
 			for(Widget btn : this.buttons) {
-				if(btn.mouseClicked(mouseX, mouseY, mouseButton)) {
+				if(btn.isMouseOver(mouseX, mouseY)) {
 					GuiScreenEvent.MouseClickedEvent.Pre event = new GuiScreenEvent.MouseClickedEvent.Pre(this, mouseX, mouseY, mouseButton);
                     if (MinecraftForge.EVENT_BUS.post(event)) break;
-                    flag = true;
+                    flag = btn.mouseClicked(mouseX, mouseY, mouseButton);
                     MinecraftForge.EVENT_BUS.post(new GuiScreenEvent.MouseClickedEvent.Post(this, mouseX, mouseY, mouseButton));
 					break;
 				}
@@ -108,6 +101,12 @@ public class GuiPopupMenu extends Screen {
 		return flag;
 	}
 	public <T extends Button> T addPopupButton(T buttonIn) {
+		int maxHeight = 0;
+		for(Widget btn : this.buttons) {
+			maxHeight += btn.getHeight();
+		}
+		maxHeight += buttonIn.getHeight();
+		this.height = maxHeight + this.font.FONT_HEIGHT;
 		return this.addButton(buttonIn);
 	}
 	public Widget getPopupButton(int id) {

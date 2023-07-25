@@ -1,6 +1,7 @@
 package cat.jiu.email.ui.gui.component;
 
 import java.awt.Color;
+import java.util.function.Supplier;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -18,11 +19,9 @@ public class GuiImageButton extends Button {
 	protected final Screen gui;
 	protected final ResourceLocation background;
 	protected int u, v = 0;
-	/**
-	 *
-	 */
 	protected final int uWidth, uHeight, tileWidth, tileHeight;
 	protected int hoveredColor = HOVERED_COLOR.getRGB();
+	protected Supplier<ITextComponent> hoveringText = super::getMessage;
 
 	/**
 	 *
@@ -53,7 +52,7 @@ public class GuiImageButton extends Button {
 	 * @param uWidth     图片内需要绘制的宽
 	 * @param uHeight    图片内需要绘制的高
 	 */
-	public GuiImageButton(Screen gui, int x, int y, int widthIn, int heightIn, String hoveringText, ResourceLocation background, int tileWidth, int tileHeight, int u, int v, int uWidth, int uHeight, IPressable onClicked) {
+	public GuiImageButton(Screen gui, int x, int y, int widthIn, int heightIn, String hoveringText, ResourceLocation background, int tileWidth, int tileHeight, int u, int v, int uWidth, int uHeight, Button.IPressable onClicked) {
 		super(x, y, widthIn, heightIn, ITextComponent.getTextComponentOrEmpty(hoveringText), onClicked);
 		this.gui = gui;
 		this.background = background;
@@ -63,6 +62,49 @@ public class GuiImageButton extends Button {
 		this.v = v;
 		this.uWidth = uWidth;
 		this.uHeight = uHeight;
+	}
+
+	/**
+	 *
+	 * @param widthIn 绘制出来的宽
+	 * @param heightIn 绘制出来的高
+	 * @param background 图片
+	 * @param tileWidth 图片整体宽
+	 * @param tileHeight 图片整体高
+	 * @param uWidth 图片内需要绘制的宽
+	 * @param uHeight 图片内需要绘制的高
+	 */
+	public GuiImageButton(Screen gui, int x, int y, int widthIn, int heightIn, Supplier<ITextComponent> hoveringText, ResourceLocation background, int tileWidth, int tileHeight, int uWidth, int uHeight, Button.IPressable onClicked) {
+		super(x, y, widthIn, heightIn, hoveringText.get(), onClicked);
+		this.gui = gui;
+		this.background = background;
+		this.tileWidth = tileWidth;
+		this.tileHeight = tileHeight;
+		this.uWidth = uWidth;
+		this.uHeight = uHeight;
+		this.hoveringText = hoveringText;
+	}
+
+	/**
+	 * @param widthIn    绘制出来的宽
+	 * @param heightIn   绘制出来的高
+	 * @param background 图片
+	 * @param tileWidth  图片整体宽
+	 * @param tileHeight 图片整体高
+	 * @param uWidth     图片内需要绘制的宽
+	 * @param uHeight    图片内需要绘制的高
+	 */
+	public GuiImageButton(Screen gui, int x, int y, int widthIn, int heightIn, Supplier<ITextComponent> hoveringText, ResourceLocation background, int tileWidth, int tileHeight, int u, int v, int uWidth, int uHeight, Button.IPressable onClicked) {
+		super(x, y, widthIn, heightIn, hoveringText.get(), onClicked);
+		this.gui = gui;
+		this.background = background;
+		this.tileWidth = tileWidth;
+		this.tileHeight = tileHeight;
+		this.u = u;
+		this.v = v;
+		this.uWidth = uWidth;
+		this.uHeight = uHeight;
+		this.hoveringText = hoveringText;
 	}
 	
 	public GuiImageButton setImageX(int u) {
@@ -84,17 +126,20 @@ public class GuiImageButton extends Button {
 	}
 
 	@Override
-	public void render(MatrixStack matrix, int mouseX, int mouseY, float partialTicks) {
+	public void renderWidget(MatrixStack matrix, int mouseX, int mouseY, float partialTicks) {
 		if(this.visible) {
-			GlStateManager.enableAlphaTest();
-			Minecraft.getInstance().getTextureManager().bindTexture(this.background);
+			this.gui.getMinecraft().getTextureManager().bindTexture(this.background);
 			blit(matrix, this.x, this.y, this.width, this.height, this.u, this.v, this.uWidth, this.uHeight, this.tileWidth, this.tileHeight);
 
-			boolean hovered = mouseX >= this.x && mouseY >= this.y && mouseX < this.x + this.width && mouseY < this.y + this.height;
-			if(hovered) {
+			if(this.isHovered()) {
 				fillGradient(matrix, this.x, this.y, this.x + this.width, this.y + this.height, this.hoveredColor, this.hoveredColor);
 				this.gui.renderTooltip(matrix, this.getMessage(), mouseX, mouseY);
 			}
 		}
+	}
+
+	@Override
+	public ITextComponent getMessage() {
+		return this.hoveringText.get();
 	}
 }

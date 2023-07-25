@@ -21,6 +21,7 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.util.text.Color;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 
@@ -59,6 +60,8 @@ public interface IText extends ISerializable {
 			Object object = arg[i];
 			if(object instanceof IText) {
 				arg[i] = ((IText) object).format();
+			}else if(object instanceof ITextComponent){
+				arg[i] = ((ITextComponent) object).getString();
 			}
 		}
 		return arg;
@@ -89,7 +92,7 @@ public interface IText extends ISerializable {
 			this.setText(json.get("key").getAsString());
 		}
 		
-		if(json.has("isVanillaWrap")) this.setUseVanillaWrap(json.get("wrap").getAsBoolean());
+		if(json.has("isVanillaWrap")) this.setUseVanillaWrap(json.get("isVanillaWrap").getAsBoolean());
 		if(json.has("isCenter")) this.setCenter(json.get("isCenter").getAsBoolean());
 		if(json.has("parameters") || json.has("args")) {
 			JsonArray parametersArray = json.has("parameters") ? json.getAsJsonArray("parameters") : json.getAsJsonArray("args");
@@ -133,13 +136,13 @@ public interface IText extends ISerializable {
 	@Override
 	default void read(CompoundNBT nbt) {
 		this.setText(nbt.getString("text"));
-		if(nbt.contains("isVanillaWrap")) this.setUseVanillaWrap(nbt.getBoolean("wrap"));
+		if(nbt.contains("isVanillaWrap")) this.setUseVanillaWrap(nbt.getBoolean("isVanillaWrap"));
 		if(nbt.contains("isCenter")) this.setCenter(nbt.getBoolean("isCenter"));
 		if(nbt.contains("parameters")) {
 			CompoundNBT parametersArray = nbt.getCompound("parameters");
 			Object[] parameters = new Object[parametersArray.size()];
 			List<String> keys = parametersArray.keySet().stream().sorted(Comparator.comparingLong(Long::valueOf)).collect(Collectors.toList());
-			
+
 			for(int i = 0; i < keys.size(); i++) {
 				INBT e = parametersArray.get(keys.get(i));
 				if(e instanceof CompoundNBT) {

@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 public class MsgRefreshInbox extends BaseMessage {
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(!EmailMain.proxy.isClient()) {
+		if(ctx.get().getSender() != null) {
 			Inbox inbox = Inbox.get(ctx.get().getSender());
 			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), ctx.get().getSender());
 			EmailMain.execute(()->

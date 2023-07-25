@@ -79,7 +79,7 @@ public class MsgSend extends BaseMessage {
 			EmailUtils.initNameAndUUID(EmailMain.server);
 			ServerPlayerEntity sender = ctx.get().getSender();
 
-			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName()) && !EmailConfigs.Send.Enable_Send_To_Self.get()) {
+			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigs.Send.Enable_Send_To_Self.get()) {
 				this.sendMessage(sender, Level.ERROR, "info.email.error.send_self");
 				return;
 			}
@@ -150,6 +150,13 @@ public class MsgSend extends BaseMessage {
 			}
 			return;
 		}
+
+		if(this.group.isPlayerSend() && Cooling.isCooling(sender.getName().getString()) || Cooling.isCooling(this.email.getSender().getText())){
+			container.putStack(this.email.getItems());
+			if(lock) container.setLock(false);
+			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail.cooling")), sender);
+			return;
+		}
 		
 		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, this.group, addresses, this.email))) return;
 		
@@ -200,19 +207,21 @@ public class MsgSend extends BaseMessage {
 		}
 		return true;
 	}
-	
+
 	private void sendMessage(String addresser, boolean success, ServerPlayerEntity msgSender, boolean lock) {
 		if(EmailMain.SYSTEM.equals(this.email.getSender().getText())
 		|| this.group.isSystemSend()) return;
 		try {
 			addresser = EmailUtils.getName(UUID.fromString(addresser));
-		}catch(Exception e) {}
+		}catch(Exception ignored) {}
 		
 		if(success) {
 			if(!this.group.isSystemSend() && msgSender!=null) {
 				if(this.group.isPlayerSend()) {
 					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					if(EmailConfigs.Send.Enable_Send_Cooling.get()) Cooling.cooling(msgSender.getName().getString());
+					if(EmailConfigs.Send.Enable_Send_Cooling.get()) {
+						Cooling.cooling(msgSender.getName().getString());
+					}
 					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.email.send.success", addresser)), msgSender);
 				}else {
 					EmailUtils.sendMessage(msgSender, TextFormatting.GREEN, "info.email.send.success", addresser);
@@ -286,7 +295,7 @@ public class MsgSend extends BaseMessage {
 		try {
 			uid = UUID.fromString(name);
 			name = EmailUtils.getName(uid);
-		}catch(Exception e) {}
+		}catch(Exception ignored) {}
 		
 		File filepath = new File("./logs/email.log");
 

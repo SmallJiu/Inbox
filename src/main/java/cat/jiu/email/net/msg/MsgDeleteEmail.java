@@ -84,7 +84,7 @@ public class MsgDeleteEmail {
 					
 					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
-						if(email.isReceived() && !MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
+						if(email.isReceived() && email.isRead() && !MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
 							inbox.deleteEmail(i);
 						}
 						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));

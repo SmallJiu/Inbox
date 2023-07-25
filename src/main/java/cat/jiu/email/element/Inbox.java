@@ -2,15 +2,8 @@ package cat.jiu.email.element;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -63,7 +56,7 @@ public final class Inbox implements ISerializable {
 	public synchronized Set<Long> getEmailIDs() {
 		LinkedHashSet<Long> ids = Sets.newLinkedHashSet();
 		
-		Throwable exception = null;
+		Throwable exception;
 		do {
 			try {
 				Set<Long> remove = Sets.newHashSet();
@@ -74,9 +67,7 @@ public final class Inbox implements ISerializable {
 						ids.add(e);
 					}
 				});
-				remove.forEach(e->{
-					this.deleteEmail(e);
-				});
+				remove.forEach(this::deleteEmail);
 				exception = null;
 			}catch(Throwable e) {
 				exception = e;
@@ -244,8 +235,8 @@ public final class Inbox implements ISerializable {
 	/**
 	 * @return inbox custom value
 	 */
-	public HashMap<String, Object> getCustomValue() {
-		return Maps.newHashMap(customValue);
+	public Map<String, Object> getCustomValue() {
+		return Collections.unmodifiableMap(customValue);
 	}
 	
 	/**
@@ -278,8 +269,8 @@ public final class Inbox implements ISerializable {
 	 * get sender blacklist
 	 * @return
 	 */
-	public ArrayList<String> getSenderBlacklist() {
-		return Lists.newArrayList(senderBlacklist);
+	public List<String> getSenderBlacklist() {
+		return Collections.unmodifiableList(senderBlacklist);
 	}
 	
 	/**

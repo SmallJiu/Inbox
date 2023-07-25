@@ -37,13 +37,14 @@ public class SendDevEmail {
 	static {
 		List<IText> msgs = Lists.newArrayList();
 		msgs.add(new Text("email.dev_message.0", ""));
-		for(int i = 1; i < 7; i++) {
+		for(int i = 1; i < 30; i++) {
 			msgs.add(new Text("email.dev_message."+i));
 		}
 		devEmail = new Email(new Text("email.dev_message.title", ""), new Text("email.dev_message.sender"),
 				new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundCategory.PLAYERS),
 				Arrays.asList(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8)), msgs);
-		devEmail.setAccept(true);
+		devEmail.setExpirationTime(new TimeMillis(9999, 9999, 9999, 9999, 9999))
+				.setAccept(true);
 	}
 	
 	public static Email getDevEmail() {

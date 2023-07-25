@@ -1,13 +1,15 @@
 package cat.jiu.email;
 
-import cat.jiu.email.init.ContainerTypes;
+import cat.jiu.email.element.Cooling;
 import cat.jiu.email.net.EmailNetworkHandler;
-import cat.jiu.email.ui.gui.*;
+import cat.jiu.email.ui.GuiHandler;
+import cat.jiu.email.ui.gui.config.GuiConfig;
 import cat.jiu.email.util.EmailConfigs;
-import net.minecraft.client.gui.ScreenManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.fml.ExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
@@ -31,13 +33,27 @@ public class EmailMain {
     public static final String SYSTEM = "?????";
     public static EmailNetworkHandler net;
     public static MinecraftServer server;
+    private static long sysTime = 0;
+    @OnlyIn(Dist.CLIENT)
+    public static long getSysTime() {
+        return sysTime;
+    }
+    static {
+        new Thread(()->{
+            while (proxy.isClient()) {
+                try {
+                    Thread.sleep(1);
+                    sysTime++;
+                } catch (InterruptedException ignored) {}
+            }
+        }).start();
+    }
 
     public EmailMain() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onClientSetup);
-        ContainerTypes.CONTAINERS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        GuiHandler.CONTAINER_TYPE_REGISTER.register(FMLJavaModLoadingContext.get().getModEventBus());
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/email.toml");
-
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -63,16 +79,16 @@ public class EmailMain {
         event.enqueueWork(()-> net = new EmailNetworkHandler());
     }
     private void onClientSetup(final FMLClientSetupEvent event) {
-        event.enqueueWork(()->{
-            ScreenManager.registerFactory(ContainerTypes.container_email_send.get(), GuiEmailSend::new);
-            ScreenManager.registerFactory(ContainerTypes.container_email_blacklist.get(), GuiBlacklist::new);
-            ScreenManager.registerFactory(ContainerTypes.container_email_main.get(), GuiEmailMain::new);
-        });
+        event.enqueueWork(GuiHandler::registerScreen);
+        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, ()->(mc, parent)->
+            new GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
+        );
     }
 
     @SubscribeEvent
     public void onServerStarting(FMLServerStartingEvent event) {
         proxy.isServerClosed = false;
+        Cooling.load();
         server = event.getServer();
     }
     @SubscribeEvent

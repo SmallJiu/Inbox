@@ -1,12 +1,10 @@
 package cat.jiu.email.util.client;
 
 import cat.jiu.email.EmailMain;
-import cat.jiu.email.net.msg.MsgOpenGui;
-import cat.jiu.email.ui.EmailGuiHandler;
+import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.GuiEmailMain;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
@@ -32,22 +30,20 @@ public class ShowInboxGui {
 	public static void onInitGui(GuiScreenEvent.InitGuiEvent.Post event) {
 		Screen gui = event.getGui();
 		if(gui instanceof ChatScreen) {
-			event.addWidget(new ChatButton(gui, EmailGuiHandler.EMAIL_MAIN, gui.width - 20 - 5, 5, I18n.format("info.email.name")));
-			event.addWidget(new ChatButton(gui, EmailGuiHandler.EMAIL_SEND, gui.width - 20 - 5, 26, I18n.format("info.email.dispatch")));
+			event.addWidget(new ChatButton(gui, GuiHandler.EMAIL_MAIN, gui.width - 20 - 5, 5, I18n.format("info.email.name")));
+			event.addWidget(new ChatButton(gui, GuiHandler.EMAIL_SEND, gui.width - 20 - 5, 26, I18n.format("info.email.dispatch")));
 		}else if(gui instanceof ContainerScreen) {
 			ContainerScreen<?> con = (ContainerScreen<?>) gui;
 			if(con instanceof InventoryScreen) {
-				event.addWidget(new InventoryButton(gui, EmailGuiHandler.EMAIL_MAIN,con.getGuiLeft()+27, con.getGuiTop() + 9, I18n.format("info.email.name")));
+				event.addWidget(new InventoryButton(gui, GuiHandler.EMAIL_MAIN,con.getGuiLeft()+27, con.getGuiTop() + 9, I18n.format("info.email.name")));
 			}else if(con instanceof CreativeScreen) {
-				event.addWidget(new ChatButton(gui, EmailGuiHandler.EMAIL_MAIN, con.getGuiLeft() + 145, con.getGuiTop() + 138, I18n.format("info.email.name")));
+				event.addWidget(new ChatButton(gui, GuiHandler.EMAIL_MAIN, con.getGuiLeft() + 145, con.getGuiTop() + 138, I18n.format("info.email.name")));
 			}
 		}
 	}
 	
-	static final ResourceLocation send_email = new ResourceLocation(EmailMain.MODID, "textures/gui/send_email.png");
-	static final ResourceLocation send_email_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/send_email_hover.png");
-	static final ResourceLocation inbox = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min.png");
-	static final ResourceLocation inbox_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min_hover.png");
+	public static final ResourceLocation inbox = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min.png");
+	public static final ResourceLocation inbox_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min_hover.png");
 	static final ResourceLocation email = new ResourceLocation(EmailMain.MODID, "textures/gui/email.png");
 
 	@OnlyIn(Dist.CLIENT)
@@ -57,7 +53,7 @@ public class ShowInboxGui {
 		private final Minecraft mc = Minecraft.getInstance();
 
 		public ChatButton(Screen gui, int guiId, int x, int y, String buttonText) {
-			super(x, y, 20, 13, new StringTextComponent(buttonText), b->EmailMain.net.sendMessageToServer(new MsgOpenGui(guiId)));
+			super(x, y, 20, 13, new StringTextComponent(buttonText), b-> GuiHandler.openGui(guiId));
 			this.guiId = guiId;
 			this.gui = gui;
 		}
@@ -81,7 +77,7 @@ public class ShowInboxGui {
 			blit(matrix, this.x, this.y, 0, 0, this.width, this.height, this.width, this.height);
 			GlStateManager.popMatrix();
 
-			if((EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) && this.guiId == EmailGuiHandler.EMAIL_MAIN) {
+			if((EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) && this.guiId == GuiHandler.EMAIL_MAIN) {
 				GlStateManager.pushMatrix();
 				GlStateManager.color4f(1.0f, 1.0f, 1.0f, 1.0f);
 				mc.getTextureManager().bindTexture(email);
@@ -113,7 +109,7 @@ public class ShowInboxGui {
 		private final Minecraft mc = Minecraft.getInstance();
 
 		public InventoryButton(Screen gui, int guiId, int x, int y, String buttonText) {
-			super(x, y, 9, 6, new StringTextComponent(buttonText), btn->EmailMain.net.sendMessageToServer(new MsgOpenGui(guiId)));
+			super(x, y, 9, 6, new StringTextComponent(buttonText), btn -> GuiHandler.openGui(guiId));
 			this.gui = gui;
 //			if(this.gui instanceof InventoryScreen && Minecraft.getInstance().player.getRecipeBook()!=null && ((InventoryScreen) this.gui).getRecipeBookComponent().isVisible()) {
 //				this.recipeBookOpen = true;

@@ -10,12 +10,12 @@ import cat.jiu.email.event.InboxDrawEvent.Type;
 import cat.jiu.email.event.InboxFilterEvent;
 import cat.jiu.email.event.InboxPlaySoundEvent;
 import cat.jiu.email.net.msg.MsgDeleteEmail;
-import cat.jiu.email.net.msg.MsgOpenGui;
 import cat.jiu.email.net.msg.MsgReadEmail;
 import cat.jiu.email.net.msg.MsgReceiveEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshInbox;
-import cat.jiu.email.ui.EmailGuiHandler;
+import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailMain;
+import cat.jiu.email.ui.gui.component.GuiImageButton;
 import cat.jiu.email.ui.gui.component.GuiPopupMenu;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
@@ -64,7 +64,8 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	private boolean isClose = false;
 	private GuiPopupMenu popupMenu = new GuiPopupMenu();
 	private GuiPopupMenu filterMenu = new GuiPopupMenu();
-	private final GuiDynamicImage loadImage = new GuiDynamicImage(load, 18, false, 16, 16, 0, 0, 32, 32, 32, 576);
+	private GuiImageButton refreshBtn;
+	private final GuiDynamicImage loadImage = new GuiDynamicImage(load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
 	
 	public GuiEmailMain(ContainerEmailMain container, PlayerInventory inventory, ITextComponent t) {
 		super(container, inventory, ITextComponent.getTextComponentOrEmpty(null));
@@ -84,15 +85,29 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		String text = I18n.format("info.email.black");
 		int weight = super.font.getStringWidth(text);
 		this.addButton(new Button(this.guiLeft+190 - (weight + 4), this.guiTop+145, weight + 4, super.font.FONT_HEIGHT+3, new StringTextComponent(text), btn->
-			EmailMain.net.sendMessageToServer(new MsgOpenGui(EmailGuiHandler.EMAIL_BLACKLIST))
+				GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST)
 		));
 		text = I18n.format("info.email.filter");
 		weight = super.font.getStringWidth(text);
 		this.addButton(this.filterButton = new Button(this.guiLeft+140 - (weight + 4), this.guiTop+145, weight + 4, super.font.FONT_HEIGHT+3, new StringTextComponent(text), btn->{
-			filterMenu.setCreatePoint(this.filterButton.x, this.filterButton.y);
-			filterMenu.setVisible(!filterMenu.isVisible());
+			this.filterMenu.setCreatePoint(this.filterButton.x, this.filterButton.y - this.filterMenu.height - 2);
+			this.filterMenu.setVisible(!this.filterMenu.isVisible());
 		}));
+
+		this.addButton(this.refreshBtn = new GuiImageButton(this, this.guiLeft + 6, this.guiTop + 6, 7, 7, ()->
+			new StringTextComponent(I18n.format(refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling"))
+		, BackGround, 256, 256, 111, 169, 55, 55, btn->{
+			if(refreshCoolingTicks <= 0) {
+				this.refresh();
+				this.getMinecraft().getSoundHandler().play(SimpleSound.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+				this.refreshBtn.visible = false;
+			}
+		}));
+		if(refreshCoolingTicks>0){
+			this.refreshBtn.visible = false;
+		}
 	}
+
 	private void initTurnPageBtn(int x, int y) {
 		this.addButton(new Button(x+82, y+19, 9, 20, new StringTextComponent("\u21e7"), btn-> goEmail(-1)));
 		this.addButton(new Button(x+82, y+83, 9, 20, new StringTextComponent("\u21e9"), btn->goEmail(1)));
@@ -101,9 +116,15 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	}
 	
 	private void initFunctionBtn(int x, int y) {
-		this.addButton(new Button(x+4, y+106, 43, 12, new StringTextComponent(I18n.format("info.email.delete_accept")), btn -> EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllReceive())));
-		this.addButton(new Button(x+4, y+119, 43, 12, new StringTextComponent(I18n.format("info.email.delete_read")), btn-> EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllRead())));
-		this.addButton(new Button(x+4, y+132, 43, 12, new StringTextComponent(I18n.format("info.email.dispatch")), btn->EmailMain.net.sendMessageToServer(new MsgOpenGui(EmailGuiHandler.EMAIL_SEND))));
+		this.addButton(new Button(x+4, y+106, 43, 12, new StringTextComponent(I18n.format("info.email.delete_accept")), btn -> {
+			if(this.container.isRefresh()) return;
+			EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllReceive());
+		}));
+		this.addButton(new Button(x+4, y+119, 43, 12, new StringTextComponent(I18n.format("info.email.delete_read")), btn-> {
+			if(this.container.isRefresh()) return;
+			EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllRead());
+		}));
+		this.addButton(new Button(x+4, y+132, 43, 12, new StringTextComponent(I18n.format("info.email.dispatch")), btn-> GuiHandler.openGui(GuiHandler.EMAIL_SEND)));
 		this.addButton(new Button(x+192, y+106, 41, 12, new StringTextComponent(I18n.format("info.email.delete")), btn->{
 			if(currentEmail != -1) {
 //				Email email = getCurrentEmail();
@@ -124,6 +145,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			}
 		}));
 		this.addButton(new Button(x+192, y+145, 41, 12, new StringTextComponent(I18n.format("info.email.accept_all")),btn->{
+			if(this.container.isRefresh()) return;
 			if(!EmailConfigs.isInfiniteSize()) {
 				if(container.getInboxSize()+(container.getInbox().getUnReceived() * 55L) >= 2097152L) {
 					emailIsOutStorageSize();
@@ -132,6 +154,8 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			EmailMain.net.sendMessageToServer(new MsgReceiveEmail.All());
 		}));
 		this.addButton(new Button(x+192, y+132, 41, 12, new StringTextComponent(I18n.format("info.email.read_all")),btn->{
+			if(this.container.isRefresh()) return;
+
 			if(!EmailConfigs.isInfiniteSize()) {
 				if(container.getInboxSize() + container.getInbox().getUnRead() * 51L > 2097152L) {
 					emailIsOutStorageSize();
@@ -233,7 +257,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	private long currentEmail = -1;
 	private int emailPage = 0;
 	
-	private void goEmail(int page) {
+	public void goEmail(int page) {
 		if(this.emailIDs == null) return;
 		if(this.emailIDs.length > 5) {
 			this.emailPage += page;
@@ -252,7 +276,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	}
 	
 	private int maxSelectedTextRows = EmailConfigs.Main.Selected_Text_Rows.get();
-	public void setMaxSelectedTextRows(int maxrows) {this.maxSelectedTextRows = maxrows;}
+	public void setMaxSelectedTextRows(int maxRows) {this.maxSelectedTextRows = maxRows;}
 	public int getMaxSelectedTextRows() {return maxSelectedTextRows;}
 	
 	private int showSelectedSpacing = EmailConfigs.Main.Selected_Text_Spacing.get();
@@ -301,10 +325,10 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		MainWindow window = this.getMinecraft().getMainWindow();
 
 		double key = event.getScrollDelta();
-        double x = event.getMouseX() / window.getScaledWidth() * window.getWidth();
-        double y = event.getMouseY() / window.getScaledHeight() * window.getHeight();
+        double x = event.getMouseX() - this.guiLeft;
+        double y = event.getMouseY() - this.guiTop;
 
-        if(isInRange(x, y, this.width + 82, this.height + 41, 8, 40) || isInRange(x, y, this.width + 17, this.height + 10, 63, 90)) {
+		if(isInRange(x, y, 82, 41, 8, 40) || isInRange(x, y, 17, 10, 63, 90)) {
         	int page = 0;
 
         	if(EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
@@ -320,7 +344,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 				this.goEmail(1 + page);
 			}
 			event.setCanceled(true);
-		}else if(isInRange(x, y, this.guiLeft + 221, this.guiTop + 53, 8, 28) || isInRange(x, y, this.guiLeft + 92, this.guiTop + 30, 128, 74)) {
+		}else if(isInRange(x, y, 221, 53, 8, 28) || isInRange(x, y, 92, 30, 128, 74)) {
 			int page = 0;
 
 			if(EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
@@ -367,9 +391,11 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	private final int Candidate_Email_Y = EmailConfigs.Main.Position.Candidate_Email.Y.get();
 
 	@Override
-	public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-		super.render(matrixStack, mouseX, mouseY, partialTicks);
-		super.renderHoveredTooltip(matrixStack, mouseX, mouseY);
+	public void render(MatrixStack matrix, int mouseX, int mouseY, float partialTicks) {
+		super.render(matrix, mouseX, mouseY, partialTicks);
+		this.popupMenu.drawPopupMenu(matrix, this.popupMenuCurrentEmail, this.getMinecraft(), mouseX, mouseY, partialTicks);
+		this.filterMenu.drawPopupMenu(matrix, -1, this.getMinecraft(), mouseX, mouseY, partialTicks);
+		super.renderHoveredTooltip(matrix, mouseX, mouseY);
 	}
 
 	int currentSoundCheck = 0;
@@ -382,10 +408,6 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		this.getMinecraft().getTextureManager().bindTexture(BackGround);
 		this.blit(matrix, this.guiLeft, this.guiTop, 0, 0, this.xSize, this.ySize);
 //		GlStateManager.popMatrix();
-
-		for(Widget btn : this.buttons) {
-			this.drawHorizontalLine(matrix, btn.x, btn.x + btn.getWidth() - 2, btn.y + btn.getHeight()-1, (btn.isHovered() ? Color.WHITE : Color.BLACK).getRGB());
-		}
 
 		// TODO 检查播放的音效是否已停止
 		if(this.currentSound!=null && this.currentSound.isDonePlaying()) {
@@ -404,12 +426,13 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		}
 
 		Email currentEmail = this.getCurrentEmail();
-		if(currentEmail!=null && currentEmail.hasItems() && this.container.isEmptyStacks()){
-			this.container.putStack(currentEmail.getItems());
+		if(currentEmail!=null){
+			if(currentEmail.hasItems() && this.container.isEmptyStacks()){
+				this.container.putStack(currentEmail.getItems());
+			}else if(!currentEmail.hasItems() && !this.container.isEmptyStacks()) {
+				this.container.clearStacks();
+			}
 		}
-		
-		this.popupMenu.drawPopupMenu(matrix, this.popupMenuCurrentEmail, this.getMinecraft(), mouseX, mouseY, partialTicks);
-		this.filterMenu.drawPopupMenu(matrix, -1, this.getMinecraft(), mouseX, mouseY, partialTicks);
 	}
 
 	private MillisTimer renderTimer = null;
@@ -425,7 +448,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		this.setRenderText(showTick, true, text, color);
 	}
 	/**
-	 * @param showTime the show time
+	 * @param showTime the text render time
 	 * @param isTickTime true if show time is tick, false will be millis
 	 * @param text the show text
 	 * @param color this show text color
@@ -441,9 +464,14 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 
 	@Override
 	protected void drawGuiContainerForegroundLayer(MatrixStack matrix, int mouseX, int mouseY) {
+		for(Widget btn : this.buttons) {
+			if(!(btn instanceof GuiImageButton) && btn.visible){
+				this.drawHorizontalLine(matrix, btn.x - this.guiLeft, btn.x + btn.getWidth() - 2 - this.guiLeft, btn.y + btn.getHeight()-1 - this.guiTop, (btn.isHovered() ? Color.WHITE : Color.BLACK).getRGB());
+			}
+		}
 		if(this.container.isRefresh()) {
 			this.loadImage.draw(matrix, 3, 146);
-			this.drawCenteredStringWithShadow(matrix, I18n.format("info.email.refreshing"), this.guiLeft + 9 + 40, this.guiTop + 150, Color.RED.getRGB());
+			this.drawStringWithShadow(matrix, I18n.format("info.email.refreshing"), 3 + this.loadImage.width, 146 + 5, Color.RED.getRGB());
 		}else {
 			MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.INBOX, TickEvent.Phase.START, this.container.getInbox(), -1, 0, 0));
 
@@ -473,44 +501,11 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			}
 		}
 
-		// TODO 绘制鼠标底下的候选邮件信息
-		for(int i = 0; !this.popupMenu.isVisible() && i < 5; i++) {
-			if(this.showEmails == null || i >= this.showEmails.length) break;
-			if(isInRange(mouseX, mouseY, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + ((19 * i)), 60, 17)) {
-				if(this.container.getInbox().hasEmail(this.showEmails[i])) {
-					Email email = this.container.getInbox().getEmail(this.showEmails[i]);
-					List<String> tip = Lists.newArrayList();
-
-					tip.add(email.getTitle().format());
-					tip.add("");
-
-					tip.add(TextFormatting.GRAY + email.getCreateTimeAsString());
-					tip.add(I18n.format("info.email.main.from", email.getSender().format()));
-
-					tip.add("");
-
-					tip.add(I18n.format("info.email.email_size", email.getEmailNetworkSize()));
-					if(email.getExpirationTime()!=null) {
-						tip.add("");
-						long time = email.getExpirationTimeAsTimestamp();
-						if(System.currentTimeMillis() >= time) {
-							tip.add(String.format("%s: %s", I18n.format("email.config.expiration"), TextFormatting.RED + I18n.format("email.config.expiration.ed")));
-						}else {
-							tip.add(I18n.format("info.email.remain_expiration_time", EmailUtils.formatTimestamp(time - System.currentTimeMillis())));
-						}
-					}
-
-					this.renderWrappedToolTip(matrix, tip.stream().map(StringTextComponent::new).collect(Collectors.toList()), mouseX - this.guiLeft, mouseY - this.guiTop, this.font);
-					break;
-				}
-			}
-		}
-
 		// TODO 绘制当前过滤器
 		this.drawStringWithShadow(matrix, I18n.format("info.email.filter")+ ": " + this.filterMenu.getPopupButton(this.currentFilter).getMessage().getString(), x, y-super.font.FONT_HEIGHT, Color.WHITE.getRGB());
 
 		// TODO 绘制邮箱所占网络包大小
-		super.font.drawString(matrix, I18n.format("info.email.storage"), x+5, y+148, Color.BLACK.getRGB());
+//		super.font.drawString(matrix, I18n.format("info.email.storage"), x+5, y+148, Color.BLACK.getRGB());
 		Color sizeColor = Color.GREEN;
 		if(!EmailConfigs.isInfiniteSize()) {
 			long size = this.container.getInboxSize();
@@ -520,23 +515,22 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 				sizeColor = Color.YELLOW;
 			}
 		}
-		int storageWidth = super.font.getStringWidth(I18n.format("info.email.storage"))+5;
 		String bytes = EmailConfigs.isInfiniteSize() ? TextUtils.makeFabulous("Infinite") : "2097152";
 		int bytesWidth = this.font.getStringWidth(bytes);
-		super.font.drawString(matrix, bytes, x+6 + storageWidth, y+156, Color.BLACK.getRGB());
-		this.drawStringNoShadow(matrix, "Bytes", x+7+bytesWidth+1+storageWidth, y+156, Color.BLACK.getRGB());
-		this.drawAlignRightString(matrix, String.valueOf(this.container.getInboxSize()), x+6+storageWidth+bytesWidth, y+145, sizeColor.getRGB(), true);
-		this.drawHorizontalLine(matrix, x+5+storageWidth, x+5+bytesWidth+storageWidth, y+154, Color.BLACK.getRGB());
+		super.font.drawString(matrix, bytes, x+6, y+156, Color.BLACK.getRGB());
+		this.drawStringNoShadow(matrix, "Bytes", x+7+bytesWidth+1, y+156, Color.BLACK.getRGB());
+		this.drawAlignRightString(matrix, String.valueOf(this.container.getInboxSize()), x+6+bytesWidth, y+145, sizeColor.getRGB(), false);
+		this.drawHorizontalLine(matrix, x+5, x+5+bytesWidth, y+154, Color.BLACK.getRGB());
 
 		// TODO 绘制刷新按钮
-		GlStateManager.pushMatrix();
-		GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-		this.getMinecraft().getTextureManager().bindTexture(BackGround);
-		blit(matrix, x + 6, y + 6, 6, 6, 111, 169, 55, 55, 256, 256);
-		GlStateManager.popMatrix();
-		if(isInRange(mouseX, mouseY, this.guiLeft + 5, this.guiTop + 5, 7, 7)) {
-			this.renderTooltip(matrix, new StringTextComponent(I18n.format(this.refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling")), mouseX - this.guiLeft, mouseY - this.guiTop);
-		}
+//		GlStateManager.pushMatrix();
+//		GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+//		this.getMinecraft().getTextureManager().bindTexture(BackGround);
+//		blit(matrix, x + 6, y + 6, 6, 6, 111, 169, 55, 55, 256, 256);
+//		GlStateManager.popMatrix();
+//		if(isInRange(mouseX, mouseY, this.guiLeft + 5, this.guiTop + 5, 7, 7)) {
+//			this.renderTooltip(matrix, new StringTextComponent(I18n.format(this.refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling")), mouseX - this.guiLeft, mouseY - this.guiTop);
+//		}
 
 		if(this.container.getInbox() == null
 		|| this.container.getInbox().emailCount()<=0) return;
@@ -546,39 +540,6 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		// TODO 展示未读(*)与未领($)
 		this.drawStringNoShadow(matrix, "$:"+ this.container.getInbox().getUnReceived(), x+25, y+3, Color.RED.getRGB());
 		this.drawStringNoShadow(matrix, "*:" + this.container.getInbox().getUnRead(), x+50, y+3, Color.RED.getRGB());
-
-		// TODO 展示邮件列表
-		for (int i = 0; i < this.showEmails.length; i++) {
-			if(this.container.getInbox().hasEmail(this.showEmails[i])) {
-				Email email = this.container.getInbox().getEmail(this.showEmails[i]);
-				MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.CANDIDATE, TickEvent.Phase.START, this.container.getInbox(), this.showEmails[i], mouseX, mouseY));
-
-				StringBuilder identifier = new StringBuilder();
-				if(email.getExpirationTime()!=null && email.getExpirationTime().millis>1) {
-					identifier.append(System.currentTimeMillis() >= email.getExpirationTimeAsTimestamp() ? TextFormatting.RED : TextFormatting.GREEN);
-					identifier.append('#');
-				}
-				if(email.hasItems()) {
-					identifier.append(email.isReceived() ? TextFormatting.GREEN : TextFormatting.RED);
-					identifier.append('$');
-				}
-				identifier.append(email.isRead() ? TextFormatting.GREEN : TextFormatting.RED);
-				identifier.append('*');
-
-				this.drawAlignRightString(matrix, identifier.toString(), x+Candidate_Email_X+61, y+Candidate_Email_Y + (19 * i) + 1, Color.BLACK.getRGB(), false);
-
-				this.drawCenteredStringWithShadow(matrix, String.valueOf(this.showEmails[i]), x+Candidate_Email_X-8, y+Candidate_Email_Y + 5 + (19 * i), Color.WHITE.getRGB());
-
-				String sender = email.getSender().format();
-				if(super.font.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender.get()) {
-					sender = super.font.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender.get()) + "...";
-				}
-				this.drawStringNoShadow(matrix, sender, x+Candidate_Email_X+1, y+Candidate_Email_Y + (19 * i)+1, Color.WHITE.getRGB());
-				this.drawStringNoShadow(matrix, email.getCreateTimeAsString().substring(5, email.getCreateTimeAsString().length()-3), x+Candidate_Email_X+1, y+Candidate_Email_Y + 10 + (19 * i), Color.BLACK.getRGB());
-
-				MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.CANDIDATE, TickEvent.Phase.END, this.container.getInbox(), this.showEmails[i], mouseX, mouseY));
-			}
-		}
 
 		// TODO 绘制所选邮件
 		if(this.currentEmail >= 0) {
@@ -614,10 +575,10 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 						boolean unicode = this.getMinecraft().getForceUnicodeFont();
 						this.getMinecraft().gameSettings.forceUnicodeFont = false;
 						if(index+1 >= this.showMessages.size()
-						|| this.showMessages.get(index+1).row != msgIndex) {
-							this.drawStringNoShadow(matrix, "\u255a", x+5+(EmailConfigs.Main.Position.Current_Email.Row.X.get() - font.getStringWidth(Integer.toString(msg.row)) / 2),  y-1+EmailConfigs.Main.Position.Current_Email.Row.Y.get() + ((this.font.FONT_HEIGHT+EmailConfigs.Main.Selected_Text_Spacing.get()) * i), Color.BLACK.getRGB());
+								|| this.showMessages.get(index+1).row != msgIndex) {
+							this.drawCenteredStringNoShadow(matrix, "\u255a", x+9+(EmailConfigs.Main.Position.Current_Email.Row.X.get() - font.getStringWidth(Integer.toString(msg.row)) / 2),  y-1+EmailConfigs.Main.Position.Current_Email.Row.Y.get() + ((this.font.FONT_HEIGHT+EmailConfigs.Main.Selected_Text_Spacing.get()) * i), Color.BLACK.getRGB());
 						}else {
-							this.drawStringNoShadow(matrix, "\u2560", x+5+(EmailConfigs.Main.Position.Current_Email.Row.X.get() - font.getStringWidth(Integer.toString(msg.row)) / 2),  y-1+EmailConfigs.Main.Position.Current_Email.Row.Y.get() + ((this.font.FONT_HEIGHT+EmailConfigs.Main.Selected_Text_Spacing.get()) * i), Color.BLACK.getRGB());
+							this.drawCenteredStringNoShadow(matrix, "\u2560", x+9+(EmailConfigs.Main.Position.Current_Email.Row.X.get() - font.getStringWidth(Integer.toString(msg.row)) / 2),  y-1+EmailConfigs.Main.Position.Current_Email.Row.Y.get() + ((this.font.FONT_HEIGHT+EmailConfigs.Main.Selected_Text_Spacing.get()) * i), Color.BLACK.getRGB());
 						}
 						this.getMinecraft().gameSettings.forceUnicodeFont = unicode;
 					}
@@ -651,6 +612,74 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 				MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.CURRENT, TickEvent.Phase.END, this.container.getInbox(), this.currentEmail, mouseX, mouseY));
 			}
 		}
+
+		long visibleEmail = -1;
+		// TODO 绘制鼠标底下的候选邮件信息
+		for(int i = 0; !this.popupMenu.isVisible() && i < 5; i++) {
+			if(this.showEmails == null || i >= this.showEmails.length) break;
+			if(isInRange(mouseX, mouseY, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + ((19 * i)), 60, 17)) {
+				if(this.container.getInbox().hasEmail(this.showEmails[i])) {
+					Email email = this.container.getInbox().getEmail(this.showEmails[i]);
+					List<String> tip = Lists.newArrayList();
+
+					tip.add(email.getTitle().format());
+					tip.add("");
+
+					tip.add(TextFormatting.GRAY + email.getCreateTimeAsString());
+					tip.add(I18n.format("info.email.main.from", email.getSender().format()));
+
+					tip.add("");
+
+					tip.add(I18n.format("info.email.email_size", email.getEmailNetworkSize()));
+					if(email.getExpirationTime()!=null) {
+						tip.add("");
+						long time = email.getExpirationTimeAsTimestamp();
+						if(System.currentTimeMillis() >= time) {
+							tip.add(String.format("%s: %s", I18n.format("email.config.expiration"), TextFormatting.RED + I18n.format("email.config.expiration.ed")));
+						}else {
+							tip.add(I18n.format("info.email.remain_expiration_time", EmailUtils.formatTimestamp(time - System.currentTimeMillis())));
+						}
+					}
+
+					visibleEmail = this.showEmails[i];
+					this.renderWrappedToolTip(matrix, tip.stream().map(StringTextComponent::new).collect(Collectors.toList()), mouseX - this.guiLeft, mouseY - this.guiTop, this.font);
+					break;
+				}
+			}
+		}
+
+		// TODO 展示邮件列表
+		for (int i = 0; i < this.showEmails.length; i++) {
+			if(this.container.getInbox().hasEmail(this.showEmails[i])) {
+				Email email = this.container.getInbox().getEmail(this.showEmails[i]);
+				MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.CANDIDATE, TickEvent.Phase.START, this.container.getInbox(), this.showEmails[i], mouseX, mouseY));
+
+				StringBuilder identifier = new StringBuilder();
+				if(email.getExpirationTime()!=null && email.getExpirationTime().millis>1) {
+					identifier.append(email.isExpiration() ? TextFormatting.RED : TextFormatting.GREEN);
+					identifier.append('#');
+				}
+				if(email.hasItems()) {
+					identifier.append(email.isReceived() ? TextFormatting.GREEN : TextFormatting.RED);
+					identifier.append('$');
+				}
+				identifier.append(email.isRead() ? TextFormatting.GREEN : TextFormatting.RED);
+				identifier.append('*');
+
+				this.drawAlignRightString(matrix, identifier.toString(), x+Candidate_Email_X+61, y+Candidate_Email_Y + (19 * i) + 1, Color.BLACK.getRGB(), false);
+
+				this.drawCenteredStringWithShadow(matrix, String.valueOf(this.showEmails[i]), x+Candidate_Email_X-8, y+Candidate_Email_Y + 5 + (19 * i), (this.showEmails[i] == visibleEmail ? Color.CYAN : Color.WHITE).getRGB());
+
+				String sender = email.getSender().format();
+				if(super.font.getStringWidth(sender) > EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender.get()) {
+					sender = super.font.trimStringToWidth(sender, EmailConfigs.Main.Number_Of_Words.Candidate_Email.Sender.get()) + "...";
+				}
+				this.drawStringNoShadow(matrix, sender, x+Candidate_Email_X+1, y+Candidate_Email_Y + (19 * i)+1, Color.WHITE.getRGB());
+				this.drawStringNoShadow(matrix, email.getCreateTimeAsString().substring(5, email.getCreateTimeAsString().length()-3), x+Candidate_Email_X+1, y+Candidate_Email_Y + 10 + (19 * i), Color.BLACK.getRGB());
+
+				MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.CANDIDATE, TickEvent.Phase.END, this.container.getInbox(), this.showEmails[i], mouseX, mouseY));
+			}
+		}
 	}
 
 	private EmailSenderSndSound currentSound;
@@ -678,24 +707,32 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 
 	@Override
 	public boolean mouseClicked(double x, double y, int btn) {
-		if(this.container.isRefresh()) return false;
 		this.lastClickX = x;
 		this.lastClickY = y;
+		super.mouseClicked(x, y, btn);
+
+		if(this.container.isRefresh()) return false;
 		if(this.getSlotUnderMouse() != null && this.getSlotUnderMouse().getHasStack()) {
 			return false;
 		}
-
-		super.mouseClicked(x, y, btn);
-
-		if(isInRange(x, y, this.guiLeft + 5, this.guiTop + 5, 7, 7)
-		&& this.refreshCoolingTicks <= 0) {
-			this.refresh();
-			this.getMinecraft().getSoundHandler().play(SimpleSound.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+		if(this.popupMenu.mouseClicked(x, y, btn)){
+			return true;
+		}
+		if(this.filterMenu.mouseClicked(x, y, btn)){
 			return true;
 		}
 
+		// TODO 刷新邮箱
+//		if(isInRange(x, y, this.guiLeft + 5, this.guiTop + 5, 7, 7)
+//		&& this.refreshCoolingTicks <= 0) {
+//			this.refresh();
+//			this.getMinecraft().getSoundHandler().play(SimpleSound.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+//			return true;
+//		}
 		if(this.container.getInbox()==null || this.container.getInbox().emailCount()<=0 || this.showEmails == null) return false;
 
+		boolean showPopupMenu = false;
+		// TODO 展示邮件或者子菜单
 		for(int index = 0; index < 5; index++) {
 			if(isInRange(x, y, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + (19 * index), 60, 17)) {
 				if(index >= this.showEmails.length) break;
@@ -708,6 +745,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 					this.popupMenuCurrentEmail = this.showEmails[index];
 					this.popupMenu.setCreatePoint(x, y);
 					this.popupMenu.setVisible(true);
+					showPopupMenu = true;
 					this.getMinecraft().getSoundHandler().play(SimpleSound.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 				}
 				break;
@@ -730,16 +768,11 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			}
 		}
 
-		// TODO 展示子菜单
-		boolean showPopupMenu = true;
-		for(int index = 0; btn == 1 && index < 5; index++) {
-			if((isInRange(this.lastClickX, this.lastClickY, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + (17 * index) - 1, 54, 15))) {
-				if(index >= this.showEmails.length) break;
-				showPopupMenu = false;
-			}
-		}
-		if(showPopupMenu) {
+		if(!showPopupMenu) {
 			this.popupMenu.setVisible(false);
+		}
+		if(!this.filterButton.isMouseOver(x,y) && this.filterMenu.isVisible()){
+			this.filterMenu.setVisible(false);
 		}
 		return false;
 	}
@@ -831,9 +864,9 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		}
 	}
 
-	private int refreshCoolingTicks = 0;
+	private static int refreshCoolingTicks = 0;
 	private void refresh() {
-		if(this.refreshCoolingTicks<=0) {
+		if(refreshCoolingTicks<=0) {
 			EmailMain.net.sendMessageToServer(new MsgRefreshInbox());
 			this.container.setRefresh(true);
 			this.currentMsg = null;
@@ -843,16 +876,15 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			this.emailPage = -1;
 			this.showEmails = null;
 			this.popupMenuCurrentEmail = -1;
-			this.refreshCoolingTicks = 5 * 20;
+			refreshCoolingTicks = 5 * 20;
 			new Thread(()->{
-				while(!this.isClose && this.refreshCoolingTicks > 0) {
+				while(!this.isClose && refreshCoolingTicks > 0) {
 					try {
 						Thread.sleep(50);
-						this.refreshCoolingTicks--;
-					}catch(InterruptedException e) {
-						e.printStackTrace();
-					}
+						refreshCoolingTicks--;
+					}catch(InterruptedException ignored) {}
 				}
+				this.refreshBtn.visible = true;
 			}).start();
 		}
 	}
@@ -899,7 +931,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			float width = super.font.getStringWidth(c);
 
 			if(i-2 > 0) {
-				boolean isColor = false;
+				boolean isColor;
 				String s = text.charAt(i-3)+""+text.charAt(i-2);
 				for(TextFormatting format : TextFormatting.values()) {
 					isColor = format.toString().equals(s);
@@ -912,7 +944,11 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			}
 
 			x -= width;
-			super.font.drawStringWithShadow(matrix, c, x, y, color);
+			if(drawShadow){
+				this.drawStringWithShadow(matrix, c, x, y, color);
+			}else {
+				this.drawStringNoShadow(matrix, c, x, y, color);
+			}
 		}
 	}
 

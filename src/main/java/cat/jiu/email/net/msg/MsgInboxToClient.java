@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 
 import cat.jiu.core.api.BaseMessage;
+import cat.jiu.email.ui.gui.GuiEmailMain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -132,6 +133,9 @@ public class MsgInboxToClient extends BaseMessage {
 					EmailMain.setAccept(this.inbox.getUnReceived());
 					((ContainerEmailMain) con).setInbox(this.inbox);
 					((ContainerEmailMain) con).setRefresh(false);
+					if(Minecraft.getInstance().currentScreen instanceof GuiEmailMain){
+						((GuiEmailMain)Minecraft.getInstance().currentScreen).goEmail(0);
+					}
 				}
 			}
 		}
@@ -182,7 +186,7 @@ public class MsgInboxToClient extends BaseMessage {
 			if(EmailMain.proxy.isClient()) {
 				Container con = Minecraft.getInstance().player.openContainer;
 				
-				if(con instanceof ContainerEmailMain) {
+				if(con instanceof ContainerEmailMain && ((ContainerEmailMain) con).getInbox() != null) {
 					this.customValue.forEach((k,v) -> ((ContainerEmailMain) con).getInbox().addCustom(k, v));
 					this.senderBlacklist.forEach(e -> ((ContainerEmailMain) con).getInbox().addSenderBlacklist(e));
 				}

@@ -2,8 +2,7 @@ package cat.jiu.email.ui.container;
 
 import java.util.List;
 
-import cat.jiu.email.EmailMain;
-import cat.jiu.email.init.ContainerTypes;
+import cat.jiu.email.ui.GuiHandler;
 import com.google.common.collect.Lists;
 
 import net.minecraft.entity.player.PlayerEntity;
@@ -14,7 +13,7 @@ public class ContainerInboxBlacklist extends Container {
 	private List<String> list;
 
     public ContainerInboxBlacklist(int windowId, PlayerInventory inv, List<String> list) {
-		super(ContainerTypes.container_email_blacklist.get(), windowId);
+		super(GuiHandler.blacklist_TYPE.get(), windowId);
 		this.list = list;
     }
 
