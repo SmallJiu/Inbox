@@ -104,14 +104,14 @@ public class GuiConfig extends Screen {
 
         boolean changed = false;
         for (ConfigEntry<?> entry : this.entries) {
-            if(!entry.isChanged()){
+            if(entry.isChanged()){
                 changed = true;
                 break;
             }
         }
         boolean isDefault = false;
         for (ConfigEntry<?> entry : this.entries) {
-            if(!entry.isDefault()){
+            if(entry.isDefault()){
                 isDefault = true;
                 break;
             }

@@ -55,7 +55,7 @@ public abstract class ConfigEntry<T> {
         this.defaultValue = defaultValue;
     }
 
-    protected void addUndoAndReset(){
+    protected final void addUndoAndReset(){
         if(this.getConfigWidget()!=null){
             this.undo = this.addWidget(new Button(this.getConfigWidget().x+this.getConfigWidget().getWidth()+2, 0, 20, 20, ITextComponent.getTextComponentOrEmpty("U"), btn->this.undo()));
             this.reset = this.addWidget(new Button(this.undo.x+this.undo.getWidth()+2, 0, 20, 20, ITextComponent.getTextComponentOrEmpty("R"), btn->this.reset()));
@@ -73,13 +73,13 @@ public abstract class ConfigEntry<T> {
             widget.render(matrix, mouseX, mouseY, 0);
         });
         if(this.undo!=null){
-            this.undo.active = !this.isChanged();
+            this.undo.active = this.isChanged();
             if(this.reset.active && this.undo.isMouseOver(mouseX, mouseY)){
                 gui.renderTooltip(matrix, new TranslationTextComponent("info.config.undo"), mouseX, mouseY);
             }
         }
         if(this.reset!=null){
-            this.reset.active = !this.isDefault();
+            this.reset.active = this.isDefault();
             if(this.reset.active && this.reset.isMouseOver(mouseX, mouseY)){
                 gui.renderTooltip(matrix, new TranslationTextComponent("info.config.reset"), mouseX, mouseY);
             }
@@ -98,10 +98,10 @@ public abstract class ConfigEntry<T> {
         this.setCacheValue(this.defaultValue);
     }
     public boolean isChanged() {
-        return Objects.equals(this.getCacheValue(), this.value.get());
+        return !Objects.equals(this.getCacheValue(), this.value.get());
     }
     public boolean isDefault() {
-        return Objects.equals(this.getCacheValue(), this.defaultValue);
+        return !Objects.equals(this.getCacheValue(), this.defaultValue);
     }
     public void save() {
         this.value.set(this.getCacheValue());

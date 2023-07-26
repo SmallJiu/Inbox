@@ -17,26 +17,22 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import java.util.List;
 
 public class SubEntry extends ConfigEntry<Object> {
-    private final Config config;
     private final Button button;
     private final List<ConfigEntry<?>> entries;
     public SubEntry(String name, ForgeConfigSpec spec, Config config, String path, GuiConfig parent) {
         super(null, null);
-        this.config = config;
-
         GuiConfig gui = new GuiConfig(parent.configFile, parent, spec, path);
         this.entries = gui.create(path, spec, config.valueMap());
         gui.setConfigEntries(this.entries);
-        this.button = new Button(0, 0, 300, 20, ITextComponent.getTextComponentOrEmpty(name), btn->
-            parent.getMinecraft().displayGuiScreen(gui)
-        );
+
+        this.button = this.addWidget(new Button(0, 0, 300, 20, ITextComponent.getTextComponentOrEmpty(name), btn-> parent.getMinecraft().displayGuiScreen(gui)));
         this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2;
+        this.addUndoAndReset();
     }
 
     @Override
     public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
-        this.button.y = y;
-        this.button.render(matrix, mouseX, mouseY, 0);
+        this.renderWidget(gui, matrix, x, y, mouseX, mouseY);
     }
 
     @Override
@@ -60,17 +56,12 @@ public class SubEntry extends ConfigEntry<Object> {
 
     @Override
     public void reset() {
-        this.entries.forEach(ConfigEntry::undo);
+        this.entries.forEach(ConfigEntry::reset);
     }
 
     @Override
     public int getWeight() {
         return 0;
-    }
-
-    @Override
-    public boolean mouseClick(double mouseX, double mouseY, int button) {
-        return this.button.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -105,6 +96,6 @@ public class SubEntry extends ConfigEntry<Object> {
 
     @Override
     protected Widget getConfigWidget() {
-        return null;
+        return this.button;
     }
 }

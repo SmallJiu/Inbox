@@ -6,9 +6,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraftforge.common.ForgeConfigSpec;
 
-import java.lang.reflect.Field;
-import java.util.function.Supplier;
-
 public class EnumEntry<T extends Enum<T>> extends ConfigEntry<T> {
     private T cache;
     public EnumEntry(ForgeConfigSpec.EnumValue<T> value, ForgeConfigSpec.ValueSpec spec) {
