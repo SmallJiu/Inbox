@@ -16,28 +16,31 @@ import net.minecraftforge.client.gui.ScrollPanel;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.awt.*;
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.List;
 
 public class GuiConfig extends Screen {
     public final String configFile;
     protected final Screen parent;
-    protected final List<ConfigEntry<?>> entries;
+    protected List<ConfigEntry<?>> entries;
     protected final ForgeConfigSpec spec;
     protected ConfigPanel panel;
     protected final String path;
     protected Button done, undo, reset;
-    public GuiConfig(String file, Screen parent, ForgeConfigSpec configSpec) {
-        this(file, parent, configSpec, configSpec.getValues().valueMap(), null);
+    public GuiConfig(String file, Screen parent, ForgeConfigSpec spec) {
+        this(file, parent, spec, null);
+        this.setConfigEntries(this.create(null, spec, spec.getValues().valueMap()));
     }
-    public GuiConfig(String file, Screen parent, ForgeConfigSpec spec, Map<String, Object> configs, String path) {
+    public GuiConfig(String file, Screen parent, ForgeConfigSpec spec, String path) {
         super(ITextComponent.getTextComponentOrEmpty(file));
         this.spec = spec;
         this.configFile = file;
         this.parent = parent;
         this.path = path;
-        this.entries = create(this.path, spec, configs);
+    }
+
+    public void setConfigEntries(List<ConfigEntry<?>> entries) {
+        this.entries = entries;
     }
 
     public ArrayList<ConfigEntry<?>> create(String path, ForgeConfigSpec spec, Map<String, Object> configs){

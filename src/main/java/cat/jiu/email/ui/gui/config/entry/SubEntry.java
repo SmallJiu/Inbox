@@ -24,9 +24,11 @@ public class SubEntry extends ConfigEntry<Object> {
         super(null, null);
         this.config = config;
 
-        this.entries = parent.create(path, spec, config.valueMap());
+        GuiConfig gui = new GuiConfig(parent.configFile, parent, spec, path);
+        this.entries = gui.create(path, spec, config.valueMap());
+        gui.setConfigEntries(this.entries);
         this.button = new Button(0, 0, 300, 20, ITextComponent.getTextComponentOrEmpty(name), btn->
-            parent.getMinecraft().displayGuiScreen(new GuiConfig(parent.configFile, parent, spec, config.valueMap(), path))
+            parent.getMinecraft().displayGuiScreen(gui)
         );
         this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2;
     }
