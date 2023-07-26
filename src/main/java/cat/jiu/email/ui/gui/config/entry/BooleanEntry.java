@@ -1,7 +1,6 @@
 package cat.jiu.email.ui.gui.config.entry;
 
 import cat.jiu.email.ui.gui.config.ConfigEntry;
-import cat.jiu.email.util.EmailUtils;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
@@ -41,7 +40,7 @@ public class BooleanEntry extends ConfigEntry<Boolean> {
     @Override
     public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
         this.renderWidget(gui, matrix, x, y, mouseX, mouseY);
-        EmailUtils.drawAlignRightString(matrix, this.configName, this.button.x-5, this.button.y+5, Color.WHITE.getRGB(), true);
+        this.drawAlignRightString(matrix, this.configName, this.button.x-5, this.button.y+5, Color.WHITE.getRGB(), true, gui.getMinecraft().fontRenderer);
     }
 
     @Override
@@ -49,11 +48,6 @@ public class BooleanEntry extends ConfigEntry<Boolean> {
         try {
             this.drawCommentWithRange(gui, matrix, mouseX, mouseY, this.button.x-5-gui.getMinecraft().fontRenderer.getStringWidth(this.configName), this.button.y+5, gui.getMinecraft().fontRenderer.getStringWidth(this.configName), Minecraft.getInstance().fontRenderer.FONT_HEIGHT);
         } catch (Exception ignored) {}
-    }
-
-    @Override
-    public boolean mouseClick(double mouseX, double mouseY, int button) {
-        return super.mouseClick(mouseX, mouseY, button) || this.button.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

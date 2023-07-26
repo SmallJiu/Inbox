@@ -5,13 +5,13 @@ import cat.jiu.email.util.EmailUtils;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.matrix.MatrixStack;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.util.IReorderingProcessor;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -55,7 +55,38 @@ public abstract class ConfigEntry<T> {
         this.defaultValue = defaultValue;
     }
 
-    protected void addUndoAndReset(){
+    public void drawAlignRightString(MatrixStack matrix, String text, int x, int y, int color, boolean drawShadow, FontRenderer fontRenderer) {
+        for(int i = text.length(); i > 0; i--) {
+            if('§' == text.charAt(i-1)) {
+                continue;
+            }
+            if(i-2>=0 && '§' == text.charAt(i-2)) {
+                continue;
+            }
+            String c = String.valueOf(text.charAt(i-1));
+            float width = fontRenderer.getStringWidth(c);
+            if(i-2 > 0) {
+                boolean isColor;
+                String s = text.charAt(i-3)+""+text.charAt(i-2);
+                for(TextFormatting format : TextFormatting.values()) {
+                    isColor = format.toString().equals(s);
+                    if(isColor) {
+                        c = s + c;
+                        width = fontRenderer.getStringWidth(c);
+                        break;
+                    }
+                }
+            }
+            x -= width;
+            if(drawShadow){
+                fontRenderer.drawStringWithShadow(matrix, c, x, y, color);
+            }else {
+                fontRenderer.drawString(matrix, c, x, y, color);
+            }
+        }
+    }
+
+    protected final void addUndoAndReset(){
         if(this.getConfigWidget()!=null){
             this.undo = this.addWidget(new Button(this.getConfigWidget().x+this.getConfigWidget().getWidth()+2, 0, 20, 20, ITextComponent.getTextComponentOrEmpty("U"), btn->this.undo()));
             this.reset = this.addWidget(new Button(this.undo.x+this.undo.getWidth()+2, 0, 20, 20, ITextComponent.getTextComponentOrEmpty("R"), btn->this.reset()));
@@ -73,13 +104,13 @@ public abstract class ConfigEntry<T> {
             widget.render(matrix, mouseX, mouseY, 0);
         });
         if(this.undo!=null){
-            this.undo.active = !this.isChanged();
+            this.undo.active = this.isChanged();
             if(this.reset.active && this.undo.isMouseOver(mouseX, mouseY)){
                 gui.renderTooltip(matrix, new TranslationTextComponent("info.config.undo"), mouseX, mouseY);
             }
         }
         if(this.reset!=null){
-            this.reset.active = !this.isDefault();
+            this.reset.active = this.isDefault();
             if(this.reset.active && this.reset.isMouseOver(mouseX, mouseY)){
                 gui.renderTooltip(matrix, new TranslationTextComponent("info.config.reset"), mouseX, mouseY);
             }
@@ -98,10 +129,10 @@ public abstract class ConfigEntry<T> {
         this.setCacheValue(this.defaultValue);
     }
     public boolean isChanged() {
-        return Objects.equals(this.getCacheValue(), this.value.get());
+        return !Objects.equals(this.getCacheValue(), this.value.get());
     }
     public boolean isDefault() {
-        return Objects.equals(this.getCacheValue(), this.defaultValue);
+        return !Objects.equals(this.getCacheValue(), this.defaultValue);
     }
     public void save() {
         this.value.set(this.getCacheValue());
