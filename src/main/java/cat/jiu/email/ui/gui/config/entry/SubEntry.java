@@ -7,42 +7,48 @@ import com.electronwill.nightconfig.core.Config;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 
-import net.minecraft.client.MainWindow;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.util.List;
 
-public class SubEntry extends ConfigEntry {
+public class SubEntry extends ConfigEntry<Object> {
     private final Config config;
     private final Button button;
-    private final List<ConfigEntry> entries;
+    private final List<ConfigEntry<?>> entries;
     public SubEntry(String name, ForgeConfigSpec spec, Config config, String path, GuiConfig parent) {
+        super(null, null);
         this.config = config;
+
         this.entries = parent.create(path, spec, config.valueMap());
         this.button = new Button(0, 0, 300, 20, ITextComponent.getTextComponentOrEmpty(name), btn->
             parent.getMinecraft().displayGuiScreen(new GuiConfig(parent.configFile, parent, spec, config.valueMap(), path))
         );
+        this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2;
     }
 
     @Override
-    public void render(MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
-        this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2;
+    public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
         this.button.y = y;
         this.button.render(matrix, mouseX, mouseY, 0);
     }
 
     @Override
-    public void save() {
-        this.entries.forEach(ConfigEntry::save);
+    public void drawHoverText(Screen gui, MatrixStack matrix, int mouseX, int mouseY) {
+        if(this.button.isHovered()){
+            try {
+                this.drawComment(gui, matrix, mouseX, mouseY);
+            } catch (Exception ignored) {}
+        }
     }
 
     @Override
-    public ForgeConfigSpec.ConfigValue<?> getConfigValue() {
-        return null;
+    public void save() {
+        this.entries.forEach(ConfigEntry::save);
     }
 
     @Override
@@ -67,7 +73,7 @@ public class SubEntry extends ConfigEntry {
 
     @Override
     public boolean isChanged() {
-        for (ConfigEntry entry : this.entries) {
+        for (ConfigEntry<?> entry : this.entries) {
             if (entry.isChanged()) {
                 return true;
             }
@@ -77,11 +83,26 @@ public class SubEntry extends ConfigEntry {
 
     @Override
     public boolean isDefault() {
-        for (ConfigEntry entry : this.entries) {
+        for (ConfigEntry<?> entry : this.entries) {
             if (entry.isDefault()) {
                 return true;
             }
         }
         return false;
+    }
+
+    @Override
+    protected Object getCacheValue() {
+        return null;
+    }
+
+    @Override
+    protected void setCacheValue(Object newValue) {
+
+    }
+
+    @Override
+    protected Widget getConfigWidget() {
+        return null;
     }
 }

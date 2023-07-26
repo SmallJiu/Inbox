@@ -34,10 +34,12 @@ import cat.jiu.email.element.Email;
 import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Inbox;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -607,4 +609,68 @@ public class EmailUtils {
 	public static boolean isInfiniteSize() {
 		return EmailConfigs.isInfiniteSize();
 	}
+
+    public static List<String> splitString(String text, int textMaxLength) {
+        FontRenderer fr = Minecraft.getInstance().fontRenderer;
+        List<String> texts = Lists.newArrayList();
+        if(fr.getStringWidth(text) >= textMaxLength) {
+            StringBuilder s = new StringBuilder();
+            for(int i = 0; i < text.length(); i++) {
+                String str = s.toString();
+                if(fr.getStringWidth(str) >= textMaxLength) {
+                    texts.add(str);
+                    s.setLength(0);
+                }
+                s.append(text.charAt(i));
+            }
+            if(s.length() > 0) {
+                texts.add(s.toString());
+            }
+        }else {
+            texts.add(text);
+        }
+        return texts;
+    }
+
+    public static boolean isInRange(double mouseX, double mouseY, int x, int y, int width, int height) {
+        int maxX = x + width;
+        int maxY = y + height;
+        return (mouseX >= x && mouseY >= y) && (mouseX <= maxX && mouseY <= maxY);
+    }
+
+    public static void drawAlignRightString(MatrixStack matrix, String text, int x, int y, int color, boolean drawShadow) {
+        FontRenderer fontRenderer = Minecraft.getInstance().fontRenderer;
+        for(int i = text.length(); i > 0; i--) {
+            if('§' == text.charAt(i-1)) {
+                continue;
+            }
+            if(i-2>=0 && '§' == text.charAt(i-2)) {
+                continue;
+            }
+
+            String c = String.valueOf(text.charAt(i-1));
+
+            float width = fontRenderer.getStringWidth(c);
+
+            if(i-2 > 0) {
+                boolean isColor;
+                String s = text.charAt(i-3)+""+text.charAt(i-2);
+                for(TextFormatting format : TextFormatting.values()) {
+                    isColor = format.toString().equals(s);
+                    if(isColor) {
+                        c = s + c;
+                        width = fontRenderer.getStringWidth(c);
+                        break;
+                    }
+                }
+            }
+
+            x -= width;
+            if(drawShadow){
+                fontRenderer.drawStringWithShadow(matrix, c, x, y, color);
+            }else {
+                fontRenderer.drawString(matrix, c, x, y, color);
+            }
+        }
+    }
 }

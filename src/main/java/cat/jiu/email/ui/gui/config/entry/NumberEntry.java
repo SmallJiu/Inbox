@@ -1,88 +1,78 @@
 package cat.jiu.email.ui.gui.config.entry;
 
+import cat.jiu.email.ui.gui.component.GuiFilterTextField;
 import cat.jiu.email.ui.gui.config.ConfigEntry;
+import cat.jiu.email.util.EmailUtils;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.awt.*;
-import java.util.Objects;
 
-public class NumberEntry extends ConfigEntry {
-    private final ForgeConfigSpec.ConfigValue<Number> value;
-    private final ForgeConfigSpec.ValueSpec spec;
-    private final TextFieldWidget field;
-    private Number cache;
-    public NumberEntry(ForgeConfigSpec.ConfigValue<Number> value, ForgeConfigSpec.ValueSpec spec) {
-        this.value = value;
-        this.spec = spec;
-        this.cache = value.get();
-        this.field = new TextFieldWidget(Minecraft.getInstance().fontRenderer, 0,0,150, 18, ITextComponent.getTextComponentOrEmpty(String.valueOf(this.cache)));
-    }
-
-    @Override
-    public void render(MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
+public abstract class NumberEntry<T extends Number> extends ConfigEntry<T> {
+    protected final GuiFilterTextField field;
+    protected final boolean isDecimal;
+    protected T cache;
+    protected NumberEntry(ForgeConfigSpec.ConfigValue<T> value, ForgeConfigSpec.ValueSpec spec, boolean isDecimal) {
+        super(value, spec);
+        this.isDecimal = isDecimal;
+        this.field = this.addWidget(new GuiFilterTextField(String.valueOf(cache), Minecraft.getInstance().fontRenderer, 0,0,150, 18).setTypedCharFilter(typedChar ->
+                (isDecimal ? "0123456789." : "0123456789").contains(String.valueOf(typedChar))));
         this.field.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.field.getWidth()/2 + this.field.getWidth() - this.field.getWidth()/2 - 1;
-        this.field.y = y;
-        this.field.render(matrix, mouseX, mouseY, 0);
-        String s;
-        if(this.spec.getTranslationKey()!=null){
-            s = I18n.format(this.spec.getTranslationKey());
-            if(Objects.equals(s, this.spec.getTranslationKey())){
-                s = this.value.getPath().get(this.value.getPath().size()-1);
-            }
-        }else {
-            s = this.value.getPath().get(this.value.getPath().size()-1);
-        }
-        this.drawAlignRightString(matrix, s, this.field.x-5, this.field.y+5, Color.WHITE.getRGB(), true);
+        this.addUndoAndReset();
     }
 
     @Override
-    public ForgeConfigSpec.ConfigValue<? extends Number> getConfigValue() {
-        return this.value;
+    protected Widget getConfigWidget() {
+        return this.field;
     }
+
+    @Override
+    public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
+        this.renderWidget(gui, matrix, x, y, mouseX, mouseY);
+        EmailUtils.drawAlignRightString(matrix, this.configName, this.field.x - 5, this.field.y + 5, Color.WHITE.getRGB(), true);
+    }
+
+    @Override
+    public void drawHoverText(Screen gui, MatrixStack matrix, int mouseX, int mouseY) {
+        try {
+            this.drawCommentWithRange(gui, matrix, mouseX, mouseY,
+                    this.field.x-5-gui.getMinecraft().fontRenderer.getStringWidth(this.configName), this.field.y+5,
+                    gui.getMinecraft().fontRenderer.getStringWidth(this.configName), gui.getMinecraft().fontRenderer.FONT_HEIGHT);
+        } catch (Exception e) {e.printStackTrace();}
+    }
+
+    protected abstract T parse(String value);
 
     @Override
     public boolean mouseClick(double mouseX, double mouseY, int button) {
-        return this.field.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClick(mouseX, mouseY, button) || this.field.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
-        return this.field.charTyped(codePoint, modifiers);
+        boolean flag = this.field.charTyped(codePoint, modifiers);
+        this.setCacheValue(this.parse(this.field.getText()));
+        return flag;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return this.field.keyPressed(keyCode, scanCode, modifiers);
+        boolean flag = this.field.keyPressed(keyCode, scanCode, modifiers);
+        this.setCacheValue(this.parse(this.field.getText()));
+        return flag;
     }
 
     @Override
-    public void undo() {
-        this.field.setText(String.valueOf(value.get()));
+    protected T getCacheValue() {
+        return this.cache;
     }
 
     @Override
-    public void reset() {
-        this.field.setText(String.valueOf(value.get()));
-    }
-
-    @Override
-    public void save() {
-        this.value.set(this.cache);
-    }
-
-    @Override
-    public boolean isChanged() {
-        return !Objects.equals(this.cache, this.value.get());
-    }
-
-
-    @Override
-    public boolean isDefault() {
-        return this.cache != this.spec.getDefault();
+    protected void setCacheValue(T newValue) {
+        this.cache = newValue;
+        if(this.field!=null) this.field.setText(String.valueOf(newValue));
     }
 }

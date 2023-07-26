@@ -36,7 +36,7 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 
 	protected int[] nameIndex;
 	
-	public GuiBlacklist(ContainerInboxBlacklist container, PlayerInventory inventory, ITextComponent t) {
+	public GuiBlacklist(ContainerInboxBlacklist container, PlayerInventory inventory) {
 		super(container, inventory, new TranslationTextComponent("info.email.black.info"));
 		this.xSize = 160;
 		this.ySize = 176;
@@ -123,14 +123,14 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 			int y = oriY;
 			for(int i = 0; i < this.currentShowName.length; i++) {
 				boolean remove = false;
-				if(GuiEmailMain.isInRange(mouseX, mouseY, this.guiLeft + x + 138, this.guiTop + y, 9, 9)) {
+				if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft + x + 138, this.guiTop + y, 9, 9)) {
 					this.hLine(matrix, x + 138, x + 138 + 9, y-1, Color.RED.getRGB());
 					this.hLine(matrix, x + 138, x + 138 + 9, y-1 + 9, Color.RED.getRGB());
 					this.vLine(matrix, x + 137 + 1, y-1, y+9, Color.RED.getRGB());
 					this.vLine(matrix, x + 137 + 1 + 9, y-1, y+9, Color.RED.getRGB());
 					remove = true;
 				}
-				if(GuiEmailMain.isInRange(mouseX, mouseY, this.guiLeft + x, this.guiTop + y - 2, 150, 12)) {
+				if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft + x, this.guiTop + y - 2, 150, 12)) {
 					this.renderTooltip(matrix, new StringTextComponent(remove ? I18n.format("info.email.black.remove") : this.container.getBlacklist().get(this.currentShowName[i])), mouseX - this.guiLeft, mouseY - this.guiTop);
 					break;
 				}
@@ -188,7 +188,7 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 
 		int y = 15;
 		for (int j : this.currentShowName) {
-			if (GuiEmailMain.isInRange(mouseX, mouseY, this.guiLeft + 146, this.guiTop +y, 10, 10)) {
+			if (EmailUtils.isInRange(mouseX, mouseY, this.guiLeft + 146, this.guiTop +y, 10, 10)) {
 				this.removeBlacklist(j);
 				return true;
 			}

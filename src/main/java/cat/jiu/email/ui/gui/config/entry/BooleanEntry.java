@@ -1,83 +1,73 @@
 package cat.jiu.email.ui.gui.config.entry;
 
 import cat.jiu.email.ui.gui.config.ConfigEntry;
+import cat.jiu.email.util.EmailUtils;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.awt.*;
-import java.util.Objects;
-import java.util.StringJoiner;
 
-public class BooleanEntry extends ConfigEntry {
-    private final ForgeConfigSpec.BooleanValue value;
-    private final ForgeConfigSpec.ValueSpec spec;
+public class BooleanEntry extends ConfigEntry<Boolean> {
+    public static final ITextComponent trueText = ITextComponent.getTextComponentOrEmpty(TextFormatting.GREEN + "true"),
+                                       falseText = ITextComponent.getTextComponentOrEmpty(TextFormatting.RED + "false");
     private final Button button;
     private boolean cache;
     public BooleanEntry(ForgeConfigSpec.BooleanValue value, ForgeConfigSpec.ValueSpec spec) {
-        this.value = value;
-        this.spec = spec;
-        this.cache = value.get();
-        ITextComponent trueText = ITextComponent.getTextComponentOrEmpty(TextFormatting.GREEN + "true");
-        ITextComponent falseText = ITextComponent.getTextComponentOrEmpty(TextFormatting.RED + "false");
-        this.button = new Button(0,0,154, 20, cache ? trueText : falseText, btn->
-            this.cache = !this.cache
+        super(value, spec);
+        this.button = this.addWidget(new Button(0,0,154, 20, cache ? trueText : falseText, btn->
+            this.setCacheValue(!this.getCacheValue())
         ){
             @Override
             public ITextComponent getMessage() {
                 return cache ? trueText : falseText;
             }
-        };
+        });
+
+        this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2 + this.button.getWidth() - this.button.getWidth()/2 - 2;
+        this.addUndoAndReset();
     }
 
     @Override
-    public void render(MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
-        this.button.x = Minecraft.getInstance().getMainWindow().getScaledWidth()/2 - this.button.getWidth()/2 + this.button.getWidth() - this.button.getWidth()/2 - 2;
-        this.button.y = y;
-        this.button.render(matrix, mouseX, mouseY, 0);
-        String s = I18n.format(this.spec.getTranslationKey());
-        if(Objects.equals(s, this.spec.getTranslationKey())){
-            s = this.value.getPath().get(this.value.getPath().size()-1);
-        }
-        this.drawAlignRightString(matrix, s, this.button.x-5, this.button.y+5, Color.WHITE.getRGB(), true);
+    protected Widget getConfigWidget() {
+        return this.button;
+    }
+
+    @Override
+    public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
+        this.renderWidget(gui, matrix, x, y, mouseX, mouseY);
+        EmailUtils.drawAlignRightString(matrix, this.configName, this.button.x-5, this.button.y+5, Color.WHITE.getRGB(), true);
+    }
+
+    @Override
+    public void drawHoverText(Screen gui, MatrixStack matrix, int mouseX, int mouseY) {
+        try {
+            this.drawCommentWithRange(gui, matrix, mouseX, mouseY, this.button.x-5-gui.getMinecraft().fontRenderer.getStringWidth(this.configName), this.button.y+5, gui.getMinecraft().fontRenderer.getStringWidth(this.configName), Minecraft.getInstance().fontRenderer.FONT_HEIGHT);
+        } catch (Exception ignored) {}
     }
 
     @Override
     public boolean mouseClick(double mouseX, double mouseY, int button) {
-        return this.button.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClick(mouseX, mouseY, button) || this.button.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    public ForgeConfigSpec.BooleanValue getConfigValue() {
-        return this.value;
+    protected Boolean getCacheValue() {
+        return this.cache;
     }
 
     @Override
-    public void undo() {
-        this.cache = this.value.get();
-    }
-
-    @Override
-    public void reset() {
-        this.cache = this.value.get();
+    protected void setCacheValue(Boolean newValue) {
+        this.cache = newValue;
     }
 
     @Override
     public void save() {
         this.value.set(this.cache);
-    }
-
-    @Override
-    public boolean isChanged() {
-        return this.cache != this.value.get();
-    }
-
-    @Override
-    public boolean isDefault() {
-        return this.cache != (Boolean)this.spec.getDefault();
     }
 }

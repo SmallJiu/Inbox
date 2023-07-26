@@ -229,49 +229,4 @@ public class GuiTime extends Screen {
 	public Minecraft getMinecraft() {
 		return this.parent.getMinecraft();
 	}
-
-	public static class GuiFilterTextField extends TextFieldWidget {
-		private Predicate<Character> typedCharFilter;
-		private Predicate<Integer> keyCodeFilter;
-		private final String defaultText;
-		public GuiFilterTextField(String defaultText, FontRenderer fontrenderer, int x, int y, int par5Width, int par6Height) {
-			super(fontrenderer, x, y, par5Width, par6Height, ITextComponent.getTextComponentOrEmpty(null));
-			this.setText(defaultText);
-			this.defaultText = defaultText;
-		}
-		
-		public GuiFilterTextField setTypedCharFilter(Predicate<Character> filter) {
-			this.typedCharFilter = filter;
-			return this;
-		}
-		public GuiFilterTextField setKeyCodeFilter(Predicate<Integer> keyCodeFilter) {
-			this.keyCodeFilter = keyCodeFilter;
-			return this;
-		}
-
-		@Override
-		public boolean charTyped(char typedChar, int keyCode) {
-			boolean typedCharTest = this.typedCharFilter != null && this.typedCharFilter.test(typedChar);
-			
-			if(typedCharTest) {
-				if(this.defaultText.equals(this.getText())) {
-					this.setText("");
-				}
-				boolean flag = super.charTyped(typedChar, keyCode);
-				
-				if(this.getText().isEmpty()) {
-					this.setText(this.defaultText);
-				}
-				return flag;
-			}else {
-				return false;
-			}
-		}
-
-		@Override
-		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-			boolean keyCodeTest = this.keyCodeFilter != null && this.keyCodeFilter.test(keyCode);
-			return keyCodeTest || super.keyPressed(keyCode, scanCode, modifiers);
-		}
-	}
 }

@@ -33,7 +33,7 @@ public final class EmailConfigs {
 					.defineInRange("Selected_Text_Spacing", 3, 0, Integer.MAX_VALUE);
 			this.Enable_Vanilla_Wrap_Text = builder
 					.translation("email.config.main.vanilla_wrap")
-					.comment("use vanilla to wrap text if true, else will use Single char wrap.")
+					.comment("use vanilla to wrap text if true, ", "else will use Single char wrap.")
 					.define("Enable_Vanilla_Wrap_Text", true);
 			this.Size = new Size(builder);
 			this.Position = new Position(builder);

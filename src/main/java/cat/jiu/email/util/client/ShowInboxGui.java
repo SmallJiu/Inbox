@@ -2,7 +2,7 @@ package cat.jiu.email.util.client;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.GuiHandler;
-import cat.jiu.email.ui.gui.GuiEmailMain;
+import cat.jiu.email.util.EmailUtils;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.Minecraft;
@@ -64,7 +64,7 @@ public class ShowInboxGui {
 
 		@Override
 		public void renderWidget(MatrixStack matrix, int mouseX, int mouseY, float tick) {
-			boolean hovered = GuiEmailMain.isInRange(mouseX, mouseY, this.x, this.y, this.width, this.height);
+			boolean hovered = EmailUtils.isInRange(mouseX, mouseY, this.x, this.y, this.width, this.height);
 
 			GlStateManager.pushMatrix();
 			GlStateManager.color4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -137,7 +137,7 @@ public class ShowInboxGui {
 //					}
 				}
 
-				boolean hovered = GuiEmailMain.isInRange(mouseX, mouseY, x, this.y, this.width, this.height);
+				boolean hovered = EmailUtils.isInRange(mouseX, mouseY, x, this.y, this.width, this.height);
 
 				GlStateManager.pushMatrix();
 				GlStateManager.color4f(1.0f, 1.0f, 1.0f, 1.0f);

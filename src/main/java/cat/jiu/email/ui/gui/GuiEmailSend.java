@@ -48,7 +48,7 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
     private final TextFieldWidget[] textFields = new TextFieldWidget[5];
     private final GuiTime expiration = new GuiTime(this, false);
     
-	public GuiEmailSend(ContainerEmailSend container, PlayerInventory inventory, ITextComponent t) {
+	public GuiEmailSend(ContainerEmailSend container, PlayerInventory inventory) {
 		super(container, inventory, ITextComponent.getTextComponentOrEmpty(null));
 		this.xSize = 176;
 		this.ySize = 233;
@@ -269,7 +269,7 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 	@Override
 	protected void drawGuiContainerForegroundLayer(MatrixStack matrix, int mouseX, int mouseY) {
 		if(EmailConfigs.Send.Enable_Inbox_Button.get()) {
-			if(GuiEmailMain.isInRange(mouseX, mouseY, this.guiLeft+149, this.guiTop+20, 22, 10)) {
+			if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft+149, this.guiTop+20, 22, 10)) {
 				this.renderTooltip(matrix, ITextComponent.getTextComponentOrEmpty(TextFormatting.RED + I18n.format("info.email.send.warn")), mouseX, this.guiTop+48);
 			}
 		}

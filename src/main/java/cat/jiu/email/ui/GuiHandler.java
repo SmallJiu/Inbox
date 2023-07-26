@@ -36,6 +36,7 @@ import net.minecraftforge.fml.network.NetworkHooks;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 
+@SuppressWarnings("ALL")
 public class GuiHandler {
 	public static final DeferredRegister<ContainerType<?>> CONTAINER_TYPE_REGISTER = DeferredRegister.create(ForgeRegistries.CONTAINERS, EmailMain.MODID);
 	public static final RegistryObject<ContainerType<ContainerInboxBlacklist>> blacklist_TYPE = registerType("email_blacklist_container", (windowId, inv, data) -> {
@@ -62,9 +63,9 @@ public class GuiHandler {
 
 	@OnlyIn(Dist.CLIENT)
 	public static void registerScreen() {
-		ScreenManager.registerFactory(GuiHandler.send_TYPE.get(), GuiEmailSend::new);
-		ScreenManager.registerFactory(GuiHandler.blacklist_TYPE.get(), GuiBlacklist::new);
-		ScreenManager.registerFactory(GuiHandler.main_TYPE.get(), GuiEmailMain::new);
+		ScreenManager.<ContainerEmailSend, GuiEmailSend>registerFactory(GuiHandler.send_TYPE.get(), (container, inventory, title) -> new GuiEmailSend(container, inventory));
+		ScreenManager.<ContainerInboxBlacklist, GuiBlacklist>registerFactory(GuiHandler.blacklist_TYPE.get(), (container, inventory, title) -> new GuiBlacklist(container, inventory));
+		ScreenManager.<ContainerEmailMain, GuiEmailMain>registerFactory(GuiHandler.main_TYPE.get(), (container, inventory, title) -> new GuiEmailMain(container, inventory));
 	}
 
 

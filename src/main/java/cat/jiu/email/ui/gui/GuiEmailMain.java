@@ -26,7 +26,6 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import morph.avaritia.util.TextUtils;
 import net.minecraft.client.MainWindow;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.SimpleSound;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.screen.Screen;
@@ -54,7 +53,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-@SuppressWarnings({"deprecation", "unused"})
+@SuppressWarnings({"deprecation"})
 @OnlyIn(Dist.CLIENT)
 public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	public static ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_main.png");
@@ -67,7 +66,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	private GuiImageButton refreshBtn;
 	private final GuiDynamicImage loadImage = new GuiDynamicImage(load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
 	
-	public GuiEmailMain(ContainerEmailMain container, PlayerInventory inventory, ITextComponent t) {
+	public GuiEmailMain(ContainerEmailMain container, PlayerInventory inventory) {
 		super(container, inventory, ITextComponent.getTextComponentOrEmpty(null));
 		this.xSize = EmailConfigs.Main.Size.Width.get();
 		this.ySize = EmailConfigs.Main.Size.Height.get();
@@ -328,7 +327,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
         double x = event.getMouseX() - this.guiLeft;
         double y = event.getMouseY() - this.guiTop;
 
-		if(isInRange(x, y, 82, 41, 8, 40) || isInRange(x, y, 17, 10, 63, 90)) {
+		if(EmailUtils.isInRange(x, y, 82, 41, 8, 40) || EmailUtils.isInRange(x, y, 17, 10, 63, 90)) {
         	int page = 0;
 
         	if(EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
@@ -344,7 +343,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 				this.goEmail(1 + page);
 			}
 			event.setCanceled(true);
-		}else if(isInRange(x, y, 221, 53, 8, 28) || isInRange(x, y, 92, 30, 128, 74)) {
+		}else if(EmailUtils.isInRange(x, y, 221, 53, 8, 28) || EmailUtils.isInRange(x, y, 92, 30, 128, 74)) {
 			int page = 0;
 
 			if(EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
@@ -369,15 +368,15 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 	public boolean charTyped(char typedChar, int keyCode) {
 		if(this.container.isRefresh()) return false;
 		
-		if(isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 76, this.guiTop + 41, 8, 40)
-		|| isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 18, this.guiTop + 19, 57, 86)) {
+		if(EmailUtils.isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 76, this.guiTop + 41, 8, 40)
+		|| EmailUtils.isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 18, this.guiTop + 19, 57, 86)) {
 			if(keyCode == GLFW.GLFW_KEY_UP) {
 				this.goEmail(-1);
 			}else if(keyCode == GLFW.GLFW_KEY_DOWN) {
 				this.goEmail(1);
 			}
-		}else if(isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 216, this.guiTop + 53, 8, 28)
-			|| isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 87, this.guiTop + 30, 128, 74)) {
+		}else if(EmailUtils.isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 216, this.guiTop + 53, 8, 28)
+			|| EmailUtils.isInRange(this.lastClickX, this.lastClickY, this.guiLeft + 87, this.guiTop + 30, 128, 74)) {
 			if(keyCode == GLFW.GLFW_KEY_UP) {
 				this.goMessage(-1);
 			}else if(keyCode == GLFW.GLFW_KEY_DOWN) {
@@ -490,7 +489,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		// TODO 绘制需要渲染的信息，目前Email中没有使用过此功能
 		if(this.renderTimer != null && this.renderTimer.isStarted() && !this.renderTimer.isDone()) {
 			if(super.font.getStringWidth(this.renderText)>this.xSize) {
-				List<String> str = splitString(this.renderText, this.xSize);
+				List<String> str = EmailUtils.splitString(this.renderText, this.xSize);
 				int y_t = y+this.ySize;
 				for (String s : str) {
 					this.drawStringWithShadow(matrix, s, x, y_t, this.renderColor.getRGB());
@@ -522,7 +521,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		this.drawAlignRightString(matrix, String.valueOf(this.container.getInboxSize()), x+6+bytesWidth, y+145, sizeColor.getRGB(), false);
 		this.drawHorizontalLine(matrix, x+5, x+5+bytesWidth, y+154, Color.BLACK.getRGB());
 
-		// TODO 绘制刷新按钮
+		// TODO 绘制刷新按钮(已改为图片按钮形式)
 //		GlStateManager.pushMatrix();
 //		GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
 //		this.getMinecraft().getTextureManager().bindTexture(BackGround);
@@ -598,7 +597,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 					Screen.blit(matrix, x+218+3, y+5, 10, 10,1 + (this.isPlayingSound() ? 55 : 0), 169,  55, 55, 256, 256);
 					GlStateManager.popMatrix();
 
-					if(isInRange(mouseX, mouseY, this.guiLeft + 221, this.guiTop + 5, 10, 10)) {
+					if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft + 221, this.guiTop + 5, 10, 10)) {
 						List<ITextComponent> hover = Lists.newArrayList();
 						hover.add(new StringTextComponent(I18n.format("info.email.play_sound" + (this.isPlayingSound() ? ".stop" : ""))));
 						if(this.isPlayingSound()) {
@@ -617,7 +616,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		// TODO 绘制鼠标底下的候选邮件信息
 		for(int i = 0; !this.popupMenu.isVisible() && i < 5; i++) {
 			if(this.showEmails == null || i >= this.showEmails.length) break;
-			if(isInRange(mouseX, mouseY, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + ((19 * i)), 60, 17)) {
+			if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + ((19 * i)), 60, 17)) {
 				if(this.container.getInbox().hasEmail(this.showEmails[i])) {
 					Email email = this.container.getInbox().getEmail(this.showEmails[i]);
 					List<String> tip = Lists.newArrayList();
@@ -722,7 +721,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			return true;
 		}
 
-		// TODO 刷新邮箱
+		// TODO 刷新邮箱(已改为图片按钮形式)
 //		if(isInRange(x, y, this.guiLeft + 5, this.guiTop + 5, 7, 7)
 //		&& this.refreshCoolingTicks <= 0) {
 //			this.refresh();
@@ -734,7 +733,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		boolean showPopupMenu = false;
 		// TODO 展示邮件或者子菜单
 		for(int index = 0; index < 5; index++) {
-			if(isInRange(x, y, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + (19 * index), 60, 17)) {
+			if(EmailUtils.isInRange(x, y, this.guiLeft + Candidate_Email_X, this.guiTop + Candidate_Email_Y + (19 * index), 60, 17)) {
 				if(index >= this.showEmails.length) break;
 				if(!this.container.getInbox().hasEmail(this.showEmails[index])) continue;
 				if(btn == 0) {
@@ -753,7 +752,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		}
 
 		// TODO 点击音效
-		if(isInRange(x, y, this.guiLeft + 218, this.guiTop + 4, 13, 12)
+		if(EmailUtils.isInRange(x, y, this.guiLeft + 218, this.guiTop + 4, 13, 12)
 		&&	this.currentEmail >=0 && this.getCurrentEmail()!=null && this.getCurrentEmail().hasSound()) {
 			if(this.currentSound==null) {
 				this.currentSound = new EmailSenderSndSound(this.getCurrentEmail().getSound(), this.currentEmail);
@@ -794,7 +793,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 			this.currentEmail = this.showEmails[index];
 			this.container.setCurrenEmail(this.currentEmail);
 
-			// set current email items
+			// TODO 设置邮件物品
 			this.container.clearStacks();
 			if(email.hasItems()) {
 				this.container.putStack(email.getItems());
@@ -832,7 +831,7 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 				if(msg.startsWith("&il")) msg = "    " + msg.substring(3);
 				List<Message> m = Lists.newArrayList();
 
-				List<String> formatMsg = splitString(msg, width);
+				List<String> formatMsg = EmailUtils.splitString(msg, width);
 				for(int index = 0; index < formatMsg.size(); index++) {
 					m.add(new Message(row, index, formatMsg.get(index)));
 				}
@@ -979,36 +978,6 @@ public class GuiEmailMain extends ContainerScreen<ContainerEmailMain> {
 		fr.drawStringWithShadow(matrix, text, x, y, color);
 	}
 
-	// static
-	
-	public static boolean isInRange(double mouseX, double mouseY, int x, int y, int width, int height) {
-		int maxX = x + width;
-		int maxY = y + height;
-		return (mouseX >= x && mouseY >= y) && (mouseX <= maxX && mouseY <= maxY);
-	}
-	
-	public static List<String> splitString(String text, int textMaxLength) {
-		FontRenderer fr = Minecraft.getInstance().fontRenderer;
-		List<String> texts = Lists.newArrayList();
-		if(fr.getStringWidth(text) >= textMaxLength) {
-			StringBuilder s = new StringBuilder();
-			for(int i = 0; i < text.length(); i++) {
-				String str = s.toString();
-				if(fr.getStringWidth(str) >= textMaxLength) {
-					texts.add(str);
-					s.setLength(0);
-				}
-				s.append(text.charAt(i));
-			}
-			if(s.length() > 0) {
-				texts.add(s.toString());
-			}
-		}else {
-			texts.add(text);
-		}
-		return texts;
-	}
-	
 	private static class Message {
 		public final int row;
 		public final int index;

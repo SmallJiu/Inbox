@@ -2,45 +2,36 @@ package cat.jiu.email.ui.gui.config.entry;
 
 import cat.jiu.email.ui.gui.config.ConfigEntry;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraftforge.common.ForgeConfigSpec;
 
-public class EnumEntry<T extends Enum<T>> extends ConfigEntry {
-    private final ForgeConfigSpec.EnumValue<T> value;
-    private final ForgeConfigSpec.ValueSpec spec;
-    private final T cache;
+import java.lang.reflect.Field;
+import java.util.function.Supplier;
+
+public class EnumEntry<T extends Enum<T>> extends ConfigEntry<T> {
+    private T cache;
     public EnumEntry(ForgeConfigSpec.EnumValue<T> value, ForgeConfigSpec.ValueSpec spec) {
-        this.value = value;
-        this.spec = spec;
-        this.cache = value.get();
+        super(value, spec);
     }
 
     @Override
-    public void render(MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
-
-    }
-
-    @Override
-    public ForgeConfigSpec.EnumValue<? extends Enum<?>> getConfigValue() {
-        return this.value;
-    }
-
-    @Override
-    public void undo() {
+    public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
 
     }
 
     @Override
-    public void reset() {
-
+    protected T getCacheValue() {
+        return this.cache;
     }
 
     @Override
-    public boolean isChanged() {
-        return this.cache != this.value.get();
+    protected void setCacheValue(T newValue) {
+        this.cache = newValue;
     }
 
     @Override
-    public boolean isDefault() {
-        return this.cache != this.spec.getDefault();
+    protected Widget getConfigWidget() {
+        return null;
     }
 }
