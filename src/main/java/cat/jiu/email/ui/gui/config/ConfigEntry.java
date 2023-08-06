@@ -15,6 +15,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.awt.*;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,33 +56,10 @@ public abstract class ConfigEntry<T> {
     }
 
     public void drawAlignRightString(MatrixStack matrix, String text, int x, int y, int color, boolean drawShadow, FontRenderer fontRenderer) {
-        for(int i = text.length(); i > 0; i--) {
-            if('§' == text.charAt(i-1)) {
-                continue;
-            }
-            if(i-2>=0 && '§' == text.charAt(i-2)) {
-                continue;
-            }
-            String c = String.valueOf(text.charAt(i-1));
-            float width = fontRenderer.getStringWidth(c);
-            if(i-2 > 0) {
-                boolean isColor;
-                String s = text.charAt(i-3)+""+text.charAt(i-2);
-                for(TextFormatting format : TextFormatting.values()) {
-                    isColor = format.toString().equals(s);
-                    if(isColor) {
-                        c = s + c;
-                        width = fontRenderer.getStringWidth(c);
-                        break;
-                    }
-                }
-            }
-            x -= width;
-            if(drawShadow){
-                fontRenderer.drawStringWithShadow(matrix, c, x, y, color);
-            }else {
-                fontRenderer.drawString(matrix, c, x, y, color);
-            }
+        if(drawShadow){
+            fontRenderer.drawStringWithShadow(matrix, text, x - fontRenderer.getStringWidth(text), y, color);
+        }else {
+            fontRenderer.drawString(matrix, text, x - fontRenderer.getStringWidth(text), y, color);
         }
     }
 
@@ -183,7 +161,7 @@ public abstract class ConfigEntry<T> {
 
         if(spec.getComment() != null){
             for (String s1 : I18n.format(this.spec.getComment()).split("\n")) {
-                comments.add(ITextComponent.getTextComponentOrEmpty(TextFormatting.YELLOW + s1));
+                comments.add(ITextComponent.getTextComponentOrEmpty(TextFormatting.YELLOW + I18n.format(s1)));
             }
             if(this.spec.getRange()!=null){
                 comments.remove(comments.size()-1);
@@ -212,7 +190,9 @@ public abstract class ConfigEntry<T> {
             comments.add(ITextComponent.getTextComponentOrEmpty(String.format("Max: %s", max)));
             range = String.format("range: %s ~ %s, ", min, max);
         }
-
+        if(this.spec.needsWorldRestart()) {
+            comments.add(ITextComponent.getTextComponentOrEmpty(TextFormatting.RED + I18n.format("info.config.world_restart")));
+        }
         comments.add(ITextComponent.getTextComponentOrEmpty(TextFormatting.AQUA + String.format("[%sdefault: %s]", range!=null? range : "", this.spec.getDefault())));
 
         gui.renderWrappedToolTip(matrix, comments, mouseX+5, mouseY, gui.getMinecraft().fontRenderer);

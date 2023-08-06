@@ -4,6 +4,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import cat.jiu.email.element.Cooling;
+import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.util.EmailUtils;
+import cat.jiu.email.util.SizeReport;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.EmailMain;
@@ -27,9 +30,12 @@ import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.extensions.IForgeContainerType;
+import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.network.IContainerFactory;
 import net.minecraftforge.fml.network.NetworkHooks;
@@ -66,6 +72,10 @@ public class GuiHandler {
 		ScreenManager.<ContainerEmailSend, GuiEmailSend>registerFactory(GuiHandler.send_TYPE.get(), (container, inventory, title) -> new GuiEmailSend(container, inventory));
 		ScreenManager.<ContainerInboxBlacklist, GuiBlacklist>registerFactory(GuiHandler.blacklist_TYPE.get(), (container, inventory, title) -> new GuiBlacklist(container, inventory));
 		ScreenManager.<ContainerEmailMain, GuiEmailMain>registerFactory(GuiHandler.main_TYPE.get(), (container, inventory, title) -> new GuiEmailMain(container, inventory));
+
+		ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, ()->(mc, parent)->
+				new cat.jiu.email.ui.gui.config.GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
+		);
 	}
 
 
@@ -80,37 +90,51 @@ public class GuiHandler {
 	}
 
 	public static void openGui(int ID, ServerPlayerEntity player) {
-		NetworkHooks.openGui(player, new INamedContainerProvider() {
-			@Override
-			public ITextComponent getDisplayName() {
-				return StringTextComponent.EMPTY;
-			}
-			@Nullable
-			@Override
-			public Container createMenu(int windowID, PlayerInventory inventory, PlayerEntity player) {
-				switch (ID) {
-					case EMAIL_MAIN: return new ContainerEmailMain(windowID, inventory, Inbox.get(player));
-					case EMAIL_SEND: return new ContainerEmailSend(windowID, inventory);
-					case EMAIL_BLACKLIST: return new ContainerInboxBlacklist(windowID, inventory, Inbox.get(player).getSenderBlacklist());
-					default: return null;
+		try {
+			NetworkHooks.openGui(player, new INamedContainerProvider() {
+				@Override
+				public ITextComponent getDisplayName() {
+					return StringTextComponent.EMPTY;
 				}
-			}
-		}, buffer -> {
-			if (ID == EMAIL_MAIN) {
-				buffer.writeCompoundTag(Inbox.get(player).writeTo(CompoundNBT.class));
-			} else if (ID == EMAIL_BLACKLIST) {
-				ListNBT list = new ListNBT();
-				Inbox.get(player).getSenderBlacklist().forEach(e -> list.add(StringNBT.valueOf(e)));
-				CompoundNBT nbt = new CompoundNBT();
-				nbt.put("list", list);
-				buffer.writeCompoundTag(nbt);
-			}else if(ID == EMAIL_SEND){
-				if(Cooling.isCooling(player.getName().getString())){
+				@Nullable
+				@Override
+				public Container createMenu(int windowID, PlayerInventory inventory, PlayerEntity player) {
+					switch (ID) {
+						case EMAIL_MAIN: return new ContainerEmailMain(windowID, inventory, Inbox.get(player));
+						case EMAIL_SEND: return new ContainerEmailSend(windowID, inventory);
+						case EMAIL_BLACKLIST: return new ContainerInboxBlacklist(windowID, inventory, Inbox.get(player).getSenderBlacklist());
+						default: return null;
+					}
+				}
+			}, buffer -> {
+				if (ID == EMAIL_MAIN) {
+					Inbox inbox = Inbox.get(player);
+					if(!EmailConfigs.isInfiniteSize()){
+						SizeReport report = EmailUtils.checkInboxSize(inbox);
+						if(!SizeReport.SUCCESS.equals(report)) {
+							player.sendMessage(new TranslationTextComponent("info.email.error.to_big.0"), player.getUniqueID());
+							player.sendMessage(new TranslationTextComponent("info.email.error.to_big.1", report.id, report.slot, report.size), player.getUniqueID());
+							throw new SizeReport.ToBigException();
+						}else {
+							buffer.writeCompoundTag(inbox.writeTo(CompoundNBT.class));
+						}
+					}else {
+						buffer.writeCompoundTag(inbox.writeTo(CompoundNBT.class));
+					}
+				} else if (ID == EMAIL_BLACKLIST) {
+					ListNBT list = new ListNBT();
+					Inbox.get(player).getSenderBlacklist().forEach(e -> list.add(StringNBT.valueOf(e)));
 					CompoundNBT nbt = new CompoundNBT();
-					nbt.putLong("cooling", Cooling.getCoolingTimeMillis(player.getName().getString()));
+					nbt.put("list", list);
 					buffer.writeCompoundTag(nbt);
+				}else if(ID == EMAIL_SEND){
+					if(Cooling.isCooling(player.getName().getString())){
+						CompoundNBT nbt = new CompoundNBT();
+						nbt.putLong("cooling", Cooling.getCoolingTimeMillis(player.getName().getString()));
+						buffer.writeCompoundTag(nbt);
+					}
 				}
-			}
-		});
+			});
+		}catch (SizeReport.ToBigException e){}
 	}
 }

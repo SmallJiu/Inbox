@@ -2,6 +2,9 @@
   "info.config.done": "Done",
   "info.config.undo": "Undo Changes",
   "info.config.reset": "Reset to Default",
+  "info.config.save": "Save and Exit",
+  "info.config.save.0": "Use 'Esc' Exit but not Save",
+  "info.config.world_restart": "Need restart world.",
 
   "info.email.name": "Inbox",
   "info.email.has_unread": "You inbox has %s message unread.",
@@ -9,7 +12,7 @@
   "info.email.has_unread_and_unreceive": "You inbox has %s message unread, and %s message unreceive.",
 
   "info.email.error.to_big.0": "§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.",
-  "info.email.error.to_big.1": "§7Emain ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes",
+  "info.email.error.to_big.1": "§7Email ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes",
 
   #main
   "info.email.dispatch": "Send Email",
@@ -146,24 +149,66 @@
   "email.config.msg": "Message",
   "email.config.sender": "Sender",
 
-  "email.config.infinite_size": "Inbox infinite storage",
+  "email.config.pos.x": "X",
+  "email.config.pos.y": "Y",
+
+  "email.config.infinite_size": "§mInbox infinite storage",
+  "email.config.infinite_size.0": "§mEnable Inbox infinite storage.§r§c(1.16.5 is disable)",
+  "email.config.infinite_size.1": "§c§mWarning: only enable on Single player..",
+
   "email.config.save_to_root_directory": "Save email to root directory",
+  "email.config.save_to_root_directory.0": "save email to world directory if false,",
+  "email.config.save_to_root_directory.1": "can cross you saves send email if true.",
+
+
   "email.config.save_inbox_to_sql": "Use database storage inbox(Unfinish)",
+  "email.config.save_inbox_to_sql.0": "save inbox to sql file(inboxs.db)",
+  "email.config.save_inbox_to_sql.1": "§cWarning: you need backup old inbox files!(email/<uuid>.json)",
   "email.config.save_inbox_to_sql.not_load_sql": "Not load SQLite mod.",
+
+  "email.config.custom_inbox_path": "Inbox save path",
+  "email.config.custom_inbox_path.0": "Custom inbox save path, default is world dir.",
+  "email.config.custom_inbox_path.1": "It can be an absolute path or a relative path,",
+  "email.config.custom_inbox_path.2": "Except for higher version minecraft items, the rest are compatible with lower version email",
+  "email.config.custom_inbox_path.3": "Example: 'C:/' The mailbox will be saved in 'C:/email/<uuid>. json' instead of 'C:/<uuid>. json'. If 'Save to SQL' is enabled, it will be saved in 'C:/inboxes. db'",
+  "email.config.custom_inbox_path.4": "Example: '/ The 'data' email will be saved in '/ Data/email/<uuid>. json 'instead of'/ Data/<uuid>. json ', if' Save to SQL 'is enabled, it will be saved to' C:/inboxes. db '",
 
   "email.config.main": "Main Menu",
   "email.config.main.show_text_rows": "Show Rows",
+  "email.config.main.show_text_rows.0": "Current email message rows.",
+
   "email.config.main.show_text_spacing": "Rows Spacing",
-  "email.config.main.vanilla_wrap": "Use vanilla to fromat Text ",
+  "email.config.main.show_text_spacing.0": "Current email message row spacing.",
+
+  "email.config.main.vanilla_wrap": "Use vanilla to format Text",
+  "email.config.main.vanilla_wrap.0": "Use vanilla to format Text",
+  "email.config.main.vanilla_wrap.1": "use single character line wrap if false (regardless of syntax)",
 
   "email.config.main.size.width": "Width",
+  "email.config.main.size.width.0": "Set inbox main gui width",
   "email.config.main.size.height": "Height",
-  "email.config.main.pos.current.msgid": "Email ID",
-  "email.config.main.pos.current.items": "Items",
+  "email.config.main.size.height.0": "Set inbox main gui height",
 
-  "email.config.main.pos": "Text Position",
-  "email.config.main.pos.row": "Row",
-  "email.config.main.pos.title.time": "Send Time",
+  "email.config.main.pos.candidate": "Set candidate emails pos",
+  "email.config.main.pos.current.row": "Set current email row number pos",
+  "email.config.main.pos.current.msg": "Set current email message pos",
+  "email.config.main.pos.current.sender": "Set current email sender pos",
+  "email.config.main.pos.current.id": "Set current email id pos",
+  "email.config.main.pos.current.items": "Set current email items pos",
+  "email.config.main.pos.current.title": "Set current email title pos",
+  "email.config.main.pos.current.time": "Set current email send time pos",
+
+  "email.config.main.num_of_words.current.msg": "Current email message text length",
+  "email.config.main.num_of_words.current.msg.0": "Set current email text length",
+  "email.config.main.num_of_words.current.title": "Current email title length",
+  "email.config.main.num_of_words.current.title.0": "Set current email title text length",
+  "email.config.main.num_of_words.current.sender": "Current email sender text length",
+  "email.config.main.num_of_words.current.sender.0": "Set current email text length",
+
+  "email.config.main.num_of_words.candidate.sender": "Candidate email sender text length",
+  "email.config.main.num_of_words.candidate.sender.0": "Set candidate email sender text length",
+
+  "email.config.main.num_of_words.candidate": "Set candidate email send time text length",
 
   "email.config.expiration": "Email Expiration",
   "email.config.expiration.can": "Can Expiration",
@@ -172,11 +217,24 @@
   "email.config.expiration.have_item": "Have item Expiration Time",
 
   "email.config.send.blacklist": "Enable BlackList",
+  "email.config.send.blacklist.0": "enable send email black list,",
+  "email.config.send.blacklist.1": "§cCannot enable at the same time as White List",
+
   "email.config.send.whitelist": "Enable WhiteList",
+  "email.config.send.whitelist.0": "enable send email white list,",
+  "email.config.send.whitelist.1": "§cCannot enable at the same time as Black List",
+
   "email.config.send.send_to_self": "Can send to Self",
-  "email.config.send.inbox_button": "Enable Inbox Button",
+  "email.config.send.send_to_self.0": "enable send email to self",
 
   "email.config.send.cooling": "Send cooling",
+  "email.config.send.cooling.0": "enable send email need cooling",
+  "email.config.send.cooling.day": "冷却时间的 天 数",
+  "email.config.send.cooling.hour": "冷却时间的 小时 数",
+  "email.config.send.cooling.minute": "冷却时间的 分钟 数",
+  "email.config.send.cooling.second": "冷却时间的 秒 数",
+  "email.config.send.cooling.tick": "冷却时间的 刻 数",
+  "email.config.send.cooling.millis": "冷却时间的 毫秒 数",
 
   "email.dev_message.sender": "small_jiu",
   "email.dev_message.title": "Hello %s",

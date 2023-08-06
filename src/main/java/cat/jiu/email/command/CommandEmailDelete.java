@@ -41,8 +41,6 @@ class CommandEmailDelete extends BaseCommand.Base {
 
     @Override
     public int execute(MinecraftServer server, ICommandSource sender, String[] args, CommandContext<CommandSource> ctx) throws CommandSyntaxException {
-        ctx.getSource().sendFeedback(new StringTextComponent(Arrays.toString(args)), false);
-
         final String player = ctx.getArgument("player", String.class);
         final long email = ctx.getArgument("email", Long.class);
 
@@ -57,7 +55,6 @@ class CommandEmailDelete extends BaseCommand.Base {
                 id = EmailUtils.getUUID(id).toString();
             }
         }
-        EmailMain.log.error(sender);
         Inbox inbox = Inbox.get(id);
         if(!inbox.isEmptyInbox()) {
             if(inbox.hasEmail(email)){

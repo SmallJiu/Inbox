@@ -1,7 +1,7 @@
 package cat.jiu.email.util;
 
 public class SizeReport {
-	public static final SizeReport SUCCES = new SizeReport(-1, -1, 0);
+	public static final SizeReport SUCCESS = new SizeReport(-1, -1, 0);
 	public final long id;
 	public final int slot;
 	public final long size;
@@ -33,5 +33,16 @@ public class SizeReport {
 	@Override
 	public String toString() {
 		return "Report [emailID=" + id + ", Slot=" + slot + ", Size=" + size + "]";
+	}
+
+	public static class ToBigException extends RuntimeException {
+		public ToBigException() {}
+		public ToBigException(SizeReport report) {
+			this(String.format("To big! this is report. Email ID: %s, Slot: %s, Size: %s / §72097152 Bytes", report.id, report.slot, report.size));
+		}
+
+		public ToBigException(String message) {
+			super(message);
+		}
 	}
 }

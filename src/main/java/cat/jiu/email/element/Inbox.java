@@ -159,7 +159,7 @@ public final class Inbox implements ISerializable {
 	/**
 	 * get email from id
 	 * @param id email id
-	 * @return emial by id
+	 * @return email by id
 	 */
 	public Email getEmail(long id) {
 		return this.hasEmail(id) ? this.emails.get(id) : null;
@@ -202,7 +202,7 @@ public final class Inbox implements ISerializable {
 		long id = this.emailHistoryCount+1;
 		if(this.emails.put(id, email) == null) {
 			this.emailHistoryCount = id;
-			return saveToDisk ? EmailUtils.saveInboxToDisk(this) : true;
+			return !saveToDisk || EmailUtils.saveInboxToDisk(this);
 		}
 		return false;
 	}
@@ -314,8 +314,7 @@ public final class Inbox implements ISerializable {
 		
 		if(!this.senderBlacklist.isEmpty()) {
 			JsonArray list = new JsonArray();
-			this.senderBlacklist.forEach(s->
-				list.add(s));
+			this.senderBlacklist.forEach(list::add);
 			json.add("blacklist", list);
 		}
 		if(!this.isEmptyInbox()) {

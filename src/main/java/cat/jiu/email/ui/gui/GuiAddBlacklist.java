@@ -29,7 +29,7 @@ public class GuiAddBlacklist extends Screen {
 		super(ITextComponent.getTextComponentOrEmpty(null));
 		this.blacklist = blacklist;
 	}
-	
+
 	@Override
 	public void init() {
 		super.init();

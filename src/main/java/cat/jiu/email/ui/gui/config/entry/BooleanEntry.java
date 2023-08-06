@@ -40,7 +40,7 @@ public class BooleanEntry extends ConfigEntry<Boolean> {
     @Override
     public void render(Screen gui, MatrixStack matrix, int x, int y, int mouseX, int mouseY) {
         this.renderWidget(gui, matrix, x, y, mouseX, mouseY);
-        this.drawAlignRightString(matrix, this.configName, this.button.x-5, this.button.y+5, Color.WHITE.getRGB(), true, gui.getMinecraft().fontRenderer);
+        this.drawAlignRightString(matrix, this.configName, this.button.x - 5, this.button.y + 5, Color.WHITE.getRGB(), true, gui.getMinecraft().fontRenderer);
     }
 
     @Override
@@ -58,10 +58,5 @@ public class BooleanEntry extends ConfigEntry<Boolean> {
     @Override
     protected void setCacheValue(Boolean newValue) {
         this.cache = newValue;
-    }
-
-    @Override
-    public void save() {
-        this.value.set(this.cache);
     }
 }

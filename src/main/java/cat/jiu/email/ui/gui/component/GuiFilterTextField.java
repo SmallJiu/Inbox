@@ -12,7 +12,6 @@ import java.util.function.Predicate;
 @OnlyIn(Dist.CLIENT)
 public class GuiFilterTextField extends TextFieldWidget {
     private Predicate<Character> typedCharFilter;
-    private Predicate<Integer> keyCodeFilter;
     private final String defaultText;
     public GuiFilterTextField(String defaultText, FontRenderer fontrenderer, int x, int y, int par5Width, int par6Height) {
         super(fontrenderer, x, y, par5Width, par6Height, ITextComponent.getTextComponentOrEmpty(null));
@@ -22,10 +21,6 @@ public class GuiFilterTextField extends TextFieldWidget {
 
     public GuiFilterTextField setTypedCharFilter(Predicate<Character> filter) {
         this.typedCharFilter = filter;
-        return this;
-    }
-    public GuiFilterTextField setKeyCodeFilter(Predicate<Integer> keyCodeFilter) {
-        this.keyCodeFilter = keyCodeFilter;
         return this;
     }
 
@@ -44,11 +39,5 @@ public class GuiFilterTextField extends TextFieldWidget {
             return flag;
         }
         return false;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        boolean keyCodeTest = this.keyCodeFilter != null && this.keyCodeFilter.test(keyCode);
-        return keyCodeTest || this.isFocused() && keyCode!= GLFW.GLFW_KEY_ESCAPE || super.keyPressed(keyCode, scanCode, modifiers);
     }
 }

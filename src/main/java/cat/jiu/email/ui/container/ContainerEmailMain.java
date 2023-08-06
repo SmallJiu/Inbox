@@ -87,4 +87,9 @@ public class ContainerEmailMain extends Container {
 	public boolean canInteractWith(PlayerEntity player) {
 		return true;
 	}
+
+	@Override
+	public void onContainerClosed(PlayerEntity playerIn) {
+		super.onContainerClosed(playerIn);
+	}
 }

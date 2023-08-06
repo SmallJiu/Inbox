@@ -22,7 +22,7 @@ public class SubEntry extends ConfigEntry<Object> {
     public SubEntry(String name, ForgeConfigSpec spec, Config config, String path, GuiConfig parent) {
         super(null, null);
         GuiConfig gui = new GuiConfig(parent.configFile, parent, spec, path);
-        this.entries = gui.create(path, spec, config.valueMap());
+        this.entries = gui.createEntries(path, spec, config.valueMap());
         gui.setConfigEntries(this.entries);
 
         this.button = this.addWidget(new Button(0, 0, 300, 20, ITextComponent.getTextComponentOrEmpty(name), btn-> parent.getMinecraft().displayGuiScreen(gui)));

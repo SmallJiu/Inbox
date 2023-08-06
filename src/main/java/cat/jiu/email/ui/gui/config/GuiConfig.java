@@ -14,6 +14,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.client.gui.ScrollPanel;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.awt.*;
 import java.util.*;
@@ -29,7 +30,7 @@ public class GuiConfig extends Screen {
     protected Button done, undo, reset;
     public GuiConfig(String file, Screen parent, ForgeConfigSpec spec) {
         this(file, parent, spec, null);
-        this.setConfigEntries(this.create(null, spec, spec.getValues().valueMap()));
+        this.setConfigEntries(this.createEntries(null, spec, spec.getValues().valueMap()));
     }
     public GuiConfig(String file, Screen parent, ForgeConfigSpec spec, String path) {
         super(ITextComponent.getTextComponentOrEmpty(file));
@@ -42,8 +43,15 @@ public class GuiConfig extends Screen {
     public void setConfigEntries(List<ConfigEntry<?>> entries) {
         this.entries = entries;
     }
+    public void addConfigEntry(ConfigEntry<?> value){
+        if(this.entries==null) {
+            this.entries = new ArrayList<>();
+        }
+        this.entries.add(value);
+        this.entries.sort(Comparator.comparingInt(ConfigEntry::getWeight));
+    }
 
-    public ArrayList<ConfigEntry<?>> create(String path, ForgeConfigSpec spec, Map<String, Object> configs){
+    public ArrayList<ConfigEntry<?>> createEntries(String path, ForgeConfigSpec spec, Map<String, Object> configs){
         ArrayList<ConfigEntry<?>> entries = new ArrayList<>();
         configs.forEach((k,v)->{
             if(v instanceof Config){
@@ -65,6 +73,8 @@ public class GuiConfig extends Screen {
                     }else if(num instanceof Double){
                         entries.add(new DoubleEntry((ForgeConfigSpec.ConfigValue<Double>) v, spec.get(value.getPath())));
                     }
+                } else if (value.get() instanceof String) {
+                    entries.add(new StringEntry((ForgeConfigSpec.ConfigValue<String>) v, spec.get(value.getPath())));
                 }
             }
         });
@@ -83,10 +93,11 @@ public class GuiConfig extends Screen {
                 this.entries.forEach(ConfigEntry::undo)
         ));
         this.undo.active = false;
-        this.done = this.addButton(new Button(this.undo.x - 102, this.undo.y, 100, 20, new TranslationTextComponent("info.config.done"), btn->{
+        this.done = this.addButton(new Button(this.undo.x - 102, this.undo.y, 100, 20, new TranslationTextComponent(this.path==null? "info.config.save" : "info.config.done"), btn->{
             if(this.path==null){
                 this.entries.forEach(ConfigEntry::save);
                 this.spec.save();
+                MinecraftForge.EVENT_BUS.post(new ConfigWriteEvent(this.configFile, this.spec));
             }
             this.getMinecraft().displayGuiScreen(this.parent);
         }));
@@ -118,6 +129,9 @@ public class GuiConfig extends Screen {
         }
         this.undo.active = changed;
         this.reset.active = changed || isDefault;
+        if(this.path==null && this.done.isMouseOver(mouseX, mouseY)){
+            this.renderTooltip(matrix, new TranslationTextComponent("info.config.save.0"), mouseX, mouseY);
+        }
 
         this.font.drawStringWithShadow(matrix, this.configFile, (this.getMinecraft().getMainWindow().getScaledWidth() / 2f) - (this.font.getStringWidth(this.configFile)/2f), 5, Color.WHITE.getRGB());
         if(this.font.getStringWidth(this.path) > this.getMinecraft().getMainWindow().getScaledWidth()/2){

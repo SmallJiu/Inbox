@@ -35,7 +35,7 @@ import net.minecraftforge.fml.network.NetworkEvent;
 
 public class MsgInboxToClient extends BaseMessage {
 	protected Inbox inbox;
-	protected SizeReport report = SizeReport.SUCCES;
+	protected SizeReport report = SizeReport.SUCCESS;
 	public MsgInboxToClient() {}
 	public MsgInboxToClient(@Nonnull Inbox inbox) {
 		this.inbox = inbox;
@@ -93,7 +93,7 @@ public class MsgInboxToClient extends BaseMessage {
 			buf.writeCompoundTag(nbt);
 		}else {
 			SizeReport report = EmailUtils.checkInboxSize(this.inbox);
-			if(!SizeReport.SUCCES.equals(report)) {
+			if(!SizeReport.SUCCESS.equals(report)) {
 				CompoundNBT nbt = new CompoundNBT();
 				
 				nbt.putBoolean("ToBig", true);
@@ -111,6 +111,7 @@ public class MsgInboxToClient extends BaseMessage {
 			CompoundNBT inbox = this.inbox.writeTo(CompoundNBT.class);
 			inbox.remove("historySize");
 			inbox.remove("dev");
+			inbox.remove("blacklist");
 			nbt.put("inbox", inbox);
 			
 			buf.writeCompoundTag(nbt);
@@ -123,7 +124,7 @@ public class MsgInboxToClient extends BaseMessage {
 			ClientPlayerEntity player = Minecraft.getInstance().player;
 			Container con = player.openContainer;
 			if(con instanceof ContainerEmailMain) {
-				if(!SizeReport.SUCCES.equals(this.report)) {
+				if(!SizeReport.SUCCESS.equals(this.report)) {
 					player.sendMessage(new StringTextComponent(TextFormatting.GRAY + "---------------------------------------------"), player.getUniqueID());
 					player.sendMessage(new StringTextComponent(I18n.format("info.email.error.to_big.0")), player.getUniqueID());
 					player.sendMessage(new StringTextComponent(I18n.format("info.email.error.to_big.1", this.report.id, this.report.slot, this.report.size)), player.getUniqueID());

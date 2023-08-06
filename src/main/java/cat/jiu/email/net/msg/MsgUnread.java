@@ -20,9 +20,7 @@ public class MsgUnread extends BaseMessage {
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(EmailMain.proxy.isClient()) {
-			EmailMain.execute(()->{
-				EmailMain.setUnread(this.unread);
-			}, 100);
+			EmailMain.setUnread(this.unread);
 		}
 		return true;
 	}

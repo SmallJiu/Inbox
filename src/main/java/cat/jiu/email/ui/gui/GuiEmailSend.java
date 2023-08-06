@@ -3,6 +3,7 @@ package cat.jiu.email.ui.gui;
 import java.awt.Color;
 import java.util.List;
 
+import cat.jiu.email.util.SizeReport;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.ui.GuiHandler;
@@ -125,6 +126,19 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 					email.setExpirationTime(new TimeMillis(expiration));
 				}
 
+				Email email_t = email.copy();
+				if(!this.container.isEmpty()) {
+					this.container.toItemList(true).forEach(email_t::addItem);
+				}
+				if(!EmailConfigs.isInfiniteSize()){
+					SizeReport report = EmailUtils.checkEmailSize(email_t);
+					if(!SizeReport.SUCCESS.equals(report)) {
+						if (this.container.isLock()) this.container.setLock(false);
+						this.setRenderText(new Text("info.email.error.send.to_big", report.slot, report.size).format(), Color.RED);
+						return;
+					}
+				}
+
 				EmailAPI.sendPlayerEmail(getMinecraft().player, name, email);
 				clearRenderText();
 			}
@@ -159,12 +173,15 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 		}
 		return true;
 	}
-	
+
+	private long renderTicks = 0;
+	private String renderText;
+	private Color renderColor;
 	public void setRenderText(String text) {
 		this.setRenderText(text, Color.RED);
 	}
 	public void setRenderText(String text, Color color) {
-		this.setRenderText(text, color, EmailUtils.parseTick(0,0,0,15, 0));
+		this.setRenderText(text, color, EmailUtils.parseTick(0,0,0,25, 0));
 	}
 	public void setRenderText(String text, Color color, long ticks) {
 		this.renderText = text;
@@ -176,10 +193,6 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 		this.renderColor = null;
 		this.renderTicks = 0;
 	}
-	
-	private long renderTicks = 0;
-	private String renderText;
-	private Color renderColor;
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
@@ -268,25 +281,19 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 
 	@Override
 	protected void drawGuiContainerForegroundLayer(MatrixStack matrix, int mouseX, int mouseY) {
-		if(EmailConfigs.Send.Enable_Inbox_Button.get()) {
-			if(EmailUtils.isInRange(mouseX, mouseY, this.guiLeft+149, this.guiTop+20, 22, 10)) {
-				this.renderTooltip(matrix, ITextComponent.getTextComponentOrEmpty(TextFormatting.RED + I18n.format("info.email.send.warn")), mouseX, this.guiTop+48);
-			}
-		}
-
 		int color = this.container.isLock() ? Color.RED.getRGB() : Color.GREEN.getRGB();
 		fill(matrix, 162, 100, 162 + 9, 100 + 9, color);
 
-		drawAlignRightString(matrix, this.font, I18n.format("info.email.addressee") + ":", 36, 6, (this.nameField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
-		drawAlignRightString(matrix, this.font, I18n.format("info.email.title") + ":", 36, 21, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(matrix, this.font, I18n.format("info.email.addressee") + ":", 36, 1, (this.nameField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(matrix, this.font, I18n.format("info.email.title") + ":", 36, 15, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
 
 		if(this.renderTicks > 0 && this.renderText != null && this.renderColor != null) {
-			if(this.renderTicks <= 0) clearRenderText();
+			if(this.renderTicks <= 0) this.clearRenderText();
 			this.font.drawString(matrix, this.renderText, (88 - this.font.getStringWidth(this.renderText) / 2f), 138, this.renderColor.getRGB());
 			this.renderTicks--;
 		}
 		if(this.container.renderTicks > 0 && this.container.renderText != null && this.container.renderColor != null) {
-			if(this.container.renderTicks <= 0) this.clearRenderText();
+			if(this.container.renderTicks <= 0) this.container.clearRenderText();
 			this.font.drawString(matrix, this.container.renderText, (88 - this.font.getStringWidth(this.container.renderText) / 2f), 138, this.container.renderColor.getRGB());
 			this.container.renderTicks--;
 		}
@@ -327,7 +334,7 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 			this.font.drawString(matrix, I18n.format("info.email.default_msg"), 10, 34, Color.BLACK.getRGB());
 		}
 	}
-	
+
 	@OnlyIn(Dist.CLIENT)
 	public static class NameGuiTextField extends TextFieldWidget {
 		public NameGuiTextField(FontRenderer fontrenderer, int x, int y, int par5Width, int par6Height) {
@@ -383,22 +390,9 @@ public class GuiEmailSend extends ContainerScreen<ContainerEmailSend> {
 		public void renderWidget(MatrixStack matrix, int x, int y, float t) {
 			super.renderWidget(matrix, x, y, t);
 			if("@p".equals(this.getText())) {
-				drawAlignRightString(matrix, Minecraft.getInstance().fontRenderer, I18n.format("info.email.@p"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
+				EmailUtils.drawAlignRightString(matrix, Minecraft.getInstance().fontRenderer, I18n.format("info.email.@p"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
 			}else if("@a".equals(this.getText())) {
-				drawAlignRightString(matrix, Minecraft.getInstance().fontRenderer, I18n.format("info.email.@a"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
-			}
-		}
-	}
-	
-	public static void drawAlignRightString(MatrixStack matrix, FontRenderer fr, String text, int x, int y, int color, boolean drawShadow) {
-		for(int i = text.length(); i > 0; i--) {
-			char c = text.charAt(i-1);
-			float width = fr.getStringWidth(String.valueOf(c));
-			x -= width;
-			if (drawShadow) {
-				fr.drawStringWithShadow(matrix, String.valueOf(c), x, y, color);
-			}else {
-				fr.drawString(matrix, String.valueOf(c), x, y, color);
+				EmailUtils.drawAlignRightString(matrix, Minecraft.getInstance().fontRenderer, I18n.format("info.email.@a"), this.x + this.width - 2, this.y, Color.BLACK.getRGB(), false);
 			}
 		}
 	}

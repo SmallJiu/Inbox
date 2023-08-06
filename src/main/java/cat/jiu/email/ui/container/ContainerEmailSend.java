@@ -113,8 +113,8 @@ public class ContainerEmailSend extends Container {
 	}
 
 	@Override
-	protected void clearContainer(PlayerEntity player, World world, IInventory inventory) {
-		super.clearContainer(player, world, inventory);
+	public void onContainerClosed(PlayerEntity playerIn) {
+		super.onContainerClosed(playerIn);
 		if(!this.isEmpty() && !player.getEntityWorld().isRemote()) {
 			EmailUtils.spawnAsEntity(player, this.handler);
 		}

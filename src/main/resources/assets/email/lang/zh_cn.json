@@ -2,6 +2,9 @@
   "info.config.done": "完成",
   "info.config.undo": "撤回操作",
   "info.config.reset": "重置至默认",
+  "info.config.save": "保存并退出",
+  "info.config.save.0": "使用 'Esc键' 退出但不保存配置文件",
+  "info.config.world_restart": "需要重启世界",
 
   "info.email.name": "邮箱",
   "info.email.has_unread": "你的邮箱内有 %s 封未读邮件.",
@@ -9,7 +12,7 @@
   "info.email.has_unread_and_unreceive": "你的邮箱内有 %s 封未读邮件和 %s 封未领邮件",
 
   "info.email.error.to_big.0": "§7邮箱 或 邮件内的物品 或 邮件内的物品NBT 过大，请联系管理员删除.",
-  "info.email.error.to_big.1": "§7邮件ID: %s, 槽位: %s, Size: §4%s §f/ §72097152 Bytes",
+  "info.email.error.to_big.1": "§7邮件ID: §c%s§7, 槽位: §c%s§7, Size: §c%s §7/ §c2097152 §7Bytes",
 
   #main
   "info.email.dispatch": "发送邮件",
@@ -145,24 +148,63 @@
   "email.config.msg": "消息",
   "email.config.sender": "发送者",
 
-  "email.config.infinite_size": "邮箱无限空间",
+  "email.config.pos.x": "X轴",
+  "email.config.pos.y": "Y轴",
+
+  "email.config.infinite_size": "§m邮箱无限空间",
+  "email.config.infinite_size.0": "§m启用邮箱无限空间,§r§c(1.16.5已禁止)",
+  "email.config.infinite_size.1": "§c§m警告: 只能在单人游戏启用.",
+
   "email.config.save_to_root_directory": "保存至根目录",
+  "email.config.save_to_root_directory.0": "保存邮箱至根目录,",
+  "email.config.save_to_root_directory.1": "否则保存到对应存档下.",
+
   "email.config.save_inbox_to_sql": "使用数据库保存邮箱(未完成)",
+  "email.config.save_inbox_to_sql.0": "保存邮箱文件到数据库文件(inbox.db)",
+  "email.config.save_inbox_to_sql.1": "§c警告，你可能需要备份之前的邮箱邮件(email/<uuid>.json)",
   "email.config.save_inbox_to_sql.not_load_sql": "未加载SQLite mod",
+
+  "email.config.custom_inbox_path": "保存邮箱的路径",
+  "email.config.custom_inbox_path.0": "自定义保存邮箱的路径, 默认为对应存档的文件夹",
+  "email.config.custom_inbox_path.1": "可以是绝对路径, 也可以是相对路径,",
+  "email.config.custom_inbox_path.2": "除高版本物品外, 其余与低版本邮箱兼容.",
+  "email.config.custom_inbox_path.3": "例: 'C:/' 邮箱将保存在 'C:/email/<uuid>.json', 而非 'C:/<uuid>.json', 若开启'保存至SQL', 则保存至 'C:/inboxs.db'",
+  "email.config.custom_inbox_path.4": "例: './data' 邮箱将保存在 './data/email/<uuid>.json', 而非 './data/<uuid>.json', 若开启'保存至SQL', 则保存至 'C:/inboxs.db'",
 
   "email.config.main": "主界面",
   "email.config.main.show_text_rows": "显示行数",
+  "email.config.main.show_text_rows.0": "所选中邮件的附带信息的行数",
   "email.config.main.show_text_spacing": "显示间距",
+  "email.config.main.show_text_spacing.0": "所选中邮件的附带信息的行间隔",
   "email.config.main.vanilla_wrap": "使用原版的文本换行方式",
+  "email.config.main.vanilla_wrap.0": "使用原版的文本换行方式",
+  "email.config.main.vanilla_wrap.1": "否则使用单字符换行(不考虑语法)",
 
   "email.config.main.size.width": "宽",
+  "email.config.main.size.width.0": "设置邮箱主界面的宽",
   "email.config.main.size.height": "高",
+  "email.config.main.size.height.0": "设置邮箱主界面的高",
 
-  "email.config.main.pos": "文本位置",
-  "email.config.main.pos.row": "行数",
-  "email.config.main.pos.title.time": "发送时间",
-  "email.config.main.pos.current.msgid": "邮件ID",
-  "email.config.main.pos.current.items": "物品",
+  "email.config.main.pos.candidate": "设置候选邮件的位置",
+  "email.config.main.pos.current.row": "设置所选邮件显示的行数位置",
+  "email.config.main.pos.current.msg": "设置所选邮件显示的附加消息位置",
+  "email.config.main.pos.current.sender": "设置所选邮件显示的邮件发送人位置",
+  "email.config.main.pos.current.id": "设置所选邮件显示的邮件ID位置",
+  "email.config.main.pos.current.items": "设置所选邮件显示的物品位置",
+  "email.config.main.pos.current.title": "设置所选邮件显示的标题位置",
+  "email.config.main.pos.current.time": "设置所选邮件显示的发送时间位置",
+
+  "email.config.main.num_of_words.current.msg": "所选邮件的附加消息文本长度",
+  "email.config.main.num_of_words.current.msg.0": "设置所选邮件的附加消息文本长度",
+  "email.config.main.num_of_words.current.title": "所选邮件的标题文本长度",
+  "email.config.main.num_of_words.current.title.0": "设置所选邮件的标题文本长度",
+  "email.config.main.num_of_words.current.sender": "所选邮件发送人文本长度",
+  "email.config.main.num_of_words.current.sender.0": "设置所选邮件发送人文本长度",
+
+  "email.config.main.num_of_words.candidate.sender": "设置候选邮件发送人文本长度",
+  "email.config.main.num_of_words.candidate.sender.0": "设置候选邮件发送人文本长度",
+
+  "email.config.main.num_of_words.candidate": "所选邮件显示的发送时间位置",
 
   "email.config.expiration": "邮件过期时间",
   "email.config.expiration.can": "是否可过期",
@@ -171,10 +213,25 @@
   "email.config.expiration.have_item": "包含物品的过期时间",
 
   "email.config.send.blacklist": "黑名单制",
+  "email.config.send.blacklist.0": "启用发送邮件黑名单",
+  "email.config.send.blacklist.1": "§c不能与白名单同时开启",
+
   "email.config.send.whitelist": "白名单制",
+  "email.config.send.whitelist.0": "启用发送邮件白名单",
+  "email.config.send.whitelist.1": "§c不能与黑名单同时开启",
+
   "email.config.send.send_to_self": "发给自己",
+  "email.config.send.send_to_self.0": "是否可以发邮件给自己",
+
   "email.config.send.cooling": "发送冷却",
-  "email.config.send.inbox_button": "邮箱按钮",
+  "email.config.send.cooling.0": "发送邮件后是否有冷却时间",
+
+  "email.config.send.cooling.day": "冷却时间的 天 数",
+  "email.config.send.cooling.hour": "冷却时间的 小时 数",
+  "email.config.send.cooling.minute": "冷却时间的 分钟 数",
+  "email.config.send.cooling.second": "冷却时间的 秒 数",
+  "email.config.send.cooling.tick": "冷却时间的 刻 数",
+  "email.config.send.cooling.millis": "冷却时间的 毫秒 数",
 
   "email.dev_message.sender": "某玖_Damon",
   "email.dev_message.title": "你好，%s",

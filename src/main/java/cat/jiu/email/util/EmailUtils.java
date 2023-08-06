@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.concurrent.atomic.AtomicLong;
 
 import cat.jiu.email.EmailAPI;
 import com.google.common.collect.Lists;
@@ -26,16 +25,13 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.util.element.Sound;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Inbox;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
-import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.client.Minecraft;
@@ -44,14 +40,10 @@ import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.*;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -297,7 +289,7 @@ public class EmailUtils {
 	}
 	
 	public static SizeReport checkEmailSize(Email email) {
-		if(email == null) return SizeReport.SUCCES;
+		if(email == null) return SizeReport.SUCCESS;
 		if(email.hasItems()) {
 			List<ItemStack> items = email.getItems();
 			for(int slot = 0; slot < items.size(); slot++) {
@@ -308,11 +300,11 @@ public class EmailUtils {
 			}
 		}
 		long size = getSize(email.writeTo(CompoundNBT.class));
-		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCES;
+		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCESS;
 	}
 	
 	public static SizeReport checkInboxSize(Inbox inbox) {
-		if(inbox == null || inbox.isEmptyInbox()) return SizeReport.SUCCES;
+		if(inbox == null || inbox.isEmptyInbox()) return SizeReport.SUCCESS;
 		
 		for(long id : inbox.getEmailIDs()) {
 			Email email = inbox.getEmail(id);
@@ -322,7 +314,12 @@ public class EmailUtils {
 			}
 			long emailSize = getSize(email.writeTo(CompoundNBT.class));
 			if(emailSize >= 2097152L) {
-				return new SizeReport(id, -1, emailSize);
+				SizeReport report = checkEmailSize(email);
+				if(report.slot>=0){
+					return new SizeReport(id, report.slot, report.size);
+				}else {
+					return new SizeReport(id, -1, emailSize);
+				}
 			}
 			
 			if(email.hasItems()) {
@@ -337,7 +334,7 @@ public class EmailUtils {
 		}
 		
 		long size = inbox.getInboxSize();
-		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCES;
+		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCESS;
 	}
 	
 	public static long getSize(CompoundNBT nbt) {
@@ -639,38 +636,14 @@ public class EmailUtils {
     }
 
     public static void drawAlignRightString(MatrixStack matrix, String text, int x, int y, int color, boolean drawShadow) {
-        FontRenderer fontRenderer = Minecraft.getInstance().fontRenderer;
-        for(int i = text.length(); i > 0; i--) {
-            if('§' == text.charAt(i-1)) {
-                continue;
-            }
-            if(i-2>=0 && '§' == text.charAt(i-2)) {
-                continue;
-            }
+        drawAlignRightString(matrix, Minecraft.getInstance().fontRenderer, text, x, y, color, drawShadow);
+    }
 
-            String c = String.valueOf(text.charAt(i-1));
-
-            float width = fontRenderer.getStringWidth(c);
-
-            if(i-2 > 0) {
-                boolean isColor;
-                String s = text.charAt(i-3)+""+text.charAt(i-2);
-                for(TextFormatting format : TextFormatting.values()) {
-                    isColor = format.toString().equals(s);
-                    if(isColor) {
-                        c = s + c;
-                        width = fontRenderer.getStringWidth(c);
-                        break;
-                    }
-                }
-            }
-
-            x -= width;
-            if(drawShadow){
-                fontRenderer.drawStringWithShadow(matrix, c, x, y, color);
-            }else {
-                fontRenderer.drawString(matrix, c, x, y, color);
-            }
+    public static void drawAlignRightString(MatrixStack matrix, FontRenderer fr, String text, int x, int y, int color, boolean drawShadow) {
+        if(drawShadow){
+            fr.drawStringWithShadow(matrix, text, x - fr.getStringWidth(text), y + 5, color);
+        }else {
+            fr.drawString(matrix, text, x - fr.getStringWidth(text), y + 5, color);
         }
     }
 }

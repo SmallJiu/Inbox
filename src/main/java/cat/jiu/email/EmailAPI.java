@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import cat.jiu.email.element.EmailSenderGroup;
+import cat.jiu.email.ui.gui.config.ConfigWriteEvent;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.net.msg.*;
 import com.google.common.collect.Lists;
@@ -28,10 +29,14 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.StringUtils;
 import net.minecraft.world.storage.FolderName;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber
 public class EmailAPI {
 	/**
 	 * send player email to player. sender is email sender
@@ -101,7 +106,7 @@ public class EmailAPI {
 	
 	private static boolean checkEmailSize(Inbox inbox, Email email, List<ItemStack> stacks) {
 		SizeReport report = EmailUtils.checkEmailSize(email);
-		if(!SizeReport.SUCCES.equals(report)) {
+		if(!SizeReport.SUCCESS.equals(report)) {
 			return false;
 		}
 		
@@ -122,8 +127,31 @@ public class EmailAPI {
 	
 	static String EmailPath = null;
 	static String EmailRootPath = null;
-	static String typePath = getSaveEmailRootPath() + File.separator + "email" + File.separator + "type" + File.separator;
-	static String exportPath = typePath + "export" + File.separator;
+	static String typePath = null;
+	static String exportPath = null;
+
+	@SubscribeEvent
+	public static void onConfigWrite(ConfigWriteEvent event){
+		if(event.spec == EmailConfigs.CONFIG_MAIN){
+			setRootPath();
+		}
+	}
+
+	static void setRootPath(){
+		clearEmailPath();
+		if(!StringUtils.isNullOrEmpty(EmailConfigs.Custom_Inbox_Path.get())){
+			File path = new File(EmailConfigs.Custom_Inbox_Path.get());
+			if(!path.exists()){
+				path.mkdirs();
+			}
+			if(path.isDirectory()){
+				EmailRootPath = EmailConfigs.Custom_Inbox_Path.get();
+			}else if(path.isFile()){
+				EmailRootPath = path.getParent();
+			}
+			EmailMain.log.info(String.format("Set inbox root path to: %s", EmailRootPath));
+		}
+	}
 	
 	public static String getSaveEmailRootPath() {
 		if(EmailRootPath == null) {
@@ -133,13 +161,19 @@ public class EmailAPI {
 				EmailRootPath = new File(String.valueOf(EmailMain.server.func_240776_a_(FolderName.LEVEL_DAT))).getParent();
 			}
 		}
-		
 		return EmailRootPath;
+	}
+
+	public static String getSaveInboxPath() {
+		if(EmailPath == null) {
+			EmailPath = getSaveEmailRootPath() + File.separator + "email" + File.separator;
+		}
+		return EmailPath;
 	}
 
 	public static String getTypePath() {
 		if(typePath == null) {
-			typePath = getSaveEmailRootPath() + File.separator + "email" + File.separator + "type" + File.separator;
+			typePath = getSaveInboxPath() + "type" + File.separator;
 		}
 		return typePath;
 	}
@@ -148,13 +182,6 @@ public class EmailAPI {
 			exportPath = getTypePath() + "export" + File.separator;
 		}
 		return exportPath;
-	}
-	
-	public static String getSaveInboxPath() {
-		if(EmailPath == null) {
-			EmailPath = getSaveEmailRootPath() + File.separator + "email" + File.separator;
-		}
-		return EmailPath;
 	}
 	
 	public static void clearEmailPath() {
@@ -295,9 +322,9 @@ public class EmailAPI {
 	}
 	
 	public static void sendInboxToClient(Inbox inbox, ServerPlayerEntity player) {
-		EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
 		EmailMain.execute(()->{
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), player);
-		}, 50);
+			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
+			EmailMain.execute(()-> EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), player), 50);
+		}, 100);
 	}
 }

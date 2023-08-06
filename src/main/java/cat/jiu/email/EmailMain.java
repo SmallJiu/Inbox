@@ -10,7 +10,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.fml.ExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
@@ -26,11 +25,13 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
+import java.io.File;
+
 @Mod(EmailMain.MODID)
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "2.0.0";
+                                VERSION = "1.16.5-1.0.1";
     public static final String SYSTEM = "?????";
     public static EmailNetworkHandler net;
     public static MinecraftServer server;
@@ -53,9 +54,16 @@ public class EmailMain {
     public EmailMain() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onClientSetup);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onConfigLoading);
         GuiHandler.CONTAINER_TYPE_REGISTER.register(FMLJavaModLoadingContext.get().getModEventBus());
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/email.toml");
         MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    void onConfigLoading(ModConfig.ModConfigEvent event){
+        if(MODID.equalsIgnoreCase(event.getConfig().getModId())){
+            EmailAPI.setRootPath();
+        }
     }
 
     private static int unread = 0;
@@ -81,9 +89,6 @@ public class EmailMain {
     }
     private void onClientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(GuiHandler::registerScreen);
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, ()->(mc, parent)->
-            new cat.jiu.email.ui.gui.config.GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
-        );
     }
 
     @SubscribeEvent
@@ -97,6 +102,7 @@ public class EmailMain {
     public void onServerStopped(FMLServerStoppedEvent event) {
         proxy.isServerClosed = true;
         server = null;
+        EmailAPI.setRootPath();
     }
 
     @SubscribeEvent

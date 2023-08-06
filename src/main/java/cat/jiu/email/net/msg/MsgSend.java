@@ -175,7 +175,7 @@ public class MsgSend extends BaseMessage {
 	
 	private boolean checkEmailSize(Inbox inbox, ServerPlayerEntity msgSender, List<ItemStack> stacks, boolean lock) {
 		SizeReport report = EmailUtils.checkEmailSize(this.email);
-		if(!SizeReport.SUCCES.equals(report)) {
+		if(!SizeReport.SUCCESS.equals(report)) {
 			if(msgSender!=null) {
 				if(this.group.isPlayerSend()) {
 					((ContainerEmailSend) msgSender.openContainer).putStack(stacks);

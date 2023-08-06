@@ -20,9 +20,7 @@ public class MsgUnreceived extends BaseMessage {
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(EmailMain.proxy.isClient()) {
-			EmailMain.execute(()->{
-				EmailMain.setAccept(this.accept);
-			}, 50);
+			EmailMain.setAccept(this.accept);
 		}
 		return true;
 	}

@@ -2,10 +2,9 @@ package morph.avaritia.util;
 
 import cat.jiu.email.EmailMain;
 import net.minecraft.util.text.TextFormatting;
+import static net.minecraft.util.text.TextFormatting.*;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-
-import static net.minecraft.util.text.TextFormatting.*;
 
 @OnlyIn(Dist.CLIENT)
 public class TextUtils {

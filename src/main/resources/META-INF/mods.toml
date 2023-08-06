@@ -3,7 +3,7 @@ loaderVersion="[36,)"
 license="GNU AGPL 3.0 license"
 [[mods]]
 modId="email"
-version="2.0.0"
+version="1.16.5-1.0.1"
 displayName="Email"
 logoFile="logo.png"
 credits=""

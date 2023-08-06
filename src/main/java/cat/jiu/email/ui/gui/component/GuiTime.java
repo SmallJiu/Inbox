@@ -37,24 +37,9 @@ public class GuiTime extends Screen {
 		Predicate<Character> charFilter = typedChar ->
 			"0123456789".contains(String.valueOf(typedChar));
 		
-		Predicate<Integer> keyFilter = keyCode -> {
-			switch(keyCode) {
-				case GLFW.GLFW_GAMEPAD_BUTTON_BACK:
-				case GLFW.GLFW_KEY_LEFT:
-				case GLFW.GLFW_KEY_RIGHT:
-				case GLFW.GLFW_KEY_DELETE:
-				case GLFW.GLFW_KEY_INSERT:
-				case GLFW.GLFW_KEY_HOME:
-				case GLFW.GLFW_KEY_END:
-					return true;
-				default:
-					return false;
-			}
-		};
-		
 		int width = this.fontRenderer.getStringWidth("8") * 3 + 7;
 		for (int i = 0; i < 6; i++) {
-			GuiFilterTextField field = new GuiFilterTextField("0", this.fontRenderer, 0, 0, width, this.fontRenderer.FONT_HEIGHT + 1).setTypedCharFilter(charFilter).setKeyCodeFilter(keyFilter);
+			GuiFilterTextField field = new GuiFilterTextField("0", this.fontRenderer, 0, 0, width, this.fontRenderer.FONT_HEIGHT + 1).setTypedCharFilter(charFilter);
 			field.setEnableBackgroundDrawing(false);
 			field.setMaxStringLength(4);
 			this.fields.add(this.addListener(field));
