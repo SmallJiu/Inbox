@@ -1,0 +1,27 @@
+package cat.jiu.email.net.msg;
+
+import cat.jiu.core.api.BaseMessage;
+import cat.jiu.email.EmailMain;
+
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.network.NetworkEvent;
+
+import java.util.function.Supplier;
+
+public class MsgUnread extends BaseMessage {
+	protected int unread;
+	public MsgUnread() {}
+	public MsgUnread(int unread) {
+		this.unread = unread;
+	}
+	
+	public void fromBytes(FriendlyByteBuf buf) {this.unread = buf.readInt();}
+	public void toBytes(FriendlyByteBuf buf) {buf.writeInt(this.unread);}
+	
+	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
+		if(EmailMain.proxy.isClient()) {
+			EmailMain.setUnread(this.unread);
+		}
+		return true;
+	}
+}
