@@ -60,7 +60,7 @@ class CommandEmailExport extends CommandBase {
 				throw new CommandException("email.command.export.empty_item");
 			}
 			ResourceLocation name = stack.getItem().getRegistryName();
-			String path = EmailAPI.getExportPath() + name.getResourceDomain() + "@" + name.getResourcePath() + File.separator + dateFormat.format(new Date()) + ".json";
+			String path = EmailAPI.getExportPath() + name.getNamespace() + "@" + name.getPath() + File.separator + dateFormat.format(new Date()) + ".json";
 			JsonUtil.toJsonFile(path, JsonToStackUtil.toJson(stack), false);
 			try {
 				player.sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "email.command.export.success", name.toString(), new File(path).getCanonicalPath()));

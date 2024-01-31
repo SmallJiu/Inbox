@@ -11,7 +11,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class InboxDrawEvent extends Event {
 	public static enum Type {
-		INBOX, CURRENT, CANDIDATE;
+		INBOX, CURRENT, CANDIDATE, SOUND;
 	}
 	
 	public final GuiEmailMain gui;

@@ -1,7 +1,7 @@
 [
 	{
 	 	"modid": "email",
-	 	"name": "E-mail",
+	 	"name": "Inbox",
 	 	"description": "love of small_jiu",
 	 	"version": "${version}",
 	 	"mcversion": "${mcversion}",

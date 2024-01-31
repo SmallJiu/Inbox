@@ -8,6 +8,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import scala.actors.threadpool.Arrays;
+
 public class SQLDatabase implements AutoCloseable {
 	protected final Connection connection;
 	protected final SQLDatabaseDrvier drvier;
@@ -61,6 +63,7 @@ public class SQLDatabase implements AutoCloseable {
 	 * @throws SQLException
 	 */
 	public PreparedStatement getPreparedStatement(String sql, Object[] whereArgs) throws SQLException {
+		System.out.println(sql + ": " + Arrays.toString(whereArgs));
 		PreparedStatement stmt = this.connection.prepareStatement(sql);
 		for(int i = 1; whereArgs!=null && i < whereArgs.length+1; i++) {
 			stmt.setString(i, String.valueOf(whereArgs[i-1]));

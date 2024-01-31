@@ -34,6 +34,17 @@ public final class EmailConfigs {
 			+ "§cWarning: you need backup old inbox files!")
 	public static boolean Save_Inbox_To_SQL = false;
 	
+	@Config.RequiresWorldRestart
+	@Config.LangKey("email.config.custom_inbox_path")
+	@Config.Comment({
+		"Customize the path to save the mailbox, default to the corresponding archive folder",
+		"It can be an absolute path or a relative path,",
+		"Except for higher version minecraft items, the rest are compatible with lower version email",
+		"Example: 'C:/' inbox will be saved in 'C:/email/<uuid>.json' instead of 'C:/<uuid>.json'. If 'Save to SQL' is enabled, it will be saved in 'C:/inboxes.db'",
+		"Example: '/' The 'data' inbox will be saved in '/Data/email/<uuid>.json 'instead of'/Data/<uuid>.json ', if' Save to SQL 'is enabled, it will be saved to' C:/inboxes.db '"
+	})
+	public static String Custom_Inbox_Path = "";
+	
 	@Config.LangKey("email.config.main")
 	@Config.Comment("email main")
 	public static Main Main = new Main();
@@ -165,7 +176,11 @@ public final class EmailConfigs {
 		@Config.LangKey("email.config.send.inbox_button")
 		@Config.Comment("enable send email gui inbox button")
 		public boolean Enable_Inbox_Button = false;
-		
+
+		@Config.LangKey("email.config.send.history_max")
+		@Config.Comment("send history max count")
+		public int Send_History_Max_Count = 5;
+
 		@Config.LangKey("email.config.send.cooling.time")
 		@Config.Comment("send email cooling time")
 		public Cooling cooling = new Cooling();
@@ -204,12 +219,18 @@ public final class EmailConfigs {
 	
 	@SubscribeEvent
 	public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
-		if(event.getModID().equals(EmailMain.MODID)) {
+		if(EmailMain.MODID.equals(event.getModID())) {
+			ConfigManager.sync(EmailMain.MODID, Config.Type.INSTANCE);
+		}
+	}
+	
+	@SubscribeEvent
+	public static void onConfigChanged(ConfigChangedEvent.PostConfigChangedEvent event) {
+		if(EmailMain.MODID.equals(event.getModID())) {
 			if(Send.Enable_Send_BlackList && Send.Enable_Send_WhiteList) {
 				Send.Enable_Send_BlackList = false;
 				Send.Enable_Send_WhiteList = false;
 			}
-			ConfigManager.sync(EmailMain.MODID, Config.Type.INSTANCE);
 		}
 	}
 	

@@ -16,25 +16,25 @@ import com.mojang.authlib.GameProfile;
 
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Email;
+import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.element.InboxText;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.event.EmailSendEvent.EmailSenderGroup;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.SizeReport;
 import cat.jiu.email.util.EmailUtils;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.client.Minecraft;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.server.management.PlayerList;
 import net.minecraft.util.text.TextFormatting;
 
@@ -43,7 +43,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent.Phase;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgSend implements IMessage {
+public class MsgSend extends BaseMessage {
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 	protected String addresser;
 	protected EmailSenderGroup group;
@@ -98,19 +98,8 @@ public class MsgSend implements IMessage {
 			
 			if("@a".equals(this.addresser) || "@p".equals(this.addresser)) {
 				if(sender!=null) {
-					
-					boolean isOP = false;
-					if(sender.getServer().getPlayerList().getOppedPlayers().getEntry(sender.getGameProfile()) != null) {
-						isOP = true;
-					}else if(!sender.getServer().isDedicatedServer()) {
-						if(((IntegratedServer) sender.getServer()).getPublic() && Minecraft.getMinecraft().player.getPermissionLevel() >= 4) {
-							isOP = true;
-						}
-					}
-					
-					boolean isOP_f = isOP;
 					new Thread(()->{
-						if(isOP_f) {
+						if(EmailUtils.isOP(sender)) {
 							long time = System.currentTimeMillis();
 							int sended = 0;
 							if(this.group.isPlayerSend()) {
@@ -135,7 +124,7 @@ public class MsgSend implements IMessage {
 							
 							this.sendMessage(sender, Level.INFO, "info.email.send.abs", sended, System.currentTimeMillis() - time);
 						}else {
-							this.sendMessage(sender, Level.WARN, "info.email.send.not_op", this.addresser);
+							this.sendMessage(sender, Level.ERROR, "info.email.send.not_op.abs", this.addresser);
 						}
 					}).start();
 				}
@@ -146,8 +135,12 @@ public class MsgSend implements IMessage {
 		return null;
 	}
 	
-	private void sendEmail(EntityPlayerMP sender, String addresser, boolean lock) {
-		Inbox inbox = Inbox.get(addresser);
+	private void sendEmail(EntityPlayerMP sender, String addresses, boolean lock) {
+		if(this.email.getExpirationTime()!=null && this.email.getExpirationTime().millis>0 && !EmailUtils.isOP(sender)) {
+			this.sendMessage(sender, Level.ERROR, "info.email.send.not_op.expiration");
+			return;
+		}
+		Inbox inbox = Inbox.get(addresses);
 		ContainerEmailSend container = null;
 		List<ItemStack> stacks = null;
 		if(this.group.isPlayerSend()) {
@@ -165,10 +158,10 @@ public class MsgSend implements IMessage {
 			return;
 		}
 		
-		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, this.group, addresser, this.email))) return;
+		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, this.group, addresses, this.email))) return;
 		
 		if(!inbox.isInSenderBlacklist(sender.getName())) {
-			this.sendMessage(addresser, inbox.addEmail(this.email, true), sender, lock);
+			this.sendMessage(addresses, inbox.addEmail(this.email, true), sender, lock);
 		}else {
 			if(this.group.isPlayerSend()) {
 				container.putStack(this.email.getItems());
@@ -176,18 +169,18 @@ public class MsgSend implements IMessage {
 			}
 			this.sendIsBlackMessage(sender, lock);
 		}
-		
-		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, this.group, addresser, this.email));
+
+		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, this.group, addresses, this.email));
 	}
 	
 	private boolean checkEmailSize(Inbox inbox, EntityPlayerMP msgSender, List<ItemStack> stacks, boolean lock) {
 		SizeReport report = EmailUtils.checkEmailSize(this.email);
-		if(!SizeReport.SUCCES.equals(report)) {
+		if(!SizeReport.SUCCESS.equals(report)) {
 			if(msgSender!=null) {
 				if(this.group.isPlayerSend()) {
 					((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
 					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new SendRenderText(new InboxText("info.email.error.send.to_big", report.slot, report.size)), msgSender);
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.email.error.send.to_big", report.slot, report.size)), msgSender);
 				}else {
 					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.error.send.to_big", report.slot, report.size);
 				}
@@ -203,7 +196,7 @@ public class MsgSend implements IMessage {
 				if(this.group.isPlayerSend()) {
 					((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
 					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new SendRenderText(new InboxText("info.email.error.send.to_big.email", size)), msgSender);
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.email.error.send.to_big.email", size)), msgSender);
 				}else {
 					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.error.send.to_big.email", size);
 				}
@@ -215,33 +208,34 @@ public class MsgSend implements IMessage {
 		return true;
 	}
 	
-	private void sendMessage(String addresser, boolean success, EntityPlayerMP msgSender, boolean lock) {
+	private void sendMessage(String addresses, boolean success, EntityPlayerMP msgSender, boolean lock) {
 		if(EmailMain.SYSTEM.equals(this.email.getSender().getText())
 		|| this.group.isSystemSend()) return;
 		try {
-			addresser = EmailUtils.getName(UUID.fromString(addresser));
-		}catch(Exception e) {}
-		
+			addresses = EmailUtils.getName(UUID.fromString(addresses));
+		}catch(Exception ignored) {}
+
 		if(success) {
 			if(!this.group.isSystemSend() && msgSender!=null) {
 				if(this.group.isPlayerSend()) {
 					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					Cooling.cooling(msgSender.getName());
-					EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.GREEN, new InboxText("info.email.send.success", addresser)), msgSender);
+					if(EmailConfigs.Send.Enable_Send_Cooling) Cooling.cooling(msgSender.getName());
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.email.send.success", addresses)), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, TextFormatting.GREEN, "info.email.send.success", addresser);
+					EmailUtils.sendMessage(msgSender, TextFormatting.GREEN, "info.email.send.success", addresses);
 				}
-				EntityPlayer player = getOnlinePlayer(addresser, msgSender.getServer());
+				EmailMain.net.sendMessageToPlayer(new MsgAddresseeHistory("@p".equals(this.addresser) || "@a".equals(this.addresser) ? this.addresser : addresses), msgSender);
+				EntityPlayer player = getOnlinePlayer(addresses, msgSender.getServer());
 				if(player != null) {
-					EmailUtils.sendMessage(player, "info.email.from", this.email.getSender());
+					EmailUtils.sendMessage(player, "info.email.from", this.email.getSender().getText());
 				}
 			}
-			sendLog(this.email.getSender().getText(), addresser, EmailUtils.getUUID(addresser));
+			sendLog(this.email.getSender().getText(), addresses, EmailUtils.getUUID(addresses));
 		}else {
 			if(!this.group.isSystemSend() && msgSender!=null) {
 				if(this.group.isPlayerSend()) {
 					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.RED, new InboxText("info.email.send.fail")), msgSender);
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail")), msgSender);
 				}else {
 					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.send.fail");
 				}
@@ -255,7 +249,7 @@ public class MsgSend implements IMessage {
 		if(msgSender!=null) {
 			if(this.group.isPlayerSend()) {
 				if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-				EmailMain.net.sendMessageToPlayer(new SendRenderText(Color.RED, new InboxText("info.email.send.fail.blacklist")), msgSender);
+				EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail.blacklist")), msgSender);
 			}else {
 				EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.send.fail.blacklist");
 			}
@@ -269,13 +263,12 @@ public class MsgSend implements IMessage {
 	 */
 	public static EntityPlayer getOnlinePlayer(String s, MinecraftServer server) {
 		EntityPlayer player = null;
-		if(server!=null && s!=null & !s.isEmpty()) {
-			PlayerList playerList = server.getPlayerList();
-			player = playerList.getPlayerByUsername(s);
+		if(server!=null) {
+			player = server.getPlayerList().getPlayerByUsername(s);
 			if(player==null) {
 				try {
-					player = playerList.getPlayerByUUID(UUID.fromString(s));
-				}catch(Exception e) {}
+					player = server.getPlayerList().getPlayerByUUID(UUID.fromString(s));
+				}catch(Exception ignored) {}
 			}
 		}
 		return player;
@@ -291,7 +284,7 @@ public class MsgSend implements IMessage {
 			}else {
 				color = Color.RED;
 			}
-			EmailMain.net.sendMessageToPlayer(new SendRenderText(color, new InboxText(msg, arg)), sender);
+			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(color, new Text(msg, arg)), sender);
 		}else {
 			EmailMain.log.log(level, msg.replace("%s", "{}"), arg);
 		}
@@ -301,7 +294,7 @@ public class MsgSend implements IMessage {
 		try {
 			uid = UUID.fromString(name);
 			name = EmailUtils.getName(uid);
-		}catch(Exception e) {}
+		}catch(Exception ignored) {}
 		
 		File filepath = new File("./logs/email.log");
 

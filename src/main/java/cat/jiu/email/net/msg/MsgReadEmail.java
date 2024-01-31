@@ -5,6 +5,7 @@ import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReadEvent;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.email.util.EmailUtils;
 import io.netty.buffer.ByteBuf;
@@ -16,7 +17,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgReadEmail implements IMessage {
+public class MsgReadEmail extends BaseMessage {
 	protected long msgID;
 	public MsgReadEmail() {}
 	public MsgReadEmail(long msgID) {
@@ -59,7 +60,7 @@ public class MsgReadEmail implements IMessage {
 		return null;
 	}
 	
-	public static class All implements IMessage {
+	public static class All extends BaseMessage {
 		public void fromBytes(ByteBuf buf) {}
 		public void toBytes(ByteBuf buf) {}
 		public IMessage handler(MessageContext ctx) {

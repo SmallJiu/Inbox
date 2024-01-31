@@ -2,8 +2,9 @@ package cat.jiu.email.net.msg;
 
 import java.io.IOException;
 
-import cat.jiu.email.element.InboxText;
-import cat.jiu.email.iface.IInboxText;
+import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.element.Text;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.util.EmailUtils;
 
 import io.netty.buffer.ByteBuf;
@@ -17,15 +18,15 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgSendPlayerMessage implements IMessage {
+public class MsgSendPlayerMessage extends BaseMessage {
 	private TextFormatting color;
-	private IInboxText text;
+	private IText text;
 	
 	public MsgSendPlayerMessage() {}
-	public MsgSendPlayerMessage(IInboxText text) {
+	public MsgSendPlayerMessage(IText text) {
 		this.text = text;
 	}
-	public MsgSendPlayerMessage(TextFormatting color, IInboxText text) {
+	public MsgSendPlayerMessage(TextFormatting color, IText text) {
 		this.color = color;
 		this.text = text;
 	}
@@ -36,7 +37,7 @@ public class MsgSendPlayerMessage implements IMessage {
 			NBTTagCompound nbt = new PacketBuffer(buf).readCompoundTag();
 			
 			if(nbt.hasKey("color")) this.color = TextFormatting.getValueByName(nbt.getString("color"));
-			this.text = new InboxText(nbt.getTag("text"));
+			this.text = new Text(nbt.getCompoundTag("text"));
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -47,7 +48,7 @@ public class MsgSendPlayerMessage implements IMessage {
 		NBTTagCompound nbt = new NBTTagCompound();
 		
 		if(this.color!=null) nbt.setString("color", this.color.name());
-		nbt.setTag("text", this.text.writeToNBT());
+		nbt.setTag("text", this.text.writeTo(NBTTagCompound.class));
 		
 		new PacketBuffer(buf).writeCompoundTag(nbt);
 	}

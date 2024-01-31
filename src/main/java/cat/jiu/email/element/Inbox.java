@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -44,30 +45,45 @@ public final class Inbox implements ISerializable {
 	private boolean dev;
 	private long emailHistoryCount = 0;
 	
-	private Inbox(UUID owner, NBTTagCompound inboxTag) {
-		this.owner = owner.toString();
+	private Inbox(String owner, NBTTagCompound inboxTag) {
+		this.owner = owner;
 		this.read(inboxTag);
-	}
-	private Inbox(UUID owner, JsonObject inboxJson) {
-		this(owner.toString(), inboxJson);
 	}
 	private Inbox(String owner, JsonObject inboxJson) {
 		this.owner = owner;
 		this.read(inboxJson);
 	}
+	private Inbox(String owner, ResultSet set) throws SQLException {
+		this.owner = owner;
+		this.read(set);
+	}
 	/**
 	 * @return emails id
 	 */
-	public Set<Long> getEmailIDs() {
+	public synchronized Set<Long> getEmailIDs() {
 		LinkedHashSet<Long> ids = Sets.newLinkedHashSet();
-		Sets.newLinkedHashSet(this.emails.keySet()).forEach(e->{
-			if(this.getEmail(e)==null) {
-				this.deleteEmail(e);
-			}else {
-				ids.add(e);
+		
+		Throwable exception = null;
+		do {
+			try {
+				Set<Long> remove = Sets.newHashSet();
+				this.emails.keySet().forEach(e->{
+					if(this.getEmail(e)==null) {
+						remove.add(e);
+					}else {
+						ids.add(e);
+					}
+				});
+				remove.forEach(e->{
+					this.deleteEmail(e);
+				});
+				exception = null;
+			}catch(Throwable e) {
+				exception = e;
 			}
-		});
-		return ids;
+		}while(exception != null);
+		
+		return ids.stream().sorted((id1, id2)->Long.compare(id1, id2)).collect(Collectors.toSet());
 	}
 	/**
 	 * @return true if this email list contains no emails.
@@ -125,12 +141,8 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnRead() {
 		int i = 0;
-		try {
-			for(Long id : this.getEmailIDs()) {
-				if(!this.getEmail(id).isRead()) i++;
-			}
-		}catch(Throwable e) {
-			e.printStackTrace();
+		for(long id : this.emails.keySet()) {
+			if(!this.getEmail(id).isRead()) i++;
 		}
 		return i;
 	}
@@ -140,13 +152,9 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnReceived() {
 		int i = 0;
-		try {
-			for(Long id : this.getEmailIDs()) {
-				Email email = this.getEmail(id);
-				if(email.hasItems() && !email.isReceived()) i++;
-			}
-		}catch(Throwable e) {
-			e.printStackTrace();
+		for(long id : this.emails.keySet()) {
+			Email email = this.getEmail(id);
+			if(email.hasItems() && !email.isReceived()) i++;
 		}
 		return i;
 	}
@@ -169,12 +177,10 @@ public final class Inbox implements ISerializable {
 	 * remove email by id
 	 * @return the previous email associated with id
 	 */
-	public Email deleteEmail(long id) {
-		Email old;
+	public synchronized Email deleteEmail(long id) {
+		Email old = null;
 		if(this.hasEmail(id)) {
 			old = this.emails.remove(id);
-		}else {
-			old = null;
 		}
 		return old;
 	}
@@ -202,8 +208,12 @@ public final class Inbox implements ISerializable {
 	 * @return the previous email associated with id
 	 */
 	public boolean addEmail(Email email, boolean saveToDisk) {
-		return this.emails.put(this.emailHistoryCount++, email) == null
-			&& (saveToDisk ? EmailUtils.saveInboxToDisk(this) : true);
+		long id = this.emailHistoryCount+1;
+		if(this.emails.put(id, email) == null) {
+			this.emailHistoryCount = id;
+			return saveToDisk ? EmailUtils.saveInboxToDisk(this) : true;
+		}
+		return false;
 	}
 	
 	/**
@@ -231,22 +241,43 @@ public final class Inbox implements ISerializable {
 		return this.customValue.containsKey(key);
 	}
 	
+	/**
+	 * @return inbox custom value
+	 */
 	public HashMap<String, Object> getCustomValue() {
 		return Maps.newHashMap(customValue);
 	}
 	
+	/**
+	 * add sender blacklist to inbox
+	 * @param name the sender name
+	 */
 	public void addSenderBlacklist(String name) {
 		this.senderBlacklist.add(name);
 	}
 	
+	/**
+	 * remove sender blacklist from inbox
+	 * @param name the sender name
+	 * @return true if remove success
+	 */
 	public boolean removeSenderBlacklist(String name) {
 		return this.senderBlacklist.remove(name);
 	}
 	
+	/**
+	 * check sender name is in blacklist
+	 * @param name the sender name
+	 * @return true if name in blacklist
+	 */
 	public boolean isInSenderBlacklist(String name) {
 		return this.senderBlacklist.contains(name);
 	}
 	
+	/**
+	 * get sender blacklist
+	 * @return
+	 */
 	public ArrayList<String> getSenderBlacklist() {
 		return Lists.newArrayList(senderBlacklist);
 	}
@@ -277,6 +308,7 @@ public final class Inbox implements ISerializable {
 	private Inbox readFromDisk(JsonObject json) {
 		this.emails.clear();
 		this.customValue.clear();
+		this.senderBlacklist.clear();
 		this.dev = false;
 		this.readFrom(json);
 		return this;
@@ -362,6 +394,7 @@ public final class Inbox implements ISerializable {
 					}
 				}
 			}
+			
 			this.emailHistoryCount = this.emails.size();
 			if(json.has("historySize")) {
 				long historySize = json.get("historySize").getAsLong();
@@ -370,6 +403,11 @@ public final class Inbox implements ISerializable {
 				}
 			}
 			
+			long emailMaxID = 0;
+			for(Entry<Long, Email> id : this.emails.entrySet()) {
+				emailMaxID = Math.max(emailMaxID, id.getKey());
+			}
+			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
 		}
 	}
 
@@ -449,6 +487,11 @@ public final class Inbox implements ISerializable {
 					this.emailHistoryCount = historySize;
 				}
 			}
+			long emailMaxID = 0;
+			for(Entry<Long, Email> id : this.emails.entrySet()) {
+				emailMaxID = Math.max(emailMaxID, id.getKey());
+			}
+			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
 			
 			if(nbt.hasKey("blacklist")) {
 				nbt.getTagList("blacklist", 8).forEach(s->{
@@ -464,8 +507,8 @@ public final class Inbox implements ISerializable {
 	@Override
 	public SQLValues write(SQLValues value) {
 		if(value==null) value = new SQLValues();
-		value.put("uuid", this.getOwner());
-		value.put("inbox", this.writeTo(JsonObject.class));
+		value.put("uuid", "'" + this.getOwner() + "'");
+		value.put("inbox", "'" + this.writeTo(JsonObject.class) + "'");
 		return value;
 	}
 	
@@ -582,7 +625,7 @@ public final class Inbox implements ISerializable {
 			inbox.senderBlacklist.clear();
 			inbox.read(inboxTag);
 		}else {
-			inbox = new Inbox(uid, inboxTag);
+			inbox = new Inbox(uid.toString(), inboxTag);
 			inboxCache.put(uid.toString(), inbox);
 		}
 		checkExpirationEmail(inbox);
@@ -601,7 +644,29 @@ public final class Inbox implements ISerializable {
 		if(inboxCache.containsKey(uid.toString())) {
 			inbox = inboxCache.get(uid.toString()).readFromDisk(inboxJson);
 		}else {
-			inbox = new Inbox(uid, inboxJson);
+			inbox = new Inbox(uid.toString(), inboxJson);
+			inboxCache.put(uid.toString(), inbox);
+		}
+		checkExpirationEmail(inbox);
+		return inbox;
+	}
+	
+	/**
+	 * get inbox from json
+	 * @param uid the owner
+	 * @param set the inbox serialize data
+	 * @return the inbox
+	 * @throws SQLException 
+	 */
+	public static Inbox get(@Nonnull UUID uid, ResultSet set) throws SQLException {
+		if(set==null)return null;
+		
+		Inbox inbox;
+		if(inboxCache.containsKey(uid.toString())) {
+			inbox = inboxCache.get(uid.toString());
+			inbox.read(set);
+		}else {
+			inbox = new Inbox(uid.toString(), set);
 			inboxCache.put(uid.toString(), inbox);
 		}
 		checkExpirationEmail(inbox);
@@ -612,8 +677,7 @@ public final class Inbox implements ISerializable {
 		long sys = System.currentTimeMillis();
 		boolean hasExpiration = false;
 		for(Long id : inbox.getEmailIDs()) {
-			Email email = inbox.getEmail(id);
-			if(email.getExpirationTime()!=null && sys >= email.getExpirationTimeAsTimestamp()) {
+			if(inbox.getEmail(id).isExpiration(sys)) {
 				inbox.deleteEmail(id);
 				hasExpiration = true;
 			}

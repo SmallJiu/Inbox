@@ -6,6 +6,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerInboxBlacklist;
 
 import io.netty.buffer.ByteBuf;
@@ -20,7 +21,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgRefreshBlacklist implements IMessage {
+public class MsgRefreshBlacklist extends BaseMessage {
 	private final List<String> senderBlacklist = Lists.newArrayList();
 	public MsgRefreshBlacklist() {}
 	public MsgRefreshBlacklist(Inbox inbox) {
@@ -62,7 +63,7 @@ public class MsgRefreshBlacklist implements IMessage {
 		return null;
 	}
 	
-	public static class Refresh implements IMessage {
+	public static class Refresh extends BaseMessage {
 		public void fromBytes(ByteBuf buf) {}
 		public void toBytes(ByteBuf buf) {}
 		public IMessage handler(MessageContext ctx) {

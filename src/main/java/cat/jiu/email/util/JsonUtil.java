@@ -1,19 +1,9 @@
 package cat.jiu.email.util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import com.google.gson.*;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import java.io.*;
+import java.nio.file.Files;
 
 @SuppressWarnings("unchecked")
 public final class JsonUtil {
@@ -57,7 +47,7 @@ public final class JsonUtil {
 	        if (file.exists()) file.delete();
 	        
 	        file.createNewFile();
-	        OutputStreamWriter write = new OutputStreamWriter(new FileOutputStream(file));
+	        OutputStreamWriter write = new OutputStreamWriter(Files.newOutputStream(file.toPath()));
             write.write(format ? formatJson(json) : json);
             write.flush();
             write.close();
@@ -153,7 +143,7 @@ public final class JsonUtil {
 	}
 	
 	private static String indent(int number) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         for (int i = 0; i < number; i++) {
             result.append("	");
         }

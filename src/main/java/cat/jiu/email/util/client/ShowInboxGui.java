@@ -41,7 +41,7 @@ public class ShowInboxGui {
 	
 	static final ResourceLocation send_email = new ResourceLocation(EmailMain.MODID, "textures/gui/send_email.png");
 	static final ResourceLocation send_email_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/send_email_hover.png");
-	static final ResourceLocation inbox = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min.png");
+	public static final ResourceLocation inbox = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min.png");
 	static final ResourceLocation inbox_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min_hover.png");
 	static final ResourceLocation email = new ResourceLocation(EmailMain.MODID, "textures/gui/email.png");
 	
@@ -93,7 +93,7 @@ public class ShowInboxGui {
 				if(this.tick >= 5) this.tick = 0;
 				this.tick++;
 			}
-			if(GuiEmailMain.isInRange(mouseX, mouseY, this.x, this.y, this.width, this.height)) {
+			if(this.hovered) {
 				this.gui.drawHoveringText(super.displayString, mouseX, mouseY);
 			}
 		}

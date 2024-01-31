@@ -1,7 +1,7 @@
 package cat.jiu.email.util;
 
 public class SizeReport {
-	public static final SizeReport SUCCES = new SizeReport(-1, -1, 0);
+	public static final SizeReport SUCCESS = new SizeReport(-1, -1, 0);
 	public final long id;
 	public final int slot;
 	public final long size;

@@ -4,6 +4,7 @@ import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailDeleteEvent;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.util.EmailUtils;
 import io.netty.buffer.ByteBuf;
 
@@ -14,7 +15,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgDeleteEmail {
-	public static class Delete implements IMessage {
+	public static class Delete extends BaseMessage {
 		protected long msgID;
 		public Delete() {}
 		public Delete(long msgID) {
@@ -43,7 +44,7 @@ public class MsgDeleteEmail {
 		}
 	}
 	
-	public static class AllRead implements IMessage {
+	public static class AllRead extends BaseMessage {
 		public AllRead() {}
 		public void fromBytes(ByteBuf buf) {}
 		public void toBytes(ByteBuf buf) {}
@@ -71,7 +72,7 @@ public class MsgDeleteEmail {
 			return null;
 		}
 	}
-	public static class AllReceive implements IMessage {
+	public static class AllReceive extends BaseMessage {
 		public AllReceive() {}
 		public void fromBytes(ByteBuf buf) {}
 		public void toBytes(ByteBuf buf) {}

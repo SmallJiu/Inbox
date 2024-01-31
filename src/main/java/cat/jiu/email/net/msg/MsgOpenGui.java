@@ -3,6 +3,7 @@ package cat.jiu.email.net.msg;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 
 import io.netty.buffer.ByteBuf;
@@ -13,7 +14,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgOpenGui implements IMessage {
+public class MsgOpenGui extends BaseMessage {
 	protected int guiID;
 	public MsgOpenGui() {}
 	public MsgOpenGui(int guiID) {

@@ -3,7 +3,6 @@ package cat.jiu.email;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import cat.jiu.core.api.handler.IFunction;
 import cat.jiu.email.command.EmailCommands;
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Inbox;
@@ -36,15 +35,14 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 	name = EmailMain.NAME,
 	version = EmailMain.VERSION,
 	useMetadata = true,
-	guiFactory = "cat.jiu.email.util.client.ConfigGuiFactory",
-	dependencies = "after:jiucore"
+	guiFactory = "cat.jiu.email.util.client.ConfigGuiFactory"
 )
 @Mod.EventBusSubscriber
 public class EmailMain {
 	public static final String MODID = "email";
-	public static final String NAME = "E-mail";
+	public static final String NAME = "Inbox";
 	public static final String OWNER = "small_jiu";
-	public static final String VERSION = "1.0.3-a1";
+	public static final String VERSION = "1.0.3-a2";
 	public static final EmailNetworkHandler net = new EmailNetworkHandler();
 	public static final Logger log = LogManager.getLogger("Email");
 	public static final String SYSTEM = "?????";
@@ -59,10 +57,10 @@ public class EmailMain {
 		EmailMain.unread = unread;
 	}
 	
-	private static int unaccept = 0;
-	public static int getUnaccept() {return unaccept;}
-	public static void setAccept(int unaccept) {
-		EmailMain.unaccept = unaccept;
+	private static int unaccepted = 0;
+	public static int getUnaccept() {return unaccepted;}
+	public static void setAccept(int unaccepted) {
+		EmailMain.unaccepted = unaccepted;
 	}
 	
 	@SidedProxy(
@@ -76,7 +74,7 @@ public class EmailMain {
 		try {
 			Class.forName("org.sqlite.JDBC");
 			init = true;
-		}catch(Exception e) {}
+		}catch(Exception ignored) {}
 		SQLite_INIT = init;
 	}
 	
@@ -93,6 +91,7 @@ public class EmailMain {
 	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
 		proxy.init(event);
+		EmailAPI.setRootPath();
 	}
 
 	@Mod.EventHandler
@@ -111,6 +110,7 @@ public class EmailMain {
 		server = null;
 		Inbox.clearCache();
 		isServerClosed = true;
+		EmailAPI.setRootPath();
 	}
 	
 	@SubscribeEvent
@@ -119,34 +119,31 @@ public class EmailMain {
 		if(!player.world.isRemote) {
 			NBTTagCompound entityNBT = player.getEntityData();
 			
-			int time = 0;
-			if(entityNBT.hasKey("Email_UnAcceptTime")) {
-				time = entityNBT.getInteger("Email_UnAcceptTime");
-			}
+			int time = entityNBT.getInteger("Email_UnAcceptTime");
 			
 			if(time <= 0) {
 				time = (int) EmailUtils.parseTick(0,0,0,15, 0);
 				Inbox inbox = Inbox.get(player);
 				if(inbox != null) {
 					int unread = inbox.getUnRead();
-					int unreceive = inbox.getUnReceived();
+					int unreceived = inbox.getUnReceived();
 					if(unread > 0) {
-						if(unreceive > 0) {
-							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread_and_unreceive", unread, unreceive), true);
-							net.sendMessageToPlayer(new MsgUnreceive(unreceive), (EntityPlayerMP) player);
+						if(unreceived > 0) {
+							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread_and_unreceive", unread, unreceived), true);
+							net.sendMessageToPlayer(new MsgUnreceive(unreceived), (EntityPlayerMP) player);
 							net.sendMessageToPlayer(new MsgUnread(unread), (EntityPlayerMP) player);
 						}else {
 							net.sendMessageToPlayer(new MsgUnread(unread), (EntityPlayerMP) player);
 							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread", unread), true);
 						}
-					}else if(unreceive > 0) {
+					}else if(unreceived > 0) {
 						if(unread > 0) {
-							net.sendMessageToPlayer(new MsgUnreceive(unreceive), (EntityPlayerMP) player);
+							net.sendMessageToPlayer(new MsgUnreceive(unreceived), (EntityPlayerMP) player);
 							net.sendMessageToPlayer(new MsgUnread(unread), (EntityPlayerMP) player);
-							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread_and_unreceive", unread, unreceive), true);
+							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unread_and_unreceive", unread, unreceived), true);
 						}else {
-							net.sendMessageToPlayer(new MsgUnreceive(unreceive), (EntityPlayerMP) player);
-							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unreceive", unreceive), true);
+							net.sendMessageToPlayer(new MsgUnreceive(unreceived), (EntityPlayerMP) player);
+							player.sendStatusMessage(new TextComponentTranslation("info.email.has_unreceive", unreceived), true);
 						}
 					}
 				}
@@ -158,8 +155,8 @@ public class EmailMain {
 	}
 	
 	// for network delay, need send after
-	public static void execute(IFunction function) {execute(function, 50);}
-	public static void execute(IFunction function, long delay) {
+	public static void execute(Runnable function) {execute(function, 50);}
+	public static void execute(Runnable function, long delay) {
 		new Thread(()->{
 			try {Thread.sleep(delay);}catch(InterruptedException e) { e.printStackTrace();}
 			function.run();

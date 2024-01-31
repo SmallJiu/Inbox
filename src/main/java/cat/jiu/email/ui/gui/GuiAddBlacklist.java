@@ -57,9 +57,7 @@ public class GuiAddBlacklist extends GuiContainer {
 					if(!EmailAPI.isInBlockReceiveWhitelist(name)) {
 						EmailMain.net.sendMessageToServer(new MsgBlacklist.Add(name));
 						Minecraft.getMinecraft().player.sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.email.black.add.success", name));
-						EmailMain.execute(a->{
-							mc.displayGuiScreen(parent);
-						}, 10);
+						mc.displayGuiScreen(parent);
 					}else {
 						Minecraft.getMinecraft().player.sendMessage(EmailUtils.createTextComponent(TextFormatting.YELLOW, "info.email.black.add.fail.whitelist"));
 					}

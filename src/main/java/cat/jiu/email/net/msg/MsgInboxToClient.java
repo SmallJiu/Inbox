@@ -11,7 +11,9 @@ import com.google.common.collect.Maps;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerEmailMain;
+import cat.jiu.email.ui.gui.GuiEmailMain;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.SizeReport;
 import cat.jiu.email.util.EmailUtils;
@@ -21,7 +23,6 @@ import io.netty.buffer.ByteBufInputStream;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.inventory.Container;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTSizeTracker;
@@ -30,14 +31,15 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgInboxToClient implements IMessage {
+public class MsgInboxToClient extends BaseMessage {
 	protected Inbox inbox;
-	protected SizeReport report = SizeReport.SUCCES;
+	protected SizeReport report = SizeReport.SUCCESS;
 	public MsgInboxToClient() {}
 	public MsgInboxToClient(@Nonnull Inbox inbox) {
 		this.inbox = inbox;
@@ -102,7 +104,7 @@ public class MsgInboxToClient implements IMessage {
 			pb.writeCompoundTag(nbt);
 		}else {
 			SizeReport report = EmailUtils.checkInboxSize(this.inbox);
-			if(!SizeReport.SUCCES.equals(report)) {
+			if(!SizeReport.SUCCESS.equals(report)) {
 				NBTTagCompound nbt = new NBTTagCompound();
 				
 				nbt.setBoolean("ToBig", true);
@@ -132,23 +134,26 @@ public class MsgInboxToClient implements IMessage {
 			EntityPlayerSP player = Minecraft.getMinecraft().player;
 			Container con = player.openContainer;
 			if(con instanceof ContainerEmailMain) {
-				if(!SizeReport.SUCCES.equals(this.report)) {
+				if(!SizeReport.SUCCESS.equals(this.report)) {
 					player.sendMessage(new TextComponentString(TextFormatting.GRAY + "---------------------------------------------"));
-					player.sendMessage(new TextComponentString(I18n.format("info.email.error.to_big.0")));
-					player.sendMessage(new TextComponentString(I18n.format("info.email.error.to_big.1", this.report.id, this.report.slot, this.report.size)));
+					player.sendMessage(new TextComponentTranslation("info.email.error.to_big.0"));
+					player.sendMessage(new TextComponentTranslation("info.email.error.to_big.1", this.report.id, this.report.slot, this.report.size));
 					player.closeScreen();
 				}else {
 					EmailMain.setUnread(this.inbox.getUnRead());
 					EmailMain.setAccept(this.inbox.getUnReceived());
 					((ContainerEmailMain) con).setInbox(this.inbox);
 					((ContainerEmailMain) con).setRefresh(false);
+					if(Minecraft.getMinecraft().currentScreen instanceof GuiEmailMain) {
+						((GuiEmailMain) Minecraft.getMinecraft().currentScreen).goEmail(0);
+					}
 				}
 			}
 		}
 		return null;
 	}
 	
-	public static class MsgOtherToClient implements IMessage {
+	public static class MsgOtherToClient extends BaseMessage {
 		private final Map<String, Object> customValue = Maps.newHashMap();
 		private final List<String> senderBlacklist = Lists.newArrayList();
 		public MsgOtherToClient() {}

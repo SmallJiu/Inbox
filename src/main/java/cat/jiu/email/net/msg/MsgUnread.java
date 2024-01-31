@@ -1,13 +1,13 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.email.EmailMain;
-
+import cat.jiu.email.net.BaseMessage;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgUnread implements IMessage {
+public class MsgUnread extends BaseMessage {
 	protected int unread;
 	public MsgUnread() {}
 	public MsgUnread(int unread) {
@@ -19,9 +19,7 @@ public class MsgUnread implements IMessage {
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {
-			EmailMain.execute(args->{
-				EmailMain.setUnread(this.unread);
-			}, 100);
+			EmailMain.setUnread(this.unread);
 		}
 		return null;
 	}

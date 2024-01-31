@@ -1,53 +1,225 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-        maven { 
-			name = 'forge'
-			url = "https://files.minecraftforge.net/maven" 
-		}
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-    }
+import org.jetbrains.gradle.ext.Gradle
+
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.7'
+    id 'eclipse'
+    id 'com.gtnewhorizons.retrofuturagradle' version '1.3.24'
+    id 'com.matthewprenger.cursegradle' version '1.4.0'
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "1.0.3-a1"
-group = "cat.jiu.email"
-archivesBaseName = "Email"
+version = project.mod_version
+group = project.maven_group
+archivesBaseName = project.archives_base_name
 
-sourceCompatibility = targetCompatibility = '1.8'
-compileJava {
-    sourceCompatibility = targetCompatibility = '1.8'
+// Set the toolchain version to decouple the Java we run Gradle with from the Java used to compile and run the mod
+// 设置工具链版本，将我们运行Gradle的Java与用于编译和运行mod的Java解耦
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+        // Azul covers the most platforms for Java 8 toolchains, crucially including MacOS arm64
+        // Azul涵盖了Java 8工具链的大多数平台，关键是包括MacOS arm64
+        vendor.set(org.gradle.jvm.toolchain.JvmVendorSpec.AZUL)
+    }
+    // Generate sources and javadocs jars when building and publishing
+    // 在构建和发布时生成源代码和javadocs-jar
+//    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+configurations {
+    embed
+    implementation.extendsFrom(embed)
 }
 
 minecraft {
-    version = "1.12.2-14.23.5.2847"
-    runDir = "run"
-    mappings = "snapshot_20171003"
+    mcVersion = '1.12.2'
+
+    // MCP Mappings
+    mcpMappingChannel = 'stable'
+    mcpMappingVersion = '39'
+    
+    // Set username here, the UUID will be looked up automatically
+    username = 'small_jiu'
+    
+    // Add any additional tweaker classes here
+    // 在此处添加任何其他Tweaker类
+    // extraTweakClasses.add('org.spongepowered.asm.launch.MixinTweaker')
+    
+    // Add various JVM arguments here for runtime
+    // 在此处为运行时添加各种JVM参数
+    def args = ["-ea:${project.group}"]
+    if (project.use_coremod.toBoolean()) {
+        args << '-Dfml.coreMods.load=' + coremod_plugin_class_name
+    }
+    if (project.use_mixins.toBoolean()) {
+        args << '-Dmixin.hotSwap=true'
+        args << '-Dmixin.checks.interfaces=true'
+        args << '-Dmixin.debug.export=true'
+    }
+    extraRunJvmArguments.addAll(args)
+
+    // Include and use dependencies' Access Transformer files
+    // 包括和使用依赖项的Access Transformer文件
+    useDependencyAccessTransformers = true
+    
+    // Add any properties you want to swap out for a dynamic value at build time here
+    // Any properties here will be added to a class at build time, the name can be configured below
+    // 在此处添加要在生成时交换为动态值的任何属性
+    // 这里的任何属性都将在生成时添加到类中，可以在下面配置名称
+    // Example:
+    // injectedTags.put('VERSION', project.version)
+    // injectedTags.put('MOD_ID', project.archives_base_name)
+
+    runClient.setWorkingDir("./run/client")
+    runServer.setWorkingDir("./run/server")
+    runObfClient.setWorkingDir(runClient.getWorkingDir())
+    runObfServer.setWorkingDir(runServer.getWorkingDir())
 }
 
-jar {
-	manifest {
-        attributes([
-			"FMLAT": "email_at.cfg",
-			"Rsrc-Class-Path": "./ gson-2.8.0.jar",
-			"Class-Path": ".",
-			"Rsrc-Main-Class": "cat.jiu.email.FormatUtil",
-			"Main-Class": "org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"
-        ])
+// Generate a group.archives_base_name.Tags class
+//
+tasks.injectTags.configure {
+    // Change Tags class' name here:
+    outputClassName.set("${project.group}.${project.archives_base_name}.Tags")
+}
+
+repositories {
+    maven {
+        name 'CleanroomMC Maven'
+        url 'https://maven.cleanroommc.com'
+    }
+    maven {
+        name 'SpongePowered Maven'
+        url 'https://repo.spongepowered.org/maven'
+    }
+    maven {
+        name 'CurseMaven'
+        url 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+    maven {
+        name "CoFH Maven"
+        url "https://maven.covers1624.net"
+    }
+    mavenLocal() // Must be last for caching to work
+}
+
+dependencies {
+    if (project.use_assetmover.toBoolean()) {
+        implementation 'com.cleanroommc:assetmover:2.5'
+    }
+    if (project.use_mixins.toBoolean()) {
+        implementation 'zone.rong:mixinbooter:7.1'
+        // Change your mixin refmap name here:
+        String mixin = modUtils.enableMixins('org.spongepowered:mixin:0.8.3', "mixins.${project.archives_base_name}.refmap.json")
+        api (mixin) {
+            transitive = false
+        }
+        annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
+        annotationProcessor 'com.google.guava:guava:24.1.1-jre'
+        annotationProcessor 'com.google.code.gson:gson:2.8.6'
+        annotationProcessor (mixin) {
+            transitive = false
+        }
+    }
+
+    implementation fileTree(dir:'./libs', include:[
+            'ForgeSQLite-v1.8_v1.12.2.jar'
+    ])
+}
+
+// Adds Access Transformer files to tasks
+if (project.use_access_transformer.toBoolean()) {
+    for (File at : sourceSets.getByName("main").resources.files) {
+        if (at.name.toLowerCase().endsWith("_at.cfg")) {
+            tasks.deobfuscateMergedJarToSrg.accessTransformerFiles.from(at)
+            tasks.srgifyBinpatchedJar.accessTransformerFiles.from(at)
+        }
     }
 }
 
 processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+    // This will ensure that this task is redone when the versions change
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', project.minecraft.version
+    
+    // Replace various properties in mcmod.info and pack.mcmeta if applicable
+    filesMatching(['mcmod.info', 'pack.mcmeta']) { fcd ->
+        // Replace version and mcversion
+        fcd.expand (
+                'version': project.version,
+                'mcversion': project.minecraft.version
+        )
     }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    
+    if (project.use_access_transformer.toBoolean()) {
+        rename '(.+_at.cfg)', 'META-INF/$1' // Make sure Access Transformer files are in META-INF folder
     }
+}
+
+jar {
+    manifest {
+        def attribute_map = [:]
+        if (project.use_coremod.toBoolean()) {
+            attribute_map['FMLCorePlugin'] = project.coremod_plugin_class_name
+            if (project.include_mod.toBoolean()) {
+                attribute_map['FMLCorePluginContainsFMLMod'] = true
+                attribute_map['ForceLoadAsMod'] = project.gradle.startParameter.taskNames[0] == "build"
+            }
+        }
+        if (project.use_access_transformer.toBoolean()) {
+            attribute_map['FMLAT'] = project.archives_base_name + '_at.cfg'
+        }
+        attributes(attribute_map)
+    }
+    // Add all embedded dependencies into the jar
+    from(provider{ configurations.embed.collect {it.isDirectory() ? it : zipTree(it)} })
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+    project {
+        settings {
+            runConfigurations {
+                "0. Build Mod"(Gradle) {
+                    taskNames = ["build"]
+                }
+                "1. Run Client"(Gradle) {
+                    taskNames = ["runClient"]
+                }
+                "2. Run Server"(Gradle) {
+                    taskNames = ["runServer"]
+                }
+                "3. Run Obfuscated Client"(Gradle) {
+                    taskNames = ["runObfClient"]
+                }
+                "4. Run Obfuscated Server"(Gradle) {
+                    taskNames = ["runObfServer"]
+                }
+            }
+            compiler.javac {
+                afterEvaluate {
+                    javacAdditionalOptions = "-encoding utf8"
+                    moduleJavacAdditionalOptions = [
+                            (project.name + ".main"): tasks.compileJava.options.compilerArgs.collect { '"' + it + '"' }.join(' ')
+                    ]
+                }
+            }
+        }
+    }
+}
+
+tasks.named("processIdeaSettings").configure {
+    dependsOn("injectTags")
 }

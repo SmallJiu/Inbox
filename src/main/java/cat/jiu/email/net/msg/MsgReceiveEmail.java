@@ -6,6 +6,7 @@ import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReceiveEvent;
+import cat.jiu.email.net.BaseMessage;
 import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
@@ -21,7 +22,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MsgReceiveEmail  {
-	public static class Receive implements IMessage {
+	public static class Receive extends BaseMessage {
 		protected long msgID;
 		public Receive() {}
 		public Receive(long msgID) {
@@ -67,7 +68,7 @@ public class MsgReceiveEmail  {
 		}
 	}
 	
-	public static class All implements IMessage {
+	public static class All extends BaseMessage {
 		public void fromBytes(ByteBuf buf) {}
 		public void toBytes(ByteBuf buf) {}
 		public IMessage handler(MessageContext ctx) {

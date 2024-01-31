@@ -3,6 +3,7 @@ package cat.jiu.email.net.msg;
 import java.io.IOException;
 
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.net.BaseMessage;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -11,7 +12,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public abstract class MsgBlacklist implements IMessage {
+public abstract class MsgBlacklist extends BaseMessage {
 	protected String name;
 	public MsgBlacklist() {}
 	public MsgBlacklist(String name) {

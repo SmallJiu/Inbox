@@ -1,0 +1,54 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { 
+			name = 'forge'
+			url = "https://files.minecraftforge.net/maven" 
+		}
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = "1.0.4-a0"
+group = "cat.jiu.email"
+archivesBaseName = "Email"
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+minecraft {
+    version = "1.12.2-14.23.5.2847"
+    runDir = "run"
+    mappings = "snapshot_20171003"
+	//makeObfSourceJar = false
+}
+
+jar {
+	manifest {
+        attributes([
+			"FMLAT": "email_at.cfg",
+			"Rsrc-Class-Path": "./ gson-2.8.0.jar",
+			"Class-Path": ".",
+			"Rsrc-Main-Class": "cat.jiu.email.FormatUtil",
+			"Main-Class": "org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"
+        ])
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}

@@ -8,12 +8,14 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailAPI;
-import cat.jiu.email.iface.IInboxText;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonUtil;
 import cat.jiu.email.util.TimeMillis;
+
 import net.minecraftforge.common.MinecraftForge;
 
 public class Cooling {
@@ -50,7 +52,7 @@ public class Cooling {
 		}
 		return 0;
 	}
-	public static IInboxText getLastCoolingTimeText(String name) {
+	public static IText getLastCoolingTimeText(String name) {
 		if(isCooling(name)) {
 			long last = getLastCoolingTimeMillis(name);
 			long t_t = last % 1000;
@@ -75,9 +77,9 @@ public class Cooling {
 			 String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			 String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
 			 String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
-			 return new InboxText("info.email.cooling", d, h, m, s, t);
+			 return new Text("info.email.cooling", d, h, m, s, t);
 		}
-		return InboxText.empty;
+		return Text.empty;
 	}
 	
 	public static void save() {

@@ -6,6 +6,6 @@ import java.sql.SQLException;
 import cat.jiu.sql.SQLValues;
 
 public interface ISQLSerializable {
-	SQLValues write(SQLValues value);
-	void read(ResultSet result) throws SQLException;
+	default SQLValues write(SQLValues value) {return value;}
+	default void read(ResultSet result) throws SQLException{}
 }

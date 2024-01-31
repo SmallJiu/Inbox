@@ -12,46 +12,54 @@ import net.minecraftforge.fml.relauncher.Side;
 
 public class EmailNetworkHandler {
 	private final SimpleNetworkWrapper channel;
+	
 	private static int ID = 0;
-
 	private static int nextID() {
 		return ID++;
 	}
 	
 	public EmailNetworkHandler() {
+		ID = 0; 
 		this.channel = NetworkRegistry.INSTANCE.newSimpleChannel(EmailMain.MODID);
 
-		this.channel.registerMessage(MsgOpenGui::handler, MsgOpenGui.class, nextID(), Side.CLIENT);
-		this.channel.registerMessage(MsgOpenGui::handler, MsgOpenGui.class, nextID(), Side.SERVER);
+		this.register(MsgOpenGui.class, Side.CLIENT, Side.SERVER);
 		
-		this.channel.registerMessage(MsgDeleteEmail.Delete::handler, MsgDeleteEmail.Delete.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgDeleteEmail.AllRead::handler, MsgDeleteEmail.AllRead.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgDeleteEmail.AllReceive::handler, MsgDeleteEmail.AllReceive.class, nextID(), Side.SERVER);
+		this.register(MsgDeleteEmail.Delete.class, Side.SERVER);
+		this.register(MsgDeleteEmail.AllRead.class, Side.SERVER);
+		this.register(MsgDeleteEmail.AllReceive.class, Side.SERVER);
 		
-		this.channel.registerMessage(MsgReceiveEmail.Receive::handler, MsgReceiveEmail.Receive.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgReceiveEmail.All::handler, MsgReceiveEmail.All.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgUnreceive::handler, MsgUnreceive.class, nextID(), Side.CLIENT);
+		this.register(MsgReceiveEmail.Receive.class, Side.SERVER);
+		this.register(MsgReceiveEmail.All.class, Side.SERVER);
+		this.register(MsgUnreceive.class, Side.CLIENT);
 		
-		this.channel.registerMessage(MsgInboxToClient::handler, MsgInboxToClient.class, nextID(), Side.CLIENT);
-		this.channel.registerMessage(MsgInboxToClient.MsgOtherToClient::handler, MsgInboxToClient.MsgOtherToClient.class, nextID(), Side.CLIENT);
+		this.register(MsgInboxToClient.class, Side.CLIENT);
+		this.register(MsgInboxToClient.MsgOtherToClient.class, Side.CLIENT);
 		
-		this.channel.registerMessage(MsgSend::handler, MsgSend.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(SendRenderText::handler, SendRenderText.class, nextID(), Side.CLIENT);
-		this.channel.registerMessage(SendCooling::handler, SendCooling.class, nextID(), Side.CLIENT);
+		this.register(MsgSend.class, Side.SERVER);
+		this.register(MsgSendRenderText.class, Side.CLIENT);
+		this.register(MsgAddresseeHistory.class, Side.CLIENT);
+		this.register(MsgSendCooling.class, Side.CLIENT);
+		this.register(MsgPlayerPermissionLevel.class, Side.CLIENT);
 		
-		this.channel.registerMessage(MsgReadEmail::handler, MsgReadEmail.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgReadEmail.All::handler, MsgReadEmail.All.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgUnread::handler, MsgUnread.class, nextID(), Side.CLIENT);
+		this.register(MsgReadEmail.class, Side.SERVER);
+		this.register(MsgReadEmail.All.class, Side.SERVER);
+		this.register(MsgUnread.class, Side.CLIENT);
 		
-		this.channel.registerMessage(MsgSendPlayerMessage::handler, MsgSendPlayerMessage.class, nextID(), Side.CLIENT);
+		this.register(MsgSendPlayerMessage.class, Side.CLIENT);
 		
-		this.channel.registerMessage(MsgBlacklist.Add::handler, MsgBlacklist.Add.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgBlacklist.Remove::handler, MsgBlacklist.Remove.class, nextID(), Side.SERVER);
+		this.register(MsgBlacklist.Add.class, Side.SERVER);
+		this.register(MsgBlacklist.Remove.class, Side.SERVER);
 		
-		this.channel.registerMessage(MsgRefreshInbox::handler, MsgRefreshInbox.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgRefreshOther::handler, MsgRefreshOther.class, nextID(), Side.SERVER);
-		this.channel.registerMessage(MsgRefreshBlacklist::handler, MsgRefreshBlacklist.class, nextID(), Side.CLIENT);
-		this.channel.registerMessage(MsgRefreshBlacklist.Refresh::handler, MsgRefreshBlacklist.Refresh.class, nextID(), Side.SERVER);
+		this.register(MsgRefreshInbox.class, Side.SERVER);
+		this.register(MsgRefreshOther.class, Side.SERVER);
+		this.register(MsgRefreshBlacklist.class, Side.CLIENT);
+		this.register(MsgRefreshBlacklist.Refresh.class, Side.SERVER);
+	}
+	
+	private <T extends BaseMessage> void register(Class<T> msgClass, Side... sendTo) {
+		for (Side side : sendTo) {
+			this.channel.registerMessage(T::handler, msgClass, nextID(), side);
+		}
 	}
 	
 	/** server to client */

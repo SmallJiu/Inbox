@@ -13,7 +13,7 @@ public final class EmailCommands extends CommandTreeBase {
 		super.addSubcommand(new CommandEmailSendBlackList());
 		super.addSubcommand(new CommandEmailSendWhiteList());
 		super.addSubcommand(new CommandEmailExport());
-		super.addSubcommand(new CommandEmailExecute());
+//		super.addSubcommand(new CommandEmailExecute());
 		super.addSubcommand(new CommandEmailReloadCooling());
 		super.addSubcommand(new CommandEmailDelete());
 	}
@@ -25,7 +25,7 @@ public final class EmailCommands extends CommandTreeBase {
 		}
 		super.addSubcommand(command);
 	}
-
+	
 	public String getName() {return "email";}
 	public String getUsage(ICommandSender sender) {
 		StringBuilder s = new StringBuilder("/email ");
@@ -33,7 +33,7 @@ public final class EmailCommands extends CommandTreeBase {
 		for(Entry<String, ICommand> cmds : super.getCommandMap().entrySet()) {
 			cmdName.add(cmds.getKey());
 		}
-		s.append(cmdName);
+		s.append(cmdName.toString());
 		return s.toString();
 	}
 }

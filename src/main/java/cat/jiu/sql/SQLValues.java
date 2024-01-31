@@ -220,7 +220,7 @@ public class SQLValues {
 		StringJoiner values = new StringJoiner(",", "(", ")");
 		for(Entry<String, Object> value : this.valueSet()) {
 			keys.add(value.getKey());
-			values.add("\'" + String.valueOf(value.getValue()) + "\'");
+			values.add(String.valueOf(value.getValue()));
 		}
 		sb.add(keys.toString())
 			.add("values")
@@ -233,7 +233,7 @@ public class SQLValues {
     public String toString() {
 		StringJoiner s = new StringJoiner(",");
         for (String name : this.values.keySet()) {
-            s.add(name + "=" + "\'" + String.valueOf(this.get(name)) + "\'");
+            s.add(name + "=" + String.valueOf(this.get(name)));
         }
         return s.toString();
 	}

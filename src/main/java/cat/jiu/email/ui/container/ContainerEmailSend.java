@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Cooling;
-import cat.jiu.email.net.msg.SendCooling;
+import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
@@ -29,7 +29,7 @@ import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
 public class ContainerEmailSend extends Container {
-	private final EntityPlayer player;
+	public final EntityPlayer player;
 	private final ItemStackHandler handler = new ItemStackHandler(16);
 	
 	public ContainerEmailSend(World world, EntityPlayer player) {
@@ -41,7 +41,7 @@ public class ContainerEmailSend extends Container {
 			if(Cooling.isCooling(player.getName())) {
 				long m = Cooling.getCoolingTimeMillis(mp.getName());
 				cooling = m;
-				EmailMain.execute(a->EmailMain.net.sendMessageToPlayer(new SendCooling(m), mp));
+				EmailMain.execute(()->EmailMain.net.sendMessageToPlayer(new MsgSendCooling(m), mp));
 			}
 		}
 		MinecraftForge.EVENT_BUS.register(this);
@@ -76,7 +76,7 @@ public class ContainerEmailSend extends Container {
 	public void cooling(SendEmailCoolingEvent event) {
 		if(this.player.getName().equals(event.name)) {
 			if(!this.player.world.isRemote) {
-				EmailMain.execute(a->EmailMain.net.sendMessageToPlayer(new SendCooling(event.millis), (EntityPlayerMP) this.player));
+				EmailMain.execute(()->EmailMain.net.sendMessageToPlayer(new MsgSendCooling(event.millis), (EntityPlayerMP) this.player));
 			}
 			cooling = event.millis;
 		}

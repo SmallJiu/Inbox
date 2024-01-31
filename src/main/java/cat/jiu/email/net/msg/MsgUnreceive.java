@@ -1,13 +1,13 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.email.EmailMain;
-
+import cat.jiu.email.net.BaseMessage;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MsgUnreceive implements IMessage {
+public class MsgUnreceive extends BaseMessage {
 	protected int accept;
 	public MsgUnreceive() {}
 	public MsgUnreceive(int accept) {
@@ -19,9 +19,7 @@ public class MsgUnreceive implements IMessage {
 	
 	public IMessage handler(MessageContext ctx) {
 		if(ctx.side.isClient()) {
-			EmailMain.execute(args->{
-				EmailMain.setAccept(this.accept);
-			}, 50);
+			EmailMain.setAccept(this.accept);
 		}
 		return null;
 	}

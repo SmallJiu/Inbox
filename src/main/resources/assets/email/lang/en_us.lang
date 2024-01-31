@@ -14,6 +14,8 @@ info.email.delete_accept=Delete receive
 info.email.delete_read=Delete Read
 info.email.delete=Delete
 info.email.accept=Receive
+info.email.read=Read
+info.email.read_accept=Read and Receive
 info.email.read_all=Read all
 info.email.accept_all=Receive all
 info.email.storage=Inbox: 
@@ -27,10 +29,26 @@ info.email.refresh=Refresh Inbox
 info.email.refreshing=Refreshing...
 info.email.refresh.cooling=Cooling...
 info.email.email_size=Email Size: %s Bytes
-info.email.remain_expiration_time=Expiration remaining: %s:%s:%s:%s
+info.email.remain_expiration_time=Expiration remaining: %s
+info.email.confirm=Confirm
+info.email.cancel=Cancel
+info.email.delete_email=Determine delete the unreceive emails?
+info.email.filter=Filter
+
+info.email.filter.default=Deafult
+info.email.filter.has_sound=Has sound
+info.email.filter.is_read=Read
+info.email.filter.not_read=Unread
+
+info.email.filter.has_expiration=Has expiration time
+info.email.filter.is_expiration=Was expiration
+info.email.filter.not_expiration=Not expiration
+
+info.email.filter.has_item=Has item
+info.email.filter.is_accept=Received
+info.email.filter.not_accept=Unreceive
 
 #send
-info.email.send=Push
 info.email.receiving=Inbox
 info.email.addressee=Addressee
 info.email.title=Title
@@ -38,12 +56,15 @@ info.email.msgs=Messages
 info.email.items=Items
 info.email.default_msg=From the Void
 info.email.default_title=A email from the Void
-info.email.cooling=Cooling -> %s:%s:%s:%s:%s:%s
+info.email.cooling=Cooling -> %s
 info.email.from=You have a new E-mail from %s
 info.email.send.warn=Warning: Use this button receive email maybe will lose items.
+info.email.send.not_op.abs=Can not use obscure addresser: %s, please call admin.
+info.email.send.not_op.expiration=Can not add expiration time to email, you are not Admin!
 info.email.send.abs=Send email to %s players. (took %s ms)
 info.email.@p=Online Players
 info.email.@a=Save Players
+info.email.history=History Addressee
 
 info.email.error.not_found_player=Can not found Player: %s !
 info.email.error.empty_name=Addressee can not be empty !
@@ -110,11 +131,12 @@ email.command.send.no_permission.white=You not has server send e-mail whitelist,
 
 #config
 
-email.config.time.tick=Tick
-email.config.time.second=Second
-email.config.time.minute=Minute
-email.config.time.hour=Hour
-email.config.time.day=Day
+email.config.time.tick=Ticks
+email.config.time.millis=Millis
+email.config.time.second=Seconds
+email.config.time.minute=Minutes
+email.config.time.hour=Hours
+email.config.time.day=Days
 
 email.config.title=Title
 email.config.msg=Message
@@ -152,6 +174,7 @@ email.config.send.blacklist=Enable BlackList
 email.config.send.whitelist=Enable WhiteList
 email.config.send.send_to_self=Can send to Self
 email.config.send.inbox_button=Enable Inbox Button
+email.config.send.history_max=Send Email History
 
 email.config.send.cooling=Send cooling
 email.config.send.cooling.time=Cooling time

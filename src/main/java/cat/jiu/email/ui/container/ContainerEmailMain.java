@@ -22,9 +22,8 @@ public class ContainerEmailMain extends Container {
 	
 	public ContainerEmailMain() {
 		int slotIndex = 0;
-		lable: for(int slotY = 0; slotY < 2; slotY++) {
+		for(int slotY = 0; slotY < 2; slotY++) {
 			for(int slotX = 0; slotX < 8; slotX++) {
-				if(slotIndex >= 16) break lable;
 				this.addSlotToContainer(new SlotItemHandler(handler, slotIndex, EmailConfigs.Main.Position.Current_Email.Items.X + (18 * slotX), EmailConfigs.Main.Position.Current_Email.Items.Y + (18 * slotY)) {
 					public boolean canTakeStack(EntityPlayer playerIn) {
 						return false;
@@ -53,15 +52,13 @@ public class ContainerEmailMain extends Container {
 			this.getSlot(i).putStack(stack);
 		}
 	}
-	
-	public boolean isEmpty() {
+	public boolean isEmptyStacks() {
 		for(int i = 0; i < this.handler.getSlots(); i++) {
 			if(!this.handler.getStackInSlot(i).isEmpty()) return false;
 		}
 		return true;
 	}
-
-	public void clear() {
+	public void clearStacks() {
 		this.putStack(emptyStacks);
 	}
 	

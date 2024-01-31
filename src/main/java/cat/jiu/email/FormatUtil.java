@@ -29,12 +29,10 @@ public class FormatUtil {
 			if(!jsonFile.exists()) {
 				System.err.println("File not found!");
 				main(emptyArgs);
-				return;
 			}
 			if(jsonFile.isDirectory()) {
 				System.err.println("File cannot be Directory!");
 				main(emptyArgs);
-				return;
 			}
 			try {
 				long currenTime = System.currentTimeMillis();

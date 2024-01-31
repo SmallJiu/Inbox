@@ -35,7 +35,6 @@ public class EmailGuiHandler implements IGuiHandler {
 			case EMAIL_MAIN: return new GuiEmailMain();
 			case EMAIL_SEND: return new GuiEmailSend(world, player);
 		}
-
 		return null;
 	}
 }
