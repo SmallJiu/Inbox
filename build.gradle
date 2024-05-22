@@ -1,19 +1,13 @@
 buildscript {
     repositories {
         // These repositories are only for Gradle plugins, put any other repositories in the repository block further below
-		maven {
-            name = 'MinecraftForge'
-            url = 'https://maven.minecraftforge.net/'
-        }
-		maven {
-			url = 'https://maven.parchmentmc.org'
-            name = 'ParchmentMC'
-		}
+        maven { url = 'https://maven.minecraftforge.net' }
+		maven { url = 'https://maven.parchmentmc.org' }
         mavenCentral()
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-        classpath group: 'org.parchmentmc.librarian.forgegradle', name: 'org.parchmentmc.librarian.forgegradle.gradle.plugin', version: '1.2.+', changing: true
+		classpath 'org.parchmentmc:librarian:1.+'
     }
 }
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
@@ -23,6 +17,7 @@ plugins {
 }
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.parchmentmc.librarian.forgegradle'
+
 
 version = project.mod_version
 group = project.mod_group_id // http://maven.apache.org/guides/mini/guide-naming-conventions.html
@@ -48,7 +43,9 @@ minecraft {
     // Simply re-run your setup task after changing the mappings to update your workspace.
     mappings channel: project.mapping_channel, version: project.mapping_version
 
-    accessTransformer = file('src/main/resources/META-INF/'+at_file) // Currently, this location cannot be changed from the default.
+    if(project.enable_at.toBoolean()) {
+        accessTransformer = file('src/main/resources/META-INF/' + project.at_file) // Currently, this location cannot be changed from the default.
+    }
 
     // Default run configurations.
     // These can be tweaked, removed, or duplicated as needed.
@@ -70,6 +67,7 @@ minecraft {
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             property 'forge.enabledGameTestNamespaces', '${mod_id}'
+            property '-username', '${run_user}'
 
             mods {
                 '${mod_id}' {
@@ -175,15 +173,55 @@ dependencies {
 }
 
 // Example for how to get properties into the manifest for reading at runtime.
-jar.manifest.attributes([
-        "Specification-Title"     : project.mod_id,
-        "Specification-Vendor"    : project.mod_authors,
-        "Specification-Version"   : "1", // We are version 1 of ourselves
-        "Implementation-Title"    : project.name,
-        "Implementation-Version"  : project.jar.archiveVersion,
-        "Implementation-Vendor"   : project.mod_authors,
-        "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-])
+jar {
+    manifest {
+        attributes([
+                "Specification-Title"     : "${mod_id}",
+                "Specification-Vendor"    : "${mod_id}",
+                "Specification-Version"   : "1", // We are version 1 of ourselves
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "${mod_id}",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+processResources {
+    inputs.properties([
+            minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+
+            forge_version: forge_version,
+            forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_license: mod_license,
+            mod_version: mod_version,
+            mod_authors: mod_authors,
+            mod_description: mod_description
+    ])
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand([
+                minecraft_version: minecraft_version,
+                minecraft_version_range: minecraft_version_range,
+
+                forge_version: forge_version,
+                forge_version_range: forge_version_range,
+                loader_version_range: loader_version_range,
+
+                mod_id: mod_id,
+                mod_name: mod_name,
+                mod_license: mod_license,
+                mod_version: mod_version,
+                mod_authors: mod_authors,
+                mod_description: mod_description
+        ])
+    }
+}
 
 // Example configuration to allow publishing using the maven-publish plugin
 // This is the preferred method to reobfuscate your jar file
@@ -206,29 +244,4 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
-
-processResources {
-    filesMatching('META-INF/mods.toml') {
-        expand([
-                minecraft_version: minecraft_version,
-                minecraft_version_range: minecraft_version_range,
-
-                forge_version: forge_version,
-                forge_version_range: forge_version_range,
-                loader_version_range: loader_version_range,
-
-                mod_id: mod_id,
-                mod_name: mod_name,
-                mod_license: mod_license,
-                mod_version: mod_version,
-                mod_authors: mod_authors,
-                mod_description: mod_description
-        ])
-    }
-    filesMatching('pack.mcmeta') {
-        expand([
-                mod_id: mod_id
-        ])
-    }
 }

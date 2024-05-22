@@ -136,7 +136,8 @@ public class GuiButtonPopupMenu extends Screen {
     }
 
     public boolean scroll(int mouseX, int mouseY, int key) {
-        if (this.isVisible() && isInRange(mouseX, mouseY, this.createX, this.createY, this.getWidth(), this.getHeight())) {
+        if (this.isVisible()
+                && isInRange(mouseX, mouseY, this.createX, this.createY, this.getWidth(), this.getHeight())) {
             int page = 0;
 
             if (EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
@@ -145,10 +146,10 @@ public class GuiButtonPopupMenu extends Screen {
             if (EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL)) {
                 page += 1;
             }
-            if (key == 120) {
+            if (key == 1) {
                 this.scroll.go(-1 - page);
                 return true;
-            } else if (key == -120) {
+            } else if (key == -1) {
                 this.scroll.go(1 + page);
                 return true;
             }

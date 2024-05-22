@@ -10,7 +10,7 @@ displayName="${mod_name}"
 logoFile="logo.png"
 #credits="" #optional
 authors="${mod_authors}"
-description='''${mod_description}'''
+description='${mod_description}'
 [[dependencies.${mod_id}]]
     modId="forge"
     mandatory=true

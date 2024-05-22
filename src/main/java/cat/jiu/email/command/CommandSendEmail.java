@@ -51,9 +51,15 @@ class CommandSendEmail extends BaseCommand.Base {
         JsonElement emailJson = JsonParser.parse(file);
         if (emailJson == null || !emailJson.isJsonObject()) {
             ctx.getSource().sendFailure(new TranslatableComponent("file are not a json object."));
+            ctx.getSource().sendFailure(new TranslatableComponent(String.format("%s: %s", file, emailJson)));
             return 0;
         }
-        Email email = new Email(emailJson.getAsJsonObject());
+        Email email = null;
+        try {
+            email = new Email(emailJson.getAsJsonObject());
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
         email.setSender(new Text(sender instanceof Player ? ((Player)sender).getName().getString() : EmailMain.SYSTEM));
 

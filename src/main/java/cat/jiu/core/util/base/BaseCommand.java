@@ -104,11 +104,11 @@ public class BaseCommand {
 
         @Override
         public boolean checkPermission(CommandSourceStack source) {
-            return source.hasPermission(this.getRequiredPermissionLevel());
+            return true;
         }
 
         public int getRequiredPermissionLevel() {
-            return 4;
+            return 0;
         }
 
         @Override

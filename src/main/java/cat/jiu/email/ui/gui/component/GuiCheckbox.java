@@ -32,15 +32,15 @@ public class GuiCheckbox extends Checkbox {
     public void renderButton(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick) {
 
         vLine(pPoseStack, this.x, this.y, this.y+this.height, Color.BLACK.getRGB());
-        vLine(pPoseStack, this.x+this.width-1, this.y, this.y+this.height, Color.BLACK.getRGB());
+        vLine(pPoseStack, this.x+this.width, this.y, this.y+this.height, Color.BLACK.getRGB());
 
-        hLine(pPoseStack, this.x, this.x+this.width-1, this.y, Color.BLACK.getRGB());
-        hLine(pPoseStack, this.x, this.x+this.width-1, this.y+this.height, Color.BLACK.getRGB());
+        hLine(pPoseStack, this.x, this.x+this.width, this.y, Color.BLACK.getRGB());
+        hLine(pPoseStack, this.x, this.x+this.width, this.y+this.height, Color.BLACK.getRGB());
 
-        fill(pPoseStack, this.x+1, this.y+1, this.x+this.width-1, this.y+this.height-1, Color.WHITE.getRGB());
+        fill(pPoseStack, this.x+1, this.y+1, this.x+this.width, this.y+this.height, Color.WHITE.getRGB());
 
         if (this.selected()) {
-            fill(pPoseStack, this.x+4, this.y+4, this.x+this.width-1-4, this.y+this.height-4, Color.RED.getRGB());
+            fill(pPoseStack, this.x+4, this.y+4, this.x+this.width-3, this.y+this.height-3, Color.RED.getRGB());
         }
     }
 }

@@ -535,30 +535,32 @@ public class Email implements ISerializable {
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			if(json.get("title").isJsonObject()) {
+			if(json.has("title") && json.get("title").isJsonObject()) {
 				this.title = new Text(json.getAsJsonObject("title"));
-			}else if(json.get("title").isJsonPrimitive()) {
+			}else if(json.has("title") && json.get("title").isJsonPrimitive()) {
 				this.title = new Text(json.get("title").getAsString());
 			}
 			
-			if(json.get("sender").isJsonObject()) {
+			if(json.has("sender") && json.get("sender").isJsonObject()) {
 				this.sender = new Text(json.getAsJsonObject("sender"));
-			}else if(json.get("sender").isJsonPrimitive()) {
+			}else if(json.has("sender") && json.get("sender").isJsonPrimitive()) {
 				this.sender = new Text(json.get("sender").getAsString());
 			}
-			
-			JsonElement time = json.get("time");
-			if(time.isJsonPrimitive()) {
-				JsonPrimitive p = time.getAsJsonPrimitive();
-				if(p.isString()) {
-					try {
-						this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
-					}catch(Exception e) {
-						e.printStackTrace();
-						this.create_time = System.currentTimeMillis();
+
+			if(json.has("time")) {
+				JsonElement time = json.get("time");
+				if (time.isJsonPrimitive()) {
+					JsonPrimitive p = time.getAsJsonPrimitive();
+					if(p.isString()) {
+						try {
+							this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
+						}catch(Exception e) {
+							e.printStackTrace();
+							this.create_time = System.currentTimeMillis();
+						}
+					}else if(p.isNumber()) {
+						this.create_time = p.getAsLong();
 					}
-				}else if(p.isNumber()) {
-					this.create_time = p.getAsLong();
 				}
 			}
 			if(json.has("expiration")) {

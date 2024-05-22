@@ -67,7 +67,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 		this.titleField.setMaxLength(100);
 		this.titleField.setBordered(false);
 
-		this.localSound = this.addRenderableWidget(new EditBox(this.font, this.titleField.x, this.titleField.y + this.titleField.getHeight() + 2, 95, 11, Component.nullToEmpty(null)));
+		this.localSound = this.addRenderableWidget(new EditBox(this.font, this.titleField.x, this.titleField.y + this.titleField.getHeight() + 3, 95, 11, Component.nullToEmpty(null)));
 		this.localSound.setTextColor(-1);
 		this.localSound.setTextColorUneditable(-1);
 		this.localSound.setMaxLength(100);
@@ -89,21 +89,26 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 		this.mcSounds.scroll.collection.clear();
 		this.mcSounds.scroll.init();
 		Registry.SOUND_EVENT.forEach(soundEvent ->
-			this.mcSounds.addButton(new GuiButton(0, 0, this.localSound.getWidth(), this.localSound.getHeight(), Component.nullToEmpty(String.valueOf(soundEvent.getLocation())), b->{
+			this.mcSounds.addButton(new GuiButton(0, 0, this.localSound.getWidth()+2, this.localSound.getHeight()+2, Component.nullToEmpty(String.valueOf(soundEvent.getLocation())), b->{
 				if (this.mcSoundBtn.isActive()) {
 					this.mcSoundBtn.setMessage(Component.nullToEmpty(String.valueOf(soundEvent.getLocation())));
+					this.mcSounds.setVisible(false);
 				}
 			}))
-		);
 
-		this.mcSoundBtn = this.addRenderableWidget(new GuiButton(this.localSound.x-1, this.localSound.y, this.localSound.getWidth()+2, this.localSound.getHeight()+2, this.mcSounds.scroll.collection.get(0).getMessage(), b->
+		);
+		this.mcSoundBtn = this.addRenderableWidget(new GuiButton(this.localSound.x-1, this.localSound.y-1, this.localSound.getWidth()+2, this.localSound.getHeight()+2, this.mcSounds.scroll.collection.get(0).getMessage(), b->
 				this.mcSounds.setVisible(!this.mcSounds.isVisible())
 		));
 		this.mcSoundBtn.visible = false;
+		this.mcSounds.setCreatePoint(this.mcSoundBtn.x, this.mcSoundBtn.y+this.mcSoundBtn.getHeight());
 
-		this.useMCSound = this.addRenderableWidget(new GuiCheckbox(this.localSound.x + this.localSound.getWidth() + 2, this.localSound.y, 13, 13, new TranslatableComponent("info.email.generate.sound.use_mc_sound"), false, false, ()->{
+		this.useMCSound = this.addRenderableWidget(new GuiCheckbox(this.localSound.x + this.localSound.getWidth() + 2, this.localSound.y, 12, 11, new TranslatableComponent("info.email.generate.sound.use_mc_sound"), false, false, ()->{
 			this.mcSoundBtn.visible = this.useMCSound.selected();
 			this.localSound.setVisible(!this.useMCSound.selected());
+			if (!this.mcSoundBtn.visible) {
+				this.mcSounds.setVisible(false);
+			}
 		}) {
 			@Override
 			public void renderButton(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick) {
@@ -287,6 +292,14 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 	}
 
 	@Override
+	public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
+		if (this.mcSounds.scroll((int) pMouseX, (int) pMouseY, (int)pDelta)) {
+			return true;
+		}
+		return super.mouseScrolled(pMouseX, pMouseY, pDelta);
+	}
+
+	@Override
 	public void render(PoseStack stack, int mouseX, int mouseY, float partialTicks) {
 		super.renderBackground(stack);
 		super.render(stack, mouseX, mouseY, partialTicks);
@@ -303,14 +316,15 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			EmailUtils.drawString(stack, this.font, tf.getValue().length()+"/"+tf.getMaxLength(), tf.x +tf.getWidth()+13, tf.y +2, (tf.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.WHITE).getRGB(), false);
 		}
 		this.expiration.render(stack, this.leftPos + 149 + 22 + 10, this.topPos + 20 + 80, partialTicks);
+		this.mcSounds.drawPopupMenu(stack, mouseX, mouseY, partialTicks);
 	}
 
 	@Override
 	protected void renderLabels(PoseStack stack, int mouseX, int mouseY) {
 		fill(stack, 162, 100, 162 + 9, 100 + 9, this.getMenu().isLock() ? Color.RED.getRGB() : Color.GREEN.getRGB());
 
-		EmailUtils.drawAlignRightString(stack, this.font, I18n.get("info.email.title") + ":", this.titleField.x-2,  this.titleField.y-2, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
-		EmailUtils.drawAlignRightString(stack, this.font, I18n.get("info.email.generate.sound") + ":", this.localSound.x-2,  this.localSound.y-2, (this.localSound.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(stack, this.font, I18n.get("info.email.title") + ":", this.titleField.x-2-this.leftPos,  this.titleField.y-2-this.topPos, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(stack, this.font, I18n.get("info.email.generate.sound") + ":", this.localSound.x-2-this.leftPos,  this.localSound.y-2-this.topPos, (this.localSound.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
 
 		if(this.renderTicks > 0 && this.renderText != null && this.renderColor != null) {
 			if(this.renderTicks <= 0) this.clearRenderText();

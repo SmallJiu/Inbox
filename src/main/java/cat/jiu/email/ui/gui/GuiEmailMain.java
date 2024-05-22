@@ -118,7 +118,7 @@ public class GuiEmailMain extends AbstractContainerScreen<ContainerEmailMain> {
 			this.playSound()
 		)).setBackground(()->BackGround);
 		this.playSoundBtn.visible = false;
-		if (EmailUtils.isOP(this.inventory.player)) {
+		if (true || EmailUtils.isOP(this.inventory.player)) {
 			this.addRenderableWidget(new GuiButton(this.leftPos+96 - (weight + 4), this.topPos+145, 43, 12, new TranslatableComponent("info.email.generate"), b ->
 					EmailMain.net.sendMessageToServer(new MsgOpenGui(GuiHandler.EMAIL_Generate))
 			));
