@@ -27,7 +27,7 @@ class CommandEmailExport extends BaseCommand.Base {
     public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 
     public CommandEmailExport() {
-        super("export", 3);
+        super("export", 4);
     }
 
     @Override

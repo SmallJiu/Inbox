@@ -1,16 +1,17 @@
 package cat.jiu.email.util;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.ScheduledEmail;
+import cat.jiu.email.element.attachment.AttachmentCommand;
 import cat.jiu.email.net.msg.MsgUnreceived;
+import cat.jiu.formless.utils.client.AudioSystem;
 import com.google.common.collect.Lists;
 
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.util.element.Sound;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
@@ -22,7 +23,6 @@ import com.google.common.collect.Maps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.ServerOpListEntry;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -39,19 +39,26 @@ public class SendDevEmail {
 	static final Email devEmail;
 	static {
 		List<IText> msgs = Lists.newArrayList();
-		msgs.add(new Text("email.dev_message.0", ""));
-		for(int i = 1; i < 30; i++) {
+		for(int i = 0; i < 14; i++) {
 			msgs.add(new Text("email.dev_message."+i));
 		}
-		devEmail = new Email(new Text("email.dev_message.title", ""), new Text("email.dev_message.sender"),
-				new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS),
-				Arrays.asList(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8)), msgs);
-		devEmail.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
+		devEmail = new Email(new Text("email.dev_message.title"), EmailAPI.SYSTEM)
+//				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
+				.addMessages(msgs)
+				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
+				.addCommands(
+						new AttachmentCommand.Cmd("/say this command is ' server ' command, user ' server console permission ' to execute.", true),
+						new AttachmentCommand.Cmd("/me this command is ' player ' command, user ' player permission ' to execute.", false),
+						new AttachmentCommand.Cmd("/me this command is hide in tooltip, you cant seed this command.", false).setHideInTooltip(true)
+				)
+				.setExperience(9980, 9980)
+				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
+				.setExternalSound(new AudioSystem.Audio("E:/application/tools/ffmpeg/bin/inbox_dev_sound.mp3", SoundSource.PLAYERS))
 				.setAccept(true);
 	}
 	
 	public static Email getDevEmail() {
-		return devEmail;
+		return devEmail.setCreateTimeToNow();
 	}
 	
 	@SubscribeEvent
@@ -68,11 +75,7 @@ public class SendDevEmail {
 			EmailMain.net.sendMessageToPlayer(new MsgPlayerPermissionLevel(level), player);
 			
 			if(!inbox.isSendDevMsg()) {
-				devEmail.setMessageParameters(0, 0, player.getName().getString());
-				devEmail.setTitleParameters(0, player.getName().getString());
-				devEmail.setCreateTimeToNow();
-				
-				inbox.addEmail(devEmail);
+				inbox.addEmail(devEmail.copy().setCreateTimeToNow());
 				inbox.setSendDevMsg(true);
 				
 //				EmailExecuteEvent.initDefaultCustomValue(inbox);
@@ -98,7 +101,7 @@ public class SendDevEmail {
 	private static final Map<String, Delay> reminds = Maps.newHashMap();
 	@SubscribeEvent
 	public static void onPlayerTick(TickEvent.PlayerTickEvent event){
-			if(event.player instanceof ServerPlayer player && event.phase == TickEvent.Phase.END){
+		if(event.player instanceof ServerPlayer player && event.phase == TickEvent.Phase.END){
 			String name = player.getName().getString();
 			if(!reminds.containsKey(name)) reminds.put(name, new Delay());
 			Delay delay = reminds.get(name);
@@ -146,4 +149,5 @@ public class SendDevEmail {
 			return new Un(inbox.getUnRead(), inbox.getUnReceived());
 		}
 	}
+
 }

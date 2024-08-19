@@ -125,7 +125,9 @@ public class ContainerEmailSend extends AbstractContainerMenu {
 	
 	public boolean isEmpty() {
 		for(int i = 0; i < this.handler.getSlots(); i++) {
-			if(!this.handler.getStackInSlot(i).isEmpty()) return false;
+			if(!this.handler.getStackInSlot(i).isEmpty()) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -136,9 +138,11 @@ public class ContainerEmailSend extends AbstractContainerMenu {
 	public JsonObject toItemArray(boolean copy) {
 		List<ItemStack> stacks = Lists.newArrayList();
 		for(int i = 0; i < this.handler.getSlots(); i++) {
-			stacks.add(this.handler.getStackInSlot(i));
-			if(!copy) {
-				this.handler.setStackInSlot(i, ItemStack.EMPTY);
+			if (!this.handler.getStackInSlot(i).isEmpty()) {
+				stacks.add(this.handler.getStackInSlot(i));
+				if(!copy) {
+					this.handler.setStackInSlot(i, ItemStack.EMPTY);
+				}
 			}
 		}
 		return JsonToStackUtil.toJsonObject(stacks, false);
@@ -147,9 +151,11 @@ public class ContainerEmailSend extends AbstractContainerMenu {
 	public List<ItemStack> toItemList(boolean copy) {
 		List<ItemStack> stacks = Lists.newArrayList();
 		for(int i = 0; i < this.handler.getSlots(); i++) {
-			stacks.add(this.handler.getStackInSlot(i));
-			if(!copy) {
-				this.handler.setStackInSlot(i, ItemStack.EMPTY);
+			if (!this.handler.getStackInSlot(i).isEmpty()) {
+				stacks.add(this.handler.getStackInSlot(i));
+				if(!copy) {
+					this.handler.setStackInSlot(i, ItemStack.EMPTY);
+				}
 			}
 		}
 		return stacks;

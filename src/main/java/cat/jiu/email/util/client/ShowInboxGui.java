@@ -4,6 +4,7 @@ import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 
+import cat.jiu.email.util.EmailConfigs;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -25,14 +26,14 @@ public class ShowInboxGui {
 	@SubscribeEvent
 	public static void onInitGui(ScreenEvent.Init.Post event) {
 		Screen gui = event.getScreen();
-		if(gui instanceof ChatScreen) {
-			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, gui.width - 20 - 5, 5, I18n.get("info.email.name")));
-			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_SEND, gui.width - 20 - 5, 26, I18n.get("info.email.dispatch")));
-		}else if(gui instanceof AbstractContainerScreen con) {
+		if(gui instanceof ChatScreen && EmailConfigs.Main.Enable_Chat_Button.get()) {
+			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, gui.width - EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.Y.get(), I18n.get("info.email.name")));
+			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_SEND, gui.width - EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.Y.get()+23, I18n.get("info.email.dispatch")));
+		}else if(gui instanceof AbstractContainerScreen<?> con) {
 			if(con instanceof InventoryScreen) {
-				event.addListener(new InventoryButton(gui, GuiHandler.EMAIL_MAIN,con.getGuiLeft()+27, con.getGuiTop() + 9, I18n.get("info.email.name")));
+				event.addListener(new InventoryButton(gui, GuiHandler.EMAIL_MAIN,con.getGuiLeft()+EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.X.get(), con.getGuiTop() + EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.Y.get(), I18n.get("info.email.name")));
 			}else if(con instanceof CreativeModeInventoryScreen) {
-				event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, con.getGuiLeft() + 145, con.getGuiTop() + 138, I18n.get("info.email.name")));
+				event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, con.getGuiLeft() + EmailConfigs.Main.Position.Inbox_Buttons.Creative_Tab_Button.X.get(), con.getGuiTop() + EmailConfigs.Main.Position.Inbox_Buttons.Creative_Tab_Button.Y.get(), I18n.get("info.email.name")));
 			}
 		}
 	}

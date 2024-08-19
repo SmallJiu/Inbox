@@ -3,7 +3,9 @@ package cat.jiu.email.ui.gui;
 import java.awt.Color;
 import java.util.List;
 
-import cat.jiu.email.util.SizeReport;
+import cat.jiu.core.api.element.ISound;
+import cat.jiu.email.ui.gui.component.GuiButtonPopupMenu;
+import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.ui.GuiHandler;
@@ -16,13 +18,13 @@ import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.ui.gui.component.GuiTime;
-import cat.jiu.email.util.EmailConfigs;
-import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.TimeMillis;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -47,18 +49,21 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
     private EditBox titleField;
     private final EditBox[] textFields = new EditBox[5];
     private final GuiTime expiration = new GuiTime(this, false);
+	private final GuiButtonPopupMenu addresseeHistory = new GuiButtonPopupMenu();
+	private GuiImageButton addresseeHistoryBtn;
     
 	public GuiEmailSend(ContainerEmailSend container, Inventory inventory) {
 		super(container, inventory, Component.nullToEmpty(null));
 		this.imageWidth = 176;
 		this.imageHeight = 233;
+		this.addresseeHistory.scroll.setShowCount(5);
 	}
 	
 	@Override
 	public void init() {
 		super.init();
 		this.addWidget(expiration);
-		this.nameField = this.addRenderableWidget(new NameGuiTextField(this.font, this.getGuiLeft() + 39, this.getGuiTop() + 6, 109, 11));
+		this.nameField = this.addRenderableWidget(new NameGuiTextField(this.font, this.getGuiLeft() + 39, this.getGuiTop() + 6, 95, 11));
         this.nameField.setTextColor(-1);
         this.nameField.setTextColorUneditable(-1);
         this.nameField.setMaxLength(100);
@@ -71,11 +76,29 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 		this.titleField.setBordered(false);
         this.initText();
 
-        this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("email.config.expiration"), 256, 256, 256, 256, btn->
+		this.addresseeHistory.scroll.collection.clear();
+		this.addresseeHistory.setCreatePoint(this.nameField.getX() - this.getGuiLeft() - 2, this.nameField.getY() + this.nameField.getHeight() - this.getGuiTop());
+
+		{
+			if(EmailAPI.globalEmailCache.exists()) {
+				JsonElement e = JsonParser.parse(EmailAPI.globalEmailCache);
+				if(e != null && e.isJsonObject()) {
+					JsonObject json = e.getAsJsonObject();
+					if (json.has("history")) {
+						json.getAsJsonArray("history").forEach(b->this.addAddresseeHistory(b.getAsString(), false));
+						this.addresseeHistory.setVisible(this.addresseeHistory.isVisible());
+					}
+				}
+			}
+		}
+
+		this.addresseeHistoryBtn = this.addRenderableWidget(new GuiImageButton(this, this.nameField.getX() + this.nameField.getWidth() + 3, this.nameField.getY(), 9, 9, I18n.get("info.email.history"), 256, 256, 194, 0, 9, 9, b-> addresseeHistory.setVisible(!addresseeHistory.isVisible()))).setBackground(()->BackGround);
+
+		this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("email.config.expiration"), 256, 256, 256, 256, btn->
 			expiration.setEnable(!expiration.isEnable())
         )).setBackground(()->EXPIRATION);
         
-        this.addRenderableWidget(new GuiImageButton(this, this.nameField.getX() +this.nameField.getWidth()+1, this.nameField.getY() -2, 22, this.nameField.getHeight()+2, I18n.get("info.email.dispatch"), 256, 256, 176, 9, 59, 50, btn-> {
+        this.addRenderableWidget(new GuiImageButton(this, this.addresseeHistoryBtn.getX()+this.addresseeHistoryBtn.getWidth()+4, this.nameField.getY() -2, 22, this.nameField.getHeight()+2, I18n.get("info.email.dispatch"), 256, 256, 176, 9, 59, 50, btn-> {
 			if(!this.getMenu().isCooling() && !this.getMenu().isLock()) {
 				String name = nameField.getValue();
 				if(StringUtils.isEmpty(name)) {
@@ -105,7 +128,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 				}else {
 					msgs.add(new Text("info.email.default_msg"));
 				}
-				Email email = new Email(new Text(title), new Text(Minecraft.getInstance().player.getName()), null, null, msgs);
+				Email email = new Email(new Text(title), new Text(Minecraft.getInstance().player.getName())).addMessages(msgs);
 
 				long expiration = GuiEmailSend.this.expiration.getTimeOfMillis();
 				if(expiration>0) {
@@ -124,13 +147,43 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 						return;
 					}
 				}
+//				if(!this.getMenu().isEmpty()) {
+//					this.getMenu().toItemList(true).forEach(email::addItem);
+//				}
 				EmailAPI.sendPlayerEmail(getMinecraft().player, name, email);
+				this.addAddresseeHistory(name, true);
 				clearRenderText();
 			}
         })).setBackground(()->BackGround);
 
 		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+1, this.titleField.getY() -2, 22, this.nameField.getHeight()+2, I18n.get("info.email.name"), 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
 				.setBackground(()->ShowInboxGui.inbox);
+	}
+
+	public void addAddresseeHistory(String name, boolean writeToFile) {
+		if (writeToFile) {
+			EmailAPI.addAddresseeHistory(name);
+		}
+		Component component = Component.nullToEmpty(name);
+		boolean has = false;
+		for (Button button : this.addresseeHistory.scroll.collection) {
+			if (button.getMessage().equals(component)) {
+				has = true;
+				break;
+			}
+		}
+		if (!has) {
+			if (this.addresseeHistory.scroll.collection.size() >= EmailConfigs.Send.Send_History_Max_Count.get()) {
+				this.addresseeHistory.scroll.collection.remove(0);
+			}
+			this.addresseeHistory.addButton(Button.builder(component, b->{
+						nameField.setValue(name);
+						nameField.setCursorPosition(0);
+					})
+					.pos(0, 0)
+					.size(this.nameField.getWidth()+2, this.nameField.getHeight())
+					.build());
+		}
 	}
 	
 	private void initText() {
@@ -175,6 +228,12 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
+		if (!this.addresseeHistoryBtn.isMouseOver(mouseX, mouseY)) {
+			if (this.addresseeHistory.mouseClicked(this.getMinecraft(), (int) mouseX - this.getGuiLeft(), (int) mouseY - this.getGuiTop(), mouseButton)){
+				this.addresseeHistory.setVisible(false);
+				return true;
+			}
+		}
 		if(!this.getMenu().isLock()){
 			return super.mouseClicked(mouseX, mouseY, mouseButton);
 		}
@@ -304,12 +363,13 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			String text = I18n.get("info.email.cooling", d, h, m, s, t);
 			graphics.drawString(this.font, text, this.imageWidth/2 - this.font.width(text)/2, 60, Color.RED.getRGB());
 		}
-		if(this.titleField.getValue().isEmpty()) {
+		if(!this.addresseeHistory.isVisible() && this.titleField.getValue().isEmpty()) {
 			graphics.drawString(this.font, I18n.get("info.email.default_title"), 39, 21, Color.WHITE.getRGB());
 		}
-		if(this.textsIsEmpty()) {
+		if(!this.addresseeHistory.isVisible() && this.textsIsEmpty()) {
 			graphics.drawString(this.font, I18n.get("info.email.default_msg"), 10, 34, Color.WHITE.getRGB());
 		}
+		this.addresseeHistory.drawPopupMenu(graphics, mouseX - this.getGuiLeft(), mouseY - this.getGuiTop(), 0);
 	}
 
 	@OnlyIn(Dist.CLIENT)
@@ -318,7 +378,9 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			super(font, x, y, par5Width, par6Height, Component.nullToEmpty(null));
 		}
 
-		private int index = 0;
+		private int
+				index = 0,
+				absIndex = 0;
 
 		@Override
 		public boolean charTyped(char codePoint, int modifiers) {
@@ -330,10 +392,8 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			if(this.isFocused()){
 				if(keyCode == GLFW.GLFW_KEY_TAB) {
 					List<? extends Player> playerList = Minecraft.getInstance().player.level().players();
-					Component name;
-
 					if(this.index < playerList.size()) {
-						name = playerList.get(this.index).getName();
+						Component name = playerList.get(this.index).getName();
 						if(name.equals(Minecraft.getInstance().player.getName())
 								&& EmailConfigs.Send.Enable_Send_To_Self.get()) {
 							this.setValue(name.getString());
@@ -360,8 +420,6 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 
 			return super.keyPressed(keyCode, scanCode, modifiers);
 		}
-
-		protected int absIndex = 0;
 
 		@Override
 		public void renderWidget(GuiGraphics graphics, int x, int y, float t) {

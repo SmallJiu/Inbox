@@ -11,6 +11,9 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 public class EmailNetworkHandler {
 	private final SimpleChannel channel;
 	
@@ -20,62 +23,80 @@ public class EmailNetworkHandler {
 	}
 	
 	public EmailNetworkHandler() {
-		ID = 0; 
+		ID = 0;
 		this.channel = NetworkRegistry.newSimpleChannel(
 				new ResourceLocation(EmailMain.MODID, "main_network"),
-				() -> EmailMain.VERSION,
-				(version) -> version.equals(EmailMain.VERSION),
-				(version) -> version.equals(EmailMain.VERSION)
+				EmailMain.VERSION::toString,
+				EmailMain.VERSION::equals,
+				EmailMain.VERSION::equals
 		);
 
-		this.register(MsgOpenGui.class, NetworkDirection.PLAY_TO_SERVER);
+		this
+				.register(MsgOpenGui.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.Delete.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.AllRead.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.AllReceive.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgDeleteEmail.Delete.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgDeleteEmail.AllRead.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgDeleteEmail.AllReceive.class, NetworkDirection.PLAY_TO_SERVER);
+				.register(MsgReceiveEmail.Receive.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgReceiveEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgUnreceived.class, NetworkDirection.PLAY_TO_CLIENT)
+//				.register(MsgInboxToClient.class, NetworkDirection.PLAY_TO_CLIENT)
+//				.register(MsgInboxToClient.CreateInbox.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgInboxToClient.SendEmail.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgInboxToClient.SendOther.class, NetworkDirection.PLAY_TO_CLIENT)
 
-		this.register(MsgReceiveEmail.Receive.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgReceiveEmail.All.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgUnreceived.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgSend.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgSendRenderText.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgUnread.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT)
 
-		this.register(MsgInboxToClient.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgInboxToClient.MsgOtherToClient.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgBlacklist.Add.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgBlacklist.Remove.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgSend.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgSendRenderText.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgRefreshInbox.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshOther.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshBlacklist.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgRefreshBlacklist.Refresh.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgUnread.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgScheduledEmail.Add.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgScheduledEmail.Remove.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT);
-
-		this.register(MsgBlacklist.Add.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgBlacklist.Remove.class, NetworkDirection.PLAY_TO_SERVER);
-
-		this.register(MsgRefreshInbox.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgRefreshOther.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgRefreshBlacklist.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgRefreshBlacklist.Refresh.class, NetworkDirection.PLAY_TO_SERVER);
+				.register(MsgRefreshScheduledEmail.Refresh.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshScheduledEmail.Send.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgRefreshScheduledEmail.RefreshMap.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshScheduledEmail.SendMap.class, NetworkDirection.PLAY_TO_CLIENT)
+		;
 	}
 
-	private <T extends BaseMessage> void register(Class<T> msgClass, NetworkDirection sendTo) {
-		this.channel.messageBuilder(msgClass, nextID(), sendTo)
-				.encoder(T::toBytes)
-				.decoder(buf ->{
-					try {
-						T instance = msgClass.newInstance();
-						instance.fromBytes(buf);
-						return instance;
-					} catch (Exception e) {
-						return null;
-					}
-				})
-				.consumerNetworkThread(T::handler)
-				.add();
+	private static final HashMap<Class<? extends BaseMessage>, HashSet<NetworkDirection>> REGISTRY = new HashMap<>();
+	private <T extends BaseMessage> EmailNetworkHandler register(Class<T> msgClass, NetworkDirection... sendTo) {
+		for (NetworkDirection side : sendTo) {
+			if (!REGISTRY.containsKey(msgClass) || !REGISTRY.get(msgClass).contains(side)) {
+				this.channel.messageBuilder(msgClass, nextID(), side)
+						.encoder(T::toBytes)
+						.decoder(buf ->{
+							try {
+								T instance = msgClass.getDeclaredConstructor().newInstance();
+								instance.fromBytes(buf);
+								return instance;
+							} catch (Exception e) {
+								return null;
+							}
+						})
+						.consumerNetworkThread(T::handler)
+						.add();
+				if (!REGISTRY.containsKey(msgClass)) {
+					REGISTRY.put(msgClass, new HashSet<>());
+				}
+				REGISTRY.get(msgClass).add(side);
+			}
+		}
+		return this;
 	}
 
 	/** server to client */

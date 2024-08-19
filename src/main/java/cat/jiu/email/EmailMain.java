@@ -1,18 +1,24 @@
 package cat.jiu.email;
 
+import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.command.EmailCommands;
+import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Inbox;
+import cat.jiu.email.element.ScheduledEmail;
+import cat.jiu.email.element.attachment.*;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
+import net.minecraft.commands.synchronization.ArgumentTypeInfos;
+import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -30,11 +36,14 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Mod(EmailMain.MODID)
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.0.0";
+                                VERSION = "1.20.1-1.1.2-a0";
     public static final String SYSTEM = "?????";
     public static EmailNetworkHandler net;
     public static MinecraftServer server;
@@ -90,7 +99,16 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
+        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
         event.enqueueWork(()-> net = new EmailNetworkHandler());
+
+        IAttachment.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
+        IAttachment.register(AttachmentCommand.ID, AttachmentCommand::new, AttachmentCommand::new);
+        IAttachment.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
+//        IAttachment.register(IAttachment.EMPTY_ID, nbt -> IAttachment.EMPTY, nbt -> IAttachment.EMPTY);
+//        IAttachment.register(AttachmentDatapack.ID, AttachmentDatapack::new, AttachmentDatapack::new);
+
+        AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }
 
     private void onClientSetup(final FMLClientSetupEvent event) {
@@ -99,17 +117,34 @@ public class EmailMain {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {
+        server = event.getServer();
         proxy.isServerClosed = false;
         Cooling.load();
         EmailUtils.initNameAndUUID(event.getServer());
-        server = event.getServer();
+        ScheduledEmail.initScheduledEmail();
     }
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         proxy.isServerClosed = true;
         server = null;
-        EmailAPI.setRootPath();
         Inbox.clearCache();
+        ScheduledEmail.saveScheduledEmail();
+        EmailAPI.setRootPath();
+    }
+
+    private static final List<Runnable> TASK = new ArrayList<>();
+    public static void runOnServerThread(Runnable runnable) {
+        TASK.add(runnable);
+    }
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (!TASK.isEmpty()) {
+            for (int i = 0; i < TASK.size(); i++) {
+                if (TASK.get(i) != null) {
+                    TASK.remove(i).run();
+                }
+            }
+        }
     }
 
     @SubscribeEvent

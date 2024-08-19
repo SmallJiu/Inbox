@@ -37,7 +37,10 @@ public final class Inbox implements ISerializable {
 	private final String owner;
 	private boolean dev;
 	private long emailHistoryCount = 0;
-	
+
+	private Inbox(String owner) {
+		this.owner = owner;
+	}
 	private Inbox(String owner, CompoundTag inboxTag) {
 		this.owner = owner;
 		this.read(inboxTag);
@@ -149,6 +152,11 @@ public final class Inbox implements ISerializable {
 		}
 		return i;
 	}
+
+	public long getEmailHistoryCount() {
+		return emailHistoryCount;
+	}
+
 	/**
 	 * @param id email id
 	 * @return true if inbox has email by id
@@ -175,6 +183,10 @@ public final class Inbox implements ISerializable {
 		}
 		return old;
 	}
+	public Inbox deleteAllEmail(){
+		this.emails.clear();
+		return this;
+	}
 	/**
 	 * set new email to id
 	 * @param id 
@@ -182,7 +194,7 @@ public final class Inbox implements ISerializable {
 	 * @return the previous email associated with id
 	 */
 	public Email setEmail(long id, Email newEmail) {
-		return this.hasEmail(id) ? this.emails.put(id, newEmail) : null;
+		return this.emails.put(id, newEmail);
 	}
 	/**
 	 * add email, but not save inbox to disk.
@@ -569,11 +581,8 @@ public final class Inbox implements ISerializable {
 		}else if(!owner.equals(other.owner))
 			return false;
 		if(senderBlacklist == null) {
-			if(other.senderBlacklist != null)
-				return false;
-		}else if(!senderBlacklist.equals(other.senderBlacklist))
-			return false;
-		return true;
+			return other.senderBlacklist == null;
+		}else return senderBlacklist.equals(other.senderBlacklist);
 	}
 	
 	/**
@@ -668,6 +677,10 @@ public final class Inbox implements ISerializable {
 		}
 		checkExpirationEmail(inbox);
 		return inbox;
+	}
+
+	public static Inbox getEmpty(String owner) {
+		return new Inbox(owner);
 	}
 	
 	public static void checkExpirationEmail(Inbox inbox) {

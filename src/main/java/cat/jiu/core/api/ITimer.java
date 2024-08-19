@@ -138,7 +138,7 @@ public interface ITimer extends ISerializable {
 		return sj.toString();
 	}
 	
-	public static StringBuilder format(long num, long f) {
+	static StringBuilder format(long num, long f) {
 		StringBuilder s = new StringBuilder();
 		if(num < 10)
 			s.append("0");
@@ -149,6 +149,46 @@ public interface ITimer extends ISerializable {
 		return s;
 	}
 
+	static String formatTimestamp(long time) {
+		return formatTimestamp(time, true, true, true, true, true);
+	}
+
+	static String formatTimestamp(long time, boolean formatDay, boolean formatHour, boolean formatMinute, boolean formatSecond, boolean formatTick) {
+		StringJoiner sj = new StringJoiner(":");
+		long t = 0;
+		long s = 0;
+		long m = 0;
+		long h = 0;
+		long d = 0;
+		if (formatTick) {
+			t = time / 50;
+			if (formatSecond){
+				s = t / 20;
+				t %= 20;
+				if (formatMinute) {
+					m = s / 60;
+					s %= 60;
+					if (formatHour) {
+						h = m / 60;
+						m %= 60;
+						if (formatDay) {
+							d = h / 24;
+							h %= 24;
+						}
+					}
+				}
+			}
+		}
+
+		if (formatDay && formatHour && formatMinute && formatSecond && formatTick) 		sj.add(format(d, 10));
+		if (formatHour && formatMinute && formatSecond && formatTick) 	sj.add(format(h, 10));
+		if (formatMinute && formatSecond && formatTick) 	sj.add(format(m, 10));
+		if (formatSecond && formatTick) 	sj.add(format(s, 10));
+		if (formatTick) 	sj.add(format(t, 10));
+
+		return sj.toString();
+	}
+
 	default long hash() {
 		return this.getAllTicks() >> 9;
 	}
@@ -156,8 +196,7 @@ public interface ITimer extends ISerializable {
 	default boolean equalsTime(Object obj) {
 		if(obj == this)
 			return true;
-		if(obj instanceof ITimer) {
-			ITimer other = (ITimer) obj;
+		if(obj instanceof ITimer other) {
 			other.replace();
 			this.replace();
 			return this.hash() == other.hash() && this.getTicks() == other.getTicks();
@@ -172,7 +211,7 @@ public interface ITimer extends ISerializable {
 
 	default ITimer start() {
 		return this;
-	};
+	}
 
 	/**
 	 * like {@link net.minecraft.tileentity.TileEntity}
@@ -236,7 +275,7 @@ public interface ITimer extends ISerializable {
 		this.setAllTicks(result.getLong("allTicks"));
 	}
 
-	public static ITimer from(CompoundTag nbt) {
+	static ITimer from(CompoundTag nbt) {
 		ITimer time = null;
 		if(nbt.contains("isSys") && nbt.getBoolean("isSys")) {
 			time = new MillisTimer();
@@ -247,7 +286,7 @@ public interface ITimer extends ISerializable {
 		return time;
 	}
 
-	public static ITimer from(JsonObject obj) {
+	static ITimer from(JsonObject obj) {
 		ITimer time = null;
 		if(obj.has("isSys") && obj.get("isSys").getAsBoolean()) {
 			time = new MillisTimer();

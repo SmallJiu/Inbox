@@ -1,29 +1,47 @@
 package cat.jiu.email.event;
 
-import cat.jiu.core.api.element.ISound;
+import cat.jiu.email.element.Email;
+import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
 
 public class InboxPlaySoundEvent extends Event {
-	public final ISound sound;
-	public final long emailID;
-	protected InboxPlaySoundEvent(ISound sound, long emailID) {
-		this.sound = sound;
-		this.emailID = emailID;
+	public final Email email;
+	protected InboxPlaySoundEvent(Email email) {
+		this.email = email;
 	}
+
+	@Cancelable
 	public static class Start extends InboxPlaySoundEvent {
-		public Start(ISound sound, long emailID) {
-			super(sound, emailID);
+		public Start(Email email) {
+			super(email);
 		}
 	}
 	public static class Tick extends InboxPlaySoundEvent {
-		public Tick(ISound sound, long emailID) {
-			super(sound, emailID);
+		private String elapse, duration;
+		public Tick(Email email) {
+			super(email);
+		}
+
+		public String getElapse() {
+			return elapse;
+		}
+
+		public void setElapse(String elapse) {
+			this.elapse = elapse;
+		}
+
+		public String getDuration() {
+			return duration;
+		}
+
+		public void setDuration(String duration) {
+			this.duration = duration;
 		}
 	}
-	public static class Stop extends Event {
-		public final long emailID;
-		public Stop(long emailID) {
-			this.emailID = emailID;
+	@Cancelable
+	public static class Stop extends InboxPlaySoundEvent {
+		public Stop(Email email) {
+			super(email);
 		}
 	}
 }

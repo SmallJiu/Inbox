@@ -10,7 +10,7 @@ public class GuiButton extends Button {
         super(pX, pY, pWidth, pHeight, pMessage, pOnPress, pCreateNarration);
     }
     public GuiButton(int pX, int pY, int pWidth, int pHeight, Component pMessage, OnPress pOnPress) {
-        super(pX, pY, pWidth, pHeight, pMessage, pOnPress, Supplier::get);
+        super(pX, pY, pWidth, pHeight, pMessage, pOnPress, Button.DEFAULT_NARRATION);
     }
 
     public GuiButton(Builder builder) {

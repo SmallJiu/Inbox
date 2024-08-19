@@ -47,6 +47,12 @@ public class GuiTime implements GuiEventListener, NarratableEntry {
 			this.fields.add(field);
 		}
 	}
+	public GuiTime setTextFieldWidth(int width) {
+		for (EditBox field : this.fields) {
+			field.setWidth(width);
+		}
+		return this;
+	}
 
 	public void render(GuiGraphics graphics, int x, int y, float p_230430_4_) {
 		if(!this.isEnable) return;

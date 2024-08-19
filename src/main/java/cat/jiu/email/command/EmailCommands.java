@@ -8,5 +8,8 @@ public class EmailCommands extends BaseCommand.BaseTree {
         super(EmailMain.MODID);
         this.addSubCommand(new CommandEmailDelete());
         this.addSubCommand(new CommandEmailExport());
+        this.addSubCommand(new CommandOpenInbox());
+        this.addSubCommand(new CommandSendEmail());
+        this.addSubCommand(new CommandScheduledEmail());
     }
 }

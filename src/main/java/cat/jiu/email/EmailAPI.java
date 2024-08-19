@@ -1,17 +1,23 @@
 package cat.jiu.email;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
 import java.util.UUID;
 
 import cat.jiu.email.element.EmailSenderGroup;
-import cat.jiu.email.ui.gui.config.ConfigWriteEvent;
+import cat.jiu.email.element.ScheduledEmail;
+import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
+import cat.jiu.email.ui.container.ContainerEmailMain;
+import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.net.msg.*;
+import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -19,12 +25,9 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.util.EmailConfigs;
-import cat.jiu.email.util.SizeReport;
-import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonParser;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -33,6 +36,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.commons.lang3.StringUtils;
 
 @Mod.EventBusSubscriber
@@ -44,7 +48,7 @@ public class EmailAPI {
 		sendEmail(player, EmailSenderGroup.PLAYER, addressee, email);
 	}
 	
-	private static final IText SYSTEM = new Text(EmailMain.SYSTEM);
+	public static final IText SYSTEM = new Text(EmailMain.SYSTEM);
 	/**
 	 * send system email to player. email sender is {@link EmailMain#SYSTEM}
 	 */
@@ -65,36 +69,42 @@ public class EmailAPI {
 		}
 	}
 	
-	public static boolean sendEmail(EmailSenderGroup group, String addresser, Email email) {
+	public static boolean sendEmail(EmailSenderGroup group, String address, Email email) {
 		EmailUtils.initNameAndUUID(EmailMain.server);
-		Inbox inbox = Inbox.get(addresser);
+		Inbox inbox = Inbox.get(address);
 		
 		if(!EmailConfigs.isInfiniteSize()
-		&& email.hasItems() && !checkEmailSize(inbox, email, email.getItems())) {
+		&& email.hasAttachment() && !checkEmailSize(inbox, email)) {
+			return false;
+		}
+
+		if (group.isPlayerSend() && inbox.isInSenderBlacklist(email.getSender().getText())) {
+			EmailMain.log.warn("Failed to send the email, You have been block by the Addressee!");
 			return false;
 		}
 		
-		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, group, addresser, email))) return false;
+		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, group, address, email))) return false;
 		
 		inbox.addEmail(email, true);
 		
-		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, group, addresser, email));
+		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, group, address, email));
 		
 		if(EmailMain.server != null) {
 			ServerPlayer player;
 			try {
-				player = EmailMain.server.getPlayerList().getPlayer(UUID.fromString(addresser));
+				player = EmailMain.server.getPlayerList().getPlayer(UUID.fromString(address));
 			}catch(Exception e) {
-				player = EmailMain.server.getPlayerList().getPlayerByName(addresser);
+				player = EmailMain.server.getPlayerList().getPlayerByName(address);
 			}
 			if(player != null) {
 				EmailUtils.sendMessage(player, "info.email.from", email.getSender());
+				EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendEmail(inbox.getEmailHistoryCount(), email), player);
 			}
 		}
 		return true;
 	}
 	
-	private static boolean checkEmailSize(Inbox inbox, Email email, List<ItemStack> stacks) {
+	private static boolean checkEmailSize(Inbox inbox, Email email) {
 		SizeReport report = EmailUtils.checkEmailSize(email);
 		if(!SizeReport.SUCCESS.equals(report)) {
 			return false;
@@ -102,6 +112,37 @@ public class EmailAPI {
 		
 		long size = inbox.getInboxSize() + EmailUtils.getSize(email.writeTo(CompoundTag.class));
 		return size < 2097152L;
+	}
+
+	public static void addAddresseeHistory(String name) {
+		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonParser.parse(EmailAPI.globalEmailCache) : new JsonObject();
+		if(e != null && e.isJsonObject()) {
+			JsonObject json = e.getAsJsonObject();
+			boolean has = false;
+			if (json.has("history")) {
+				for (JsonElement element : json.getAsJsonArray("history")) {
+					if (element.getAsString().equals(name)) {
+						has = true;
+						break;
+					}
+				}
+			}
+			if (!has) {
+				JsonArray list = new JsonArray();
+				if(json.has("history")) {
+					JsonElement element = json.get("history");
+					if(element.isJsonArray()) {
+						list = element.getAsJsonArray();
+					}
+				}
+				if (list.size() >= EmailConfigs.Send.Send_History_Max_Count.get()) {
+					list.remove(0);
+				}
+				list.add(name);
+				json.add("history", list);
+				JsonParser.toJsonFile(EmailAPI.globalEmailCache.getPath(), json, false);
+			}
+		}
 	}
 	
 	private static final List<String> whitelist = Lists.newArrayList();
@@ -130,7 +171,7 @@ public class EmailAPI {
 	static void setRootPath(){
 		clearEmailPath();
 		if(EmailConfigs.Save_To_Minecraft_Root_Directory.get()){
-			EmailRootPath = ".";
+			EmailRootPath = String.valueOf(FMLLoader.getGamePath());
 			EmailMain.log.info(String.format("Set inbox root path to: %s", EmailRootPath));
 		}
 
@@ -150,8 +191,10 @@ public class EmailAPI {
 	
 	public static String getSaveEmailRootPath() {
 		if(EmailRootPath == null) {
-			if(EmailConfigs.Save_To_Minecraft_Root_Directory.get() || EmailMain.server == null) {
-				EmailRootPath = ".";
+			boolean root = EmailConfigs.Save_To_Minecraft_Root_Directory.get();
+			if(root
+					|| EmailMain.server == null) {
+				EmailRootPath = String.valueOf(FMLLoader.getGamePath());
 			}else {
 				EmailRootPath = new File(String.valueOf(EmailMain.server.getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParent();
 			}
@@ -185,9 +228,11 @@ public class EmailAPI {
 		typePath = null;
 		exportPath = null;
 	}
-	
-	public static final String globalEmailListPath = "./email.json";
-	
+
+	public static final File globalEmailCache = new File("./email.json");
+	public static final String globalEmailListPath = EmailAPI.globalEmailCache.getPath();
+
+
 	public static boolean addToWhiteList(String name, UUID uid) {
 		return addToList(name, uid, false);
 	}
@@ -203,7 +248,7 @@ public class EmailAPI {
 	private static boolean addToList(String name, UUID uid, boolean black) {
 		String theListName = black ? "BlackList" : "WhiteList";
 		File jsonFile = new File(globalEmailListPath);
-		JsonObject json = new JsonObject();;
+		JsonObject json = new JsonObject();
 		if(jsonFile.exists()) {
 			JsonElement e = JsonParser.parse(jsonFile);
 			if(e != null && e.isJsonObject()) {
@@ -315,11 +360,73 @@ public class EmailAPI {
 		}
 		return true;
 	}
-	
-	public static void sendInboxToClient(Inbox inbox, ServerPlayer player) {
+
+
+	private static final HashMap<String, Email> ScheduledEmailMap = new HashMap<>();
+	public static HashMap<String, Email> getScheduledEmailMap() {
+		return ScheduledEmailMap;
+	}
+	public static void refreshScheduledEmailMap(ServerPlayer player) {
 		EmailMain.execute(()->{
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), player);
-			EmailMain.execute(()-> EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), player), 50);
-		}, 100);
+			for (File file : new File(EmailAPI.getTypePath()).listFiles()) {
+				if (file.isFile()) {
+					try {
+						String path = file.getName();
+						Email email = new Email(JsonParser.parse(file).getAsJsonObject());
+						EmailMain.net.sendMessageToPlayer(new MsgRefreshScheduledEmail.SendMap(path.substring(0, path.indexOf('.')), email), player);
+					}catch (Exception ignored){ }
+				}
+			}
+		},50);
+	}
+
+	public static void sendScheduledEmailToClient(ServerPlayer player) {
+		EmailMain.execute(()->{
+			for (ScheduledEmail email : ScheduledEmail.getScheduledEmails()) {
+				boolean check = true;
+				if (email.getAddressee().isCustomPlayers() && !player.getServer().getPlayerList().isOp(player.getGameProfile())) {
+					check = email.getCustomAddressee().contains(player.getName().getString());
+				}
+				if (check && email.getAsEmail() != null) {
+					try {
+						Thread.sleep(25);
+						EmailMain.net.sendMessageToPlayer(new MsgRefreshScheduledEmail.Send(email), player);
+					} catch (Exception ignored) {}
+				}
+			}
+		}, 50);
+	}
+
+	public static void sendInboxToClient(Inbox inbox, ServerPlayer player) {
+//		EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.CreateInbox(inbox.getOwner()), player);
+		EmailMain.execute(()-> {
+			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendOther(inbox), player);
+			for (Long id : inbox.getEmailIDs()) {
+//			for (int id = 0; id < 2560; id++) {
+				if (!(player.containerMenu instanceof ContainerEmailMain)) {
+					break;
+				}
+				try {
+					Thread.sleep(25);
+					Email email = inbox.getEmail(id);
+//					Email email = SendDevEmail.getDevEmail().copy();
+					if (email != null) {
+						SizeReport report = EmailUtils.checkEmailSize(email);
+						if (!SizeReport.SUCCESS.equals(report)) {
+							player.sendSystemMessage(Component.literal("---------------------------------------------"));
+							player.sendSystemMessage(Component.translatable("info.email.error.to_big.0"));
+							player.sendSystemMessage(Component.translatable("info.email.error.to_big.1", report.id(), report.slot(), report.size()));
+						}else {
+							EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendEmail(id, email), player);
+						}
+					}
+				} catch (Throwable e) {
+					e.printStackTrace();
+					player.sendSystemMessage(Component.literal("---------------------------------------------"));
+					player.sendSystemMessage(Component.literal(String.format("Get email fail, email id: %s", id)));
+					player.sendSystemMessage(Component.literal(String.format("Exception: %s", e.getMessage())));
+				}
+			}
+		}, 50);
 	}
 }

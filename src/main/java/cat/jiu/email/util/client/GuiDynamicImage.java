@@ -8,8 +8,8 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class GuiDynamicImage {
 	public final ResourceLocation texture;
-	public final boolean canReverse;
-	public final int maxStep,
+	public boolean canReverse, visible = true;
+	public int maxStep,
 			uWidth, vHeight,
 			u, v,
 			width, height,
@@ -46,23 +46,25 @@ public class GuiDynamicImage {
 	protected int current = 0;
 	protected boolean reverse = false;
 	public void draw(GuiGraphics graphics, int x, int y) {
-		if(this.canReverse) {
-			if(this.current >= this.maxStep) {
-				this.reverse = true;
-			}else if(this.current <= 0) {
-				this.reverse = false;
-			}
-			if(this.reverse) {
-				this.current--;
+		if (this.visible) {
+			if(this.canReverse) {
+				if(this.current >= this.maxStep) {
+					this.reverse = true;
+				}else if(this.current <= 0) {
+					this.reverse = false;
+				}
+				if(this.reverse) {
+					this.current--;
+				}else {
+					this.current++;
+				}
 			}else {
 				this.current++;
+				if(this.current >= this.maxStep) {
+					this.current = 0;
+				}
 			}
-		}else {
-			this.current++;
-			if(this.current >= this.maxStep) {
-				this.current = 0;
-			}
+			graphics.blit(this.texture, x, y, this.width, this.height, this.u, this.v + this.current * this.vHeight, this.uWidth, this.vHeight, this.imgWidth, this.imgHeight);
 		}
-		graphics.blit(this.texture, x, y, this.width, this.height, this.u, this.v + this.current * this.vHeight, this.uWidth, this.vHeight, this.imgWidth, this.imgHeight);
 	}
 }

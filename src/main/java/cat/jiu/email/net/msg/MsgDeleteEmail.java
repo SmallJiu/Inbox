@@ -35,7 +35,7 @@ public class MsgDeleteEmail {
 						}
 					}
 					EmailUtils.saveInboxToDisk(inbox);
-					EmailAPI.sendInboxToClient(inbox, player);
+//					EmailAPI.sendInboxToClient(inbox, player);
 					MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, this.msgID, false, false));
 				});
 			}
@@ -66,7 +66,7 @@ public class MsgDeleteEmail {
 					}
 					if(changed){
 						EmailUtils.saveInboxToDisk(inbox);
-						EmailAPI.sendInboxToClient(inbox, player);
+//						EmailAPI.sendInboxToClient(inbox, player);
 					}
 				});
 			}
@@ -95,7 +95,7 @@ public class MsgDeleteEmail {
 					}
 					if(changed){
 						EmailUtils.saveInboxToDisk(inbox);
-						EmailAPI.sendInboxToClient(inbox, player);
+//						EmailAPI.sendInboxToClient(inbox, player);
 					}
 				});
 			}

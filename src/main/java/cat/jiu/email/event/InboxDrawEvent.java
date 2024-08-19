@@ -10,9 +10,9 @@ import net.minecraftforge.eventbus.api.Event;
 
 @OnlyIn(Dist.CLIENT)
 public class InboxDrawEvent extends Event {
-	public static enum Type {
-		INBOX, CURRENT, CANDIDATE, SOUND;
-	}
+	public enum Type {
+		INBOX, CURRENT, CANDIDATE, SOUND
+    }
 	
 	public final GuiEmailMain gui;
 	public final Type type;

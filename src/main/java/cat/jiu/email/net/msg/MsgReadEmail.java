@@ -46,14 +46,11 @@ public class MsgReadEmail extends BaseMessage {
 						email.setRead(true);
 						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), player);
 
-						if(player.containerMenu instanceof ContainerEmailMain container) {
-							container.setInbox(inbox);
-						}
 						if(inbox.isEmptyInbox()){
 							EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", inbox);
 						}
 						EmailUtils.saveInboxToDisk(inbox);
-						EmailAPI.sendInboxToClient(inbox, player);
+//						EmailAPI.sendInboxToClient(inbox, player);
 
 						MinecraftForge.EVENT_BUS.post(new EmailReadEvent.Post(player, inbox, email, false));
 					}
@@ -87,11 +84,8 @@ public class MsgReadEmail extends BaseMessage {
 					}
 
 					if(changed){
-						if(player.containerMenu instanceof ContainerEmailMain container) {
-							container.setInbox(inbox);
-						}
 						EmailUtils.saveInboxToDisk(inbox);
-						EmailAPI.sendInboxToClient(inbox, player);
+//						EmailAPI.sendInboxToClient(inbox, player);
 					}
 					EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), player);
 				});

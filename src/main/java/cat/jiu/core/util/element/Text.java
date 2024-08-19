@@ -10,6 +10,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 public class Text implements IText {
 	public static final Object[] EMPTY_ARGS = new Object[0];
@@ -23,7 +26,18 @@ public class Text implements IText {
 	protected boolean vanillaWrap;
 
 	public Text(Component component){
-		this.setText(component.getString());
+		if (component instanceof MutableComponent mutable) {
+			if (mutable.getContents() instanceof TranslatableContents contents) {
+				this.setText(contents.getKey());
+				this.setParameters(contents.getArgs());
+			}else if (mutable.getContents() instanceof LiteralContents contents) {
+				this.setText(contents.text());
+			}else {
+				this.setText(component.getString());
+			}
+		}else {
+			this.setText(component.getString());
+		}
 	}
 
 	public Text(String key, Object... args) {
@@ -81,7 +95,7 @@ public class Text implements IText {
 	
 	public JsonArray writeArgs(JsonArray args) {
 		if(args==null) args = new JsonArray();
-		if(this.args!=null&&this.args.length>0) {
+		if(this.args != null) {
 			for(Object o : this.args) {
 				args.add(String.valueOf(o));
 			}
@@ -121,10 +135,7 @@ public class Text implements IText {
 		if(!Arrays.equals(args, other.args))
 			return false;
 		if(key == null) {
-			if(other.key != null)
-				return false;
-		}else if(!key.equals(other.key))
-			return false;
-		return true;
+			return other.key == null;
+		}else return key.equals(other.key);
 	}
 }

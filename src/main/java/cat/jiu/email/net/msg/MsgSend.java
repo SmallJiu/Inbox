@@ -145,7 +145,9 @@ public class MsgSend extends BaseMessage {
 			container = (ContainerEmailSend) sender.containerMenu;
 			if(lock) container.setLock(true);
 			stacks = container.toItemList(false);
-			this.email.addItems(stacks);
+			if (container.isEmpty()) {
+				this.email.addItems(stacks);
+			}
 		}
 		
 		if(!EmailConfigs.isInfiniteSize()

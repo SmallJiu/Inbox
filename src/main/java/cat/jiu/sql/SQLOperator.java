@@ -30,7 +30,7 @@ public enum SQLOperator {
 	NOT_EXISTS("not exists");
 	
 	public final String sql;
-	private SQLOperator(String sql) {
+	SQLOperator(String sql) {
 		this.sql = sql;
 	}
 }

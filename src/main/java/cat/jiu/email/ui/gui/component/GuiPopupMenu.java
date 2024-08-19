@@ -1,87 +1,38 @@
 package cat.jiu.email.ui.gui.component;
 
-import java.awt.Color;
-import java.util.List;
-
-import cat.jiu.email.ui.gui.GuiEmailMain;
 import net.minecraft.client.Minecraft;
-
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.common.MinecraftForge;
 import org.apache.commons.compress.utils.Lists;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
-public class GuiPopupMenu extends Screen {
-	private boolean visible = false;
-	private final Font font = Minecraft.getInstance().font;
-	private final List<Button> buttons = Lists.newArrayList();
+public class GuiPopupMenu extends AbstractWidget {
+	protected final Font font = Minecraft.getInstance().font;
+	protected final List<Button> buttons = Lists.newArrayList();
+	protected boolean visible, resetWidth, resetHeight;
+	protected int showCount = 0;
+
 
 	public GuiPopupMenu() {
-		super(Component.nullToEmpty(null));
+		super(0, 0, 0, 0, Component.empty());
 	}
 
-	public void setVisible(boolean visible) {
-		this.visible = visible;
-		
-		int btnX = this.createX + 10;
-		int btnY = this.createY;
-		int width = 0;
-		int height = Minecraft.getInstance().font.lineHeight + 3;
-		for(Button btn : this.buttons) {
-			width = Math.max(width, this.font.width(btn.getMessage().getString()) + 6);
-		}
-
-		for(Button btn : this.buttons) {
-			btn.visible = visible;
-			if(visible) {
-				btn.setWidth(width);
-				btn.setHeight(height);
-				btn.setX(btnX - btn.getWidth()/2);
-				btn.setY(btnY + Minecraft.getInstance().font.lineHeight);
-				btnY += btn.getHeight();
-			}
-		}
-	}
-	
-	public boolean isVisible() {
-		return visible;
-	}
-	
-	int createX = 0, createY = 0;
-	public void setCreatePoint(double createX, double createY) {
-		this.createX = (int) createX;
-		this.createY = (int) createY;
-	}
-	public void setCreatePoint(int createX, int createY) {
-		this.createX = createX;
-		this.createY = createY;
-	}
-
-	public void drawPopupMenu(GuiGraphics graphics, long popupMenuCurrentEmail, Minecraft mc, int x, int y, float partialTicks) {
-//		this.font.drawString(matrix, String.valueOf(this.visible), this.createX, this.createY, Color.RED.getRGB());
+	@Override
+	protected void renderWidget(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		if(this.visible) {
-			if(popupMenuCurrentEmail >= 0) {
-				graphics.blit(GuiEmailMain.BackGround, this.createX - 2 + 6, this.createY - 2, 4, 15, 12, 10);
-
-				graphics.drawString(mc.font, String.valueOf(popupMenuCurrentEmail), this.createX - 2 + 12 - this.font.width(String.valueOf(popupMenuCurrentEmail))/2f, this.createY - 1, Color.RED.getRGB(), false);
-			}
-
 			for(Button btn : this.buttons) {
-				btn.render(graphics, x, y, partialTicks);
-				if(btn.isMouseOver(x,y)){
-					graphics.hLine(btn.getX(), btn.getX() + btn.getWidth() - 2, btn.getY() + btn.getHeight() - 1, Color.WHITE.getRGB());
-				}
+				btn.render(graphics, mouseX, mouseY, partialTick);
 			}
-
-			Button btn = this.buttons.get(this.buttons.size()-1);
-			graphics.hLine(btn.getX(), btn.getX() + btn.getWidth() - 2, btn.getY() + btn.getHeight(), (btn.isMouseOver(x,y) ? Color.WHITE : Color.BLACK).getRGB());
 		}
 	}
 
@@ -91,10 +42,7 @@ public class GuiPopupMenu extends Screen {
 		if(mouseButton == 0 && this.isVisible()) {
 			for(Button btn : this.buttons) {
 				if(btn.isMouseOver(mouseX, mouseY)) {
-					ScreenEvent.MouseButtonReleased.Pre event = new ScreenEvent.MouseButtonReleased.Pre(this, mouseX, mouseY, mouseButton);
-                    if (MinecraftForge.EVENT_BUS.post(event)) break;
-                    flag = btn.mouseClicked(mouseX, mouseY, mouseButton);
-                    MinecraftForge.EVENT_BUS.post(new ScreenEvent.MouseButtonReleased.Post(this, mouseX, mouseY, mouseButton, false));
+					flag = btn.mouseClicked(mouseX, mouseY, mouseButton);
 					break;
 				}
 			}
@@ -102,6 +50,60 @@ public class GuiPopupMenu extends Screen {
 		if(flag) this.setVisible(false);
 		return flag;
 	}
+
+	public void setVisible(boolean visible) {
+		this.visible = visible;
+
+		int btnX = this.getX();
+		int btnY = this.getY();
+		int height = Minecraft.getInstance().font.lineHeight + 3;
+		int width = 0;
+		for(Button btn : this.buttons) {
+			width = Math.max(width, this.font.width(btn.getMessage().getString()) + 6);
+		}
+
+		for(Button btn : this.buttons) {
+			btn.visible = visible;
+			if(visible) {
+				if (this.resetWidth) {
+					btn.setWidth(width);
+				}
+				if (this.resetHeight) {
+					btn.setHeight(height);
+				}
+				btn.setX(btnX);
+				btn.setY(btnY);
+				btnY += btn.getHeight()+2;
+			}
+		}
+	}
+	public boolean isVisible() {
+		return visible;
+	}
+
+	public void setResetButtonSize(boolean resetWidth, boolean resetHeight) {
+		this.resetWidth = resetWidth;
+		this.resetHeight = resetHeight;
+	}
+
+	@Override
+	public int getHeight() {
+		int height = 0;
+		for(Button btn : this.buttons) {
+			height += btn.getHeight();
+		}
+		return height + 5;
+	}
+
+	@Override
+	public int getWidth() {
+		int width = 0;
+		for(Button btn : this.buttons) {
+			width = Math.max(width, btn.getWidth());
+		}
+		return width;
+	}
+
 	public <T extends Button> T addPopupButton(T buttonIn) {
 		int maxHeight = 0;
 		for(Button btn : this.buttons) {
@@ -118,4 +120,10 @@ public class GuiPopupMenu extends Screen {
 	public int getButtonSize() {
 		return this.buttons.size();
 	}
+	public void clearPopupButtons(){
+		this.buttons.clear();
+	}
+
+	@Override
+	protected void updateWidgetNarration(@NotNull NarrationElementOutput output) {}
 }

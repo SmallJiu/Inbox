@@ -1,19 +1,17 @@
 package cat.jiu.email.util;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.StringJoiner;
 
 import javax.annotation.Nullable;
 
-import java.util.UUID;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import cat.jiu.email.EmailAPI;
 import com.google.common.collect.Lists;
@@ -32,12 +30,14 @@ import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Inbox;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.network.FriendlyByteBuf;
@@ -45,6 +45,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 
 import net.minecraft.server.Services;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.FastColor;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -58,10 +61,21 @@ import org.joml.Vector3d;
 
 public class EmailUtils {
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+	public static final SimpleDateFormat dateFormat_1 = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 	public static String getTime() {
 		return dateFormat.format(new Date());
 	}
 
+	public static ServerPlayer getPlayer(MinecraftServer server, String name){
+		EmailUtils.initNameAndUUID(server);
+		ServerPlayer player = server.getPlayerList().getPlayerByName(name);
+		if (player == null) {
+			try {
+				player = server.getPlayerList().getPlayer(EmailUtils.getTrueUUID(name));
+			}catch (Exception ignored){}
+		}
+		return player;
+	}
 
 	@OnlyIn(Dist.CLIENT)
 	public static boolean isKeyDown(int key) {
@@ -91,13 +105,18 @@ public class EmailUtils {
 	
 	public static boolean isOP(Player player) {
 		boolean isOP;
-		if(player.getServer().isDedicatedServer()) {
+		if(!EmailMain.proxy.isClient()) {
 			isOP = player.getServer().getPlayerList().getOps().get(player.getGameProfile()) != null;
 		}else {
-			isOP = Minecraft.getInstance().getSingleplayerServer().isPublished() && Minecraft.getInstance().player.hasPermissions(1);
+			if (Minecraft.getInstance().isLocalServer()) {
+				isOP = Minecraft.getInstance().getSingleplayerServer().isPublished() && Minecraft.getInstance().player.hasPermissions(4);
+			}else {
+				isOP = Minecraft.getInstance().player.hasPermissions(4);
+			}
 		}
 		return isOP;
 	}
+
 	
 	public static void sendMessage(Player player, ChatFormatting color, String key, Object... args) {
 		player.sendSystemMessage(new Text(key, formatArgsTextToComponent(args)).toTextComponent(color));
@@ -336,17 +355,16 @@ public class EmailUtils {
 	public static long getSize(CompoundTag nbt) {
 		if(nbt == null) return 0;
 		FriendlyByteBuf pb = new FriendlyByteBuf(Unpooled.buffer());
-		pb.writeNbt(nbt);
+		AtomicLong size = new AtomicLong();
 
-		NbtAccounter tracker = new NbtAccounter(0) {
+		pb.writeNbt(nbt);
+		pb.readNbt(new NbtAccounter(0) {
 			@Override
 			public void accountBytes(long pBytes) {
-				this.usage += pBytes;
+				size.addAndGet(pBytes);
 			}
-		};
-
-		pb.readNbt(tracker);
-		return tracker.getUsage();
+		});
+		return size.get();
 	}
 	
 	public static boolean saveInboxToDB(Inbox inbox) {
@@ -495,6 +513,21 @@ public class EmailUtils {
 		return null;
 	}
 
+	public static UUID getTrueUUID(String id){
+		UUID uid = null;
+		try{
+			UUID uuid = UUID.fromString(id);
+			if(EmailUtils.hasUUID(uuid)){
+				uid = uuid;
+			}
+		}catch (Exception e){
+			if(EmailUtils.hasName(id)){
+				uid = EmailUtils.getUUID(id);
+			}
+		}
+		return uid;
+	}
+
 	public static String getName(UUID uid) {
 		if(hasUUID(uid)) {
 			String name = UUIDToName.get(uid);
@@ -544,9 +577,7 @@ public class EmailUtils {
 			}
 			if(checkNBT) {
 				if(stackA.getTag() != null && stackB.getTag() != null) {
-					if(!stackA.getTag().equals(stackB.getTag())) {
-						return false;
-					}
+					return stackA.getTag().equals(stackB.getTag());
 				}else {
 					return false;
 				}
@@ -640,4 +671,48 @@ public class EmailUtils {
     public static void drawAlignRightString(GuiGraphics graphics, Font fr, String text, int x, int y, int color, boolean drawShadow) {
         graphics.drawString(fr, text, x - fr.width(text), y, color, drawShadow);
     }
+	@OnlyIn(Dist.CLIENT)
+    public static void drawAlignRightString(GuiGraphics graphics, Component text, int x, int y, int color, boolean drawShadow) {
+        drawAlignRightString(graphics, Minecraft.getInstance().font, text, x, y, color, drawShadow);
+    }
+
+	@OnlyIn(Dist.CLIENT)
+    public static void drawAlignRightString(GuiGraphics graphics, Font fr, Component text, int x, int y, int color, boolean drawShadow) {
+        graphics.drawString(fr, text, x - fr.width(text), y, color, drawShadow);
+    }
+
+	public static void hLineGradient(GuiGraphics graphics, boolean anti, int pX1, int pY1, int pX2, int pY2, int pColorFrom, int pColorTo) {
+		VertexConsumer pConsumer = graphics.bufferSource().getBuffer(RenderType.gui());
+
+		float fromAlpha = (float) FastColor.ARGB32.alpha(pColorFrom) / 255.0F;
+		float fromRed = (float)FastColor.ARGB32.red(pColorFrom) / 255.0F;
+		float fromGreen = (float)FastColor.ARGB32.green(pColorFrom) / 255.0F;
+		float fromBlue = (float)FastColor.ARGB32.blue(pColorFrom) / 255.0F;
+		float toAlpha = (float)FastColor.ARGB32.alpha(pColorTo) / 255.0F;
+		float toRed = (float)FastColor.ARGB32.red(pColorTo) / 255.0F;
+		float toGreen = (float)FastColor.ARGB32.green(pColorTo) / 255.0F;
+		float toBlue = (float)FastColor.ARGB32.blue(pColorTo) / 255.0F;
+		Matrix4f matrix4f = graphics.pose().last().pose();
+		// toRed, toGreen, toBlue, toAlpha
+		// fromRed, fromGreen, fromBlue, fromAlpha
+		if (anti) {
+			pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+		}else {
+			pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+			pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+		}
+	}
+
+	static Map<String, SoundSource> SOUND_CATEGORIES;
+	public static SoundSource getSoundSource(String name) {
+		if (SOUND_CATEGORIES == null) {
+			SOUND_CATEGORIES = Arrays.stream(SoundSource.values()).collect(Collectors.toMap(SoundSource::getName, Function.identity()));
+		}
+		return SOUND_CATEGORIES.get(name);
+	}
 }

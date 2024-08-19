@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 class CommandEmailDelete extends BaseCommand.Base {
     public CommandEmailDelete() {
-        super("delete", 3);
+        super("delete", 4);
     }
 
     @Override
@@ -74,22 +74,6 @@ class CommandEmailDelete extends BaseCommand.Base {
 
         @Override
         public String parse(StringReader reader) throws CommandSyntaxException {
-            int start = reader.getCursor();
-
-            reader.setCursor(start);
-            return null;
-        }
-
-        @Override
-        public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-            return ArgumentType.super.listSuggestions(context, builder);
-        }
-    }
-
-    static class EmailArgumentType implements ArgumentType<Long> {
-
-        @Override
-        public Long parse(StringReader reader) throws CommandSyntaxException {
             int start = reader.getCursor();
 
             reader.setCursor(start);

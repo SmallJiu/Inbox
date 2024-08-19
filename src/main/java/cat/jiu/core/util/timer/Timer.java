@@ -309,7 +309,7 @@ public class Timer implements ITimer {
 		return result;
 	}
 	
-	static enum JsonType {
+	enum JsonType {
 		Object, Array, Primitive, Element;
 		static <T extends JsonElement> JsonType getType(Class<T> type) {
 			if(type == JsonObject.class) {

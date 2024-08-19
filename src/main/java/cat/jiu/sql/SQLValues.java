@@ -202,8 +202,7 @@ public class SQLValues {
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public ArrayList<String> getAsStringList(String key){
 		Object o = this.values.get(key);
-		if(o instanceof ArrayList) {
-			ArrayList list = (ArrayList) o;
+		if(o instanceof ArrayList list) {
 			for(Object obj : list) {
 				if(obj instanceof String) return list;
 				break;
@@ -233,7 +232,7 @@ public class SQLValues {
     public String toString() {
 		StringJoiner s = new StringJoiner(",");
         for (String name : this.values.keySet()) {
-            s.add(name + "=" + String.valueOf(this.get(name)));
+            s.add(name + "=" + this.get(name));
         }
         return s.toString();
 	}
@@ -249,8 +248,7 @@ public class SQLValues {
 		if(getClass() != obj.getClass()) return false;
 		SQLValues other = (SQLValues) obj;
 		if(this.values == null) {
-			if(other.values != null) return false;
-		}else if(!this.values.equals(other.values)) return false;
-		return true;
+			return other.values == null;
+		}else return this.values.equals(other.values);
 	}
 }

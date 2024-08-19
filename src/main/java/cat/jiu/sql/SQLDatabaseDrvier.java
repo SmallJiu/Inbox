@@ -10,5 +10,5 @@ public enum SQLDatabaseDrvier {
 	PostgreSQL,
 	Sybase,
 	Informix,
-	UNKNOW;
+	UNKNOW
 }

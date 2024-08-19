@@ -52,7 +52,7 @@ public class MillisTimer implements ITimer {
 	
 	@Override
 	public boolean isDone() {
-		return this.isStarted() ? System.currentTimeMillis() >= this.currentMillis : false;
+		return this.isStarted() && System.currentTimeMillis() >= this.currentMillis;
 	}
 	
 	public long getLastMillis() {

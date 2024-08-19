@@ -33,9 +33,9 @@ public class EmailSenderSndSound extends AbstractTickableSoundInstance {
 	@Override
 	public void tick() {
 		if(this.time.isDone()
-		|| !(this.player.containerMenu instanceof ContainerEmailMain && ((ContainerEmailMain)this.player.containerMenu).getCurrenEmail()==this.emailID)) {
+		|| !(this.player.containerMenu instanceof ContainerEmailMain container && container.getCurrentEmail()==this.emailID)) {
 			this.stop();
-			MinecraftForge.EVENT_BUS.post(new InboxPlaySoundEvent.Stop(this.emailID));
+			MinecraftForge.EVENT_BUS.post(new InboxPlaySoundEvent.Stop(((ContainerEmailMain)this.player.containerMenu).getInbox().getEmail(this.emailID)));
 		}
 		
 		this.time.update();

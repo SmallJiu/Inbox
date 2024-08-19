@@ -17,7 +17,7 @@ public class MsgRefreshOther extends BaseMessage {
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(!EmailMain.proxy.isClient()) {
 			Inbox inbox = Inbox.get(ctx.get().getSender());
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox.getCustomValue(), inbox.getSenderBlacklist()), ctx.get().getSender());
+			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendOther(inbox.getCustomValue(), inbox.getSenderBlacklist()), ctx.get().getSender());
 		}
 		return true;
 	}

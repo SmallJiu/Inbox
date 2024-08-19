@@ -95,7 +95,7 @@ public interface ISound extends ISerializable {
 		this.setSoundVolume(json.get("volume").getAsFloat());
 		this.setSoundPitch(json.get("pitch").getAsFloat());
 		this.setSoundCategory(json.has("category") ? getSoundCategoryByName(json.get("category").getAsString()) : SoundSource.PLAYERS);
-		this.setFollowEntity(json.has("followEntity") ? json.get("followEntity").getAsBoolean() : false);
+		this.setFollowEntity(json.has("followEntity") && json.get("followEntity").getAsBoolean());
 		if(json.has("playPosition")) {
 			this.setPlayPosition(readPosition(json.getAsJsonObject("playPosition")));
 		}
@@ -108,25 +108,25 @@ public interface ISound extends ISerializable {
 	@Override
 	default void read(ResultSet result) throws SQLException {}
 	
-	public static CompoundTag writePositionNBT(BlockPos pos) {
+	static CompoundTag writePositionNBT(BlockPos pos) {
 		CompoundTag nbt = new CompoundTag();
 		nbt.putInt("x", pos.getX());
 		nbt.putInt("y", pos.getY());
 		nbt.putInt("z", pos.getZ());
 		return nbt;
 	}
-	public static BlockPos readPosition(CompoundTag nbt) {
+	static BlockPos readPosition(CompoundTag nbt) {
 		return new BlockPos(nbt.getInt("x"), nbt.getInt("y"), nbt.getInt("z"));
 	}
 	
-	public static JsonObject writePositionJson(BlockPos pos) {
+	static JsonObject writePositionJson(BlockPos pos) {
 		JsonObject nbt = new JsonObject();
 		nbt.addProperty("x", pos.getX());
 		nbt.addProperty("y", pos.getY());
 		nbt.addProperty("z", pos.getZ());
 		return nbt;
 	}
-	public static BlockPos readPosition(JsonObject nbt) {
+	static BlockPos readPosition(JsonObject nbt) {
 		return new BlockPos(nbt.get("x").getAsInt(), nbt.get("y").getAsInt(), nbt.get("z").getAsInt());
 	}
 

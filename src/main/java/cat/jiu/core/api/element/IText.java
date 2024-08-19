@@ -93,7 +93,7 @@ public interface IText extends ISerializable {
 		if(json.has("isVanillaWrap")) this.setUseVanillaWrap(json.get("isVanillaWrap").getAsBoolean());
 		if(json.has("isCenter")) this.setCenter(json.get("isCenter").getAsBoolean());
 		if(json.has("parameters") || json.has("args")) {
-			JsonArray parametersArray = json.has("parameters") ? json.getAsJsonArray("parameters") : json.getAsJsonArray("args");
+			JsonArray parametersArray = json.getAsJsonArray(json.has("parameters") ? "parameters" : "args");
 			Object[] parameters = new Object[parametersArray.size()];
 			for(int i = 0; i < parameters.length; i++) {
 				JsonElement e = parametersArray.get(i);
@@ -139,7 +139,7 @@ public interface IText extends ISerializable {
 		if(nbt.contains("parameters")) {
 			CompoundTag parametersArray = nbt.getCompound("parameters");
 			Object[] parameters = new Object[parametersArray.size()];
-			List<String> keys = parametersArray.getAllKeys().stream().sorted(Comparator.comparingLong(Long::valueOf)).collect(Collectors.toList());
+			List<String> keys = parametersArray.getAllKeys().stream().sorted(Comparator.comparingLong(Long::valueOf)).toList();
 
 			for(int i = 0; i < keys.size(); i++) {
 				Tag e = parametersArray.get(keys.get(i));
