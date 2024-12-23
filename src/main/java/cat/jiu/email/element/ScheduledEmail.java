@@ -2,6 +2,7 @@ package cat.jiu.email.element;
 
 import cat.jiu.core.api.handler.ISerializable;
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonParser;
 import cat.jiu.email.util.TimeMillis;
@@ -248,22 +249,26 @@ public class ScheduledEmail implements ISerializable {
     }
     public static void updataScheduledEmail() {
         try {
-            String path = EmailAPI.getExportPath() + "scheduled_emails.json";
-            JsonParser.parse(path).getAsJsonArray().forEach(e->{
-                try {
-                    ScheduledEmail email = new ScheduledEmail();
-                    email.readFrom(e);
-                    email.getAsEmail();
-                    if (hasScheduledEmail(email)) {
-                        getScheduledEmail(email.getId()).changeTo(email);
-                    }else {
-                        scheduled_emails.add(email.refreshNextExecuteTime());
+            File file = new File(EmailAPI.getExportPath() + "scheduled_emails.json");
+            if (file.exists()) {
+                JsonParser.parse(file).getAsJsonArray().forEach(e->{
+                    try {
+                        ScheduledEmail email = new ScheduledEmail();
+                        email.readFrom(e);
+                        email.getAsEmail();
+                        if (hasScheduledEmail(email)) {
+                            getScheduledEmail(email.getId()).changeTo(email);
+                        }else {
+                            scheduled_emails.add(email.refreshNextExecuteTime());
+                        }
+                    }catch (Throwable t) {
+                        t.printStackTrace();
                     }
-                }catch (Throwable t) {
-                    t.printStackTrace();
-                }
-            });
-            saveScheduledEmail();
+                });
+                saveScheduledEmail();
+            }else {
+                EmailMain.log.info("Not found file ' scheduled_emails.json ', path: {}", file);
+            }
         }catch (Throwable ignored){
 
         }

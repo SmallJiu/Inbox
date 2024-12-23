@@ -1,13 +1,12 @@
 package cat.jiu.core.util.timer;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import com.google.gson.JsonObject;
-
 import cat.jiu.core.api.ITimer;
 import cat.jiu.sql.SQLValues;
+import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * use {@linkplain System#currentTimeMillis()} to build timer<p>

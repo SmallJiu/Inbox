@@ -1,4 +1,4 @@
-package cat.jiu.core.api;
+package cat.jiu.core.net;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
@@ -23,9 +23,8 @@ public abstract class BaseMessage {
             T callback = this.callback(context);
             if (callback!=null) {
                 this.send.accept(context, callback);
-                return true;
             }
-            return false;
+            return true;
         }
 
         protected abstract T callback(Supplier<NetworkEvent.Context> context);

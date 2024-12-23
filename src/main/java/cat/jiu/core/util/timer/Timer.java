@@ -1,11 +1,10 @@
 package cat.jiu.core.util.timer;
 
+import cat.jiu.core.api.ITimer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-
-import cat.jiu.core.api.ITimer;
 
 public class Timer implements ITimer {
 	protected long day;

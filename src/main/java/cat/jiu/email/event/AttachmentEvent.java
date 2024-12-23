@@ -11,7 +11,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
-import org.jetbrains.annotations.NotNull;
 
 public class AttachmentEvent extends Event {
     public final Email email;
@@ -26,14 +25,17 @@ public class AttachmentEvent extends Event {
     public static class Render extends AttachmentEvent {
         public final GuiGraphics graphics;
         public final Font font;
-        public final int x, originalY, mouseX, mouseY, guiWidth, guiHeight, top, bottom, left, right;
+        public final int x, originalY, mouseX, mouseY, viewWidth, viewHeight, top, bottom, left, right;
+        @Deprecated
+        public final int guiWidth, guiHeight;
         protected int y;
-        protected Render(Email email, IAttachment attachment, GuiGraphics graphics, Font font, int guiWidth, int guiHeight, int x, int y, int mouseX, int mouseY, int top, int bottom, int left, int right) {
+
+        protected Render(Email email, IAttachment attachment, GuiGraphics graphics, Font font, int viewWidth, int viewHeight, int x, int y, int mouseX, int mouseY, int top, int bottom, int left, int right) {
             super(email, attachment);
             this.graphics = graphics;
             this.font = font;
-            this.guiWidth = guiWidth;
-            this.guiHeight = guiHeight;
+            this.viewWidth = viewWidth;
+            this.viewHeight = viewHeight;
             this.x = x;
             this.originalY = y;
             this.y = y;
@@ -43,6 +45,10 @@ public class AttachmentEvent extends Event {
             this.bottom = bottom;
             this.left = left;
             this.right = right;
+
+
+            this.guiWidth = this.viewWidth;
+            this.guiHeight = this.viewHeight;
         }
 
         public int getY() {
@@ -59,7 +65,7 @@ public class AttachmentEvent extends Event {
         public void enableScissor() {
             double scale = Minecraft.getInstance().getWindow().getGuiScale();
             RenderSystem.enableScissor((int)(this.left * scale), (int)(Minecraft.getInstance().getWindow().getHeight() - (this.bottom * scale)),
-                    (int)(this.guiWidth * scale), (int)(this.guiWidth * scale));
+                    (int)(this.viewWidth * scale), (int)(this.viewWidth * scale));
         }
         public void disableScissor() {
             RenderSystem.disableScissor();
@@ -72,7 +78,7 @@ public class AttachmentEvent extends Event {
         }
 
         public boolean canSee() {
-            return EmailUtils.isInRange(this.mouseX, this.mouseY, this.left, this.top, this.guiWidth, this.guiHeight);
+            return EmailUtils.isInRange(this.mouseX, this.mouseY, this.left, this.top, this.viewWidth, this.viewHeight);
         }
 
         @Cancelable

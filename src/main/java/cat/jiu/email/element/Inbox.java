@@ -148,7 +148,7 @@ public final class Inbox implements ISerializable {
 		int i = 0;
 		for(long id : this.emails.keySet()) {
 			Email email = this.getEmail(id);
-			if(email.hasItems() && !email.isReceived()) i++;
+			if(email.hasAttachment() && !email.isReceived()) i++;
 		}
 		return i;
 	}
@@ -212,7 +212,7 @@ public final class Inbox implements ISerializable {
 	 */
 	public boolean addEmail(Email email, boolean saveToDisk) {
 		long id = this.emailHistoryCount+1;
-		if(this.emails.put(id, email) == null) {
+		if(this.setEmail(id, email) == null) {
 			this.emailHistoryCount = id;
 			return !saveToDisk || EmailUtils.saveInboxToDisk(this);
 		}

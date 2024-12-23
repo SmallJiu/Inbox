@@ -1,6 +1,6 @@
 package cat.jiu.email.net.msg;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;

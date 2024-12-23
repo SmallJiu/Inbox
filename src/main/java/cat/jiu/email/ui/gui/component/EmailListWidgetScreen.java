@@ -2,7 +2,7 @@ package cat.jiu.email.ui.gui.component;
 
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.element.Email;
-import cat.jiu.email.ui.gui.GuiEmailMain;
+import cat.jiu.email.ui.gui.GuiInbox;
 import cat.jiu.email.util.EmailUtils;
 import com.google.common.collect.Lists;
 import net.minecraft.ChatFormatting;
@@ -18,10 +18,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEntry> {
-    final GuiEmailMain parent;
+public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetScreen.EmailEntry> {
+    final GuiInbox parent;
 
-    public EmailListWidget(GuiEmailMain parent, int width, int height, int x, int y) {
+    public EmailListWidgetScreen(GuiInbox parent, int width, int height, int x, int y) {
         super(Minecraft.getInstance(), width, height, y, y+height, parent.getFont().lineHeight * 2 + 8);
         this.parent = parent;
         this.setLeftPos(x);
@@ -42,17 +42,17 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
         int x = this.x0 + (this.width - width) / 2;
         width -= 9;
 
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y, 7, 5, 168, 200); // 左上
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + height - 3, 5, 7, 168, 225); //左下
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 7, 5, 168, 200); // 左上
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height - 3, 5, 7, 168, 225); //左下
 
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 4, y, 7, 7, 240, 200); // 右上
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 2, y + height - 3, 5, 7, 242, 225); // 右下
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 4, y, 7, 7, 240, 200); // 右上
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 2, y + height - 3, 5, 7, 242, 225); // 右下
 
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 7, y, width - 11, 3, 175, 200, 1, 3, null); // 上
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 5, y + height - 3, width - 7, 7, 173, 225, 1, 7, null); // 下
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x + 7, y, width - 11, 3, 175, 200, 1, 3, null); // 上
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x + 5, y + height - 3, width - 7, 7, 173, 225, 1, 7, null); // 下
 
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + 5, 7, height - 8, 168, 205, 7, 1, null); //左
-        RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 4, y + 7, 7, height - 10, 240, 207, 7, 1, null); //右
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + 5, 7, height - 8, 168, 205, 7, 1, null); //左
+        RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 4, y + 7, 7, height - 10, 240, 207, 7, 1, null); //右
     }
 
     @Override
@@ -86,8 +86,8 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
     }
     public void refreshList(Predicate<Email> predicate) {
         List<EmailEntry> entries = Lists.newArrayList();
-        this.parent.getMenu().getInbox().getEmailIDs().forEach(id-> {
-            Email email = this.parent.getMenu().getInbox().getEmail(id);
+        this.parent.getInbox().getEmailIDs().forEach(id-> {
+            Email email = this.parent.getInbox().getEmail(id);
             if (email!=null && predicate == null || predicate.test(email)) {
                 entries.add(new EmailEntry(this.parent, id, email, this.getWidth()));
             }
@@ -103,15 +103,15 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
     public void sort() {
         this.sort(Lists.newArrayList(this.children()));
     }
-    public class EmailEntry extends ObjectSelectionList.Entry<EmailEntry> {
-        final GuiEmailMain parent;
+    public class EmailEntry extends Entry<EmailEntry> {
+        final GuiInbox parent;
         final long id;
         final int width;
         final Email email;
         Component sender, time, state;
         boolean updataExpiration;
 
-        public EmailEntry(GuiEmailMain parent, long id, Email email, int width) {
+        public EmailEntry(GuiInbox parent, long id, Email email, int width) {
             this.parent = parent;
             this.id = id;
             this.email = email;
@@ -139,7 +139,7 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
         @Override
         public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
             if (pButton == 0) {
-                EmailListWidget.this.setSelected(this);
+                EmailListWidgetScreen.this.setSelected(this);
                 this.parent.setCurrentEmail(this.id);
             }
             return false;
@@ -149,19 +149,19 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
         public void renderBack(GuiGraphics graphics, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             x -= 2;
             width -= 9;
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y, 3, 3, 168, 168); // 左上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + height + 1, 3, 3, 168, 197); //左下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 3, 3, 168, 168); // 左上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height + 1, 3, 3, 168, 197); //左下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y, 3, 3, 244, 168); // 右上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y + height + 1, 3, 3, 244, 197); // 右下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y, 3, 3, 244, 168); // 右上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y + height + 1, 3, 3, 244, 197); // 右下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y, width - 3, 3, 171, 168, 1, 3, null); // 上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y + height + 1, width - 3, 3, 171, 197, 1, 3, null); // 下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y, width - 3, 3, 171, 168, 1, 3, null); // 上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y + height + 1, width - 3, 3, 171, 197, 1, 3, null); // 下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + 3, 3, height - 2, 168, 171, 3, 1, null); //左
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y + 3, 3, height - 2, 244, 171, 3, 1, null); //右
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + 3, 3, height - 2, 168, 171, 3, 1, null); //左
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y + 3, 3, height - 2, 244, 171, 3, 1, null); //右
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y + 3, width - 3, height - 2, 171, 171, 1, 1, null); //右
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y + 3, width - 3, height - 2, 171, 171, 1, 1, null); //右
         }
 
         public long getEmailId() {

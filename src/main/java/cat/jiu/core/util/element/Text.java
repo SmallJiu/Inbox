@@ -1,11 +1,8 @@
 package cat.jiu.core.util.element;
 
-import java.util.Arrays;
-
+import cat.jiu.core.api.element.IText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import cat.jiu.core.api.element.IText;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -13,6 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
+
+import java.util.Arrays;
 
 public class Text implements IText {
 	public static final Object[] EMPTY_ARGS = new Object[0];

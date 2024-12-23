@@ -7,8 +7,8 @@
   "info.config.world_restart": "Need restart world.",
 
   "info.email.name": "Inbox",
-  "info.email.has_unread": "You inbox has %s message unread.",
-  "info.email.has_unreceive": "You inbox has %s message unreceive.",
+  "info.email.has_unread": "§fYou inbox has §e%s §femail not read.",
+  "info.email.has_unreceive": "§fYou inbox has §e%s email §fnot receive.",
   "info.email.has_unread_and_unreceive": "You inbox has %s message unread, and %s message unreceive.",
 
   "info.email.error.to_big.0": "§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.",
@@ -52,6 +52,10 @@
   "info.email.xp_save_to_email.1": "Point: %s",
   "info.email.no_select_title": "Select an email to see info.",
   "info.email.no_select_time": "Now time: %s",
+  "info.email.delete.tip": "Select a email and press 'Delete' can delete email too.",
+  "info.email.delete.title": "Do you want to delete the selected email.",
+  "info.email.delete.confirm": "Press ' Delete ' to confirm.",
+  "info.email.delete.cancel": "' Any ' key to cancel.",
 
   "info.email.filter.default": "Default",
   "info.email.filter.has_sound": "Has sound",
@@ -65,6 +69,9 @@
   "info.email.filter.has_item": "Has item",
   "info.email.filter.is_accept": "Received",
   "info.email.filter.not_accept": "Undeceive",
+
+  "info.email.sound_not_found": "Can not play audio, registry name: %s",
+  "info.email.sound_not_found.ext": "Can not play audio, path: %s",
 
   #gen
   "info.email.generate": "Generate email.",
@@ -210,6 +217,10 @@
   "email.config.custom_inbox_path.2": "Except for higher version minecraft items, the rest are compatible with lower version email",
   "email.config.custom_inbox_path.3": "Example: 'C:/' The mailbox will be saved in 'C:/email/<uuid>. json' instead of 'C:/<uuid>. json'. If 'Save to SQL' is enabled, it will be saved in 'C:/inboxes. db'",
   "email.config.custom_inbox_path.4": "Example: '/ The 'data' email will be saved in '/ Data/email/<uuid>. json 'instead of'/ Data/<uuid>. json ', if' Save to SQL 'is enabled, it will be saved to' C:/inboxes. db '",
+
+  "email.config.screen_inbox_gui": "Use no container gui",
+  "email.config.screen_inbox_gui.0": "Use no Container gui, can disable similar JEI mods render",
+  "email.config.screen_inbox_gui.1": "Testing content, any problem pls report.",
 
   "email.config.enable_chat_btn": "Chat Button",
   "email.config.enable_chat_btn.0": "Enable the button to open email in the chat gui",

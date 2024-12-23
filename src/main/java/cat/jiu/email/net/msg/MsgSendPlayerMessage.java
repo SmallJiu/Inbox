@@ -2,7 +2,7 @@ package cat.jiu.email.net.msg;
 
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;

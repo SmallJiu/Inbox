@@ -1,21 +1,11 @@
 package cat.jiu.core.api.element;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.element.Text;
+import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import cat.jiu.core.api.handler.ISerializable;
-import cat.jiu.core.events.client.TextFormatEvent;
-import cat.jiu.core.util.element.Text;
-import cat.jiu.sql.SQLValues;
-
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.resources.language.I18n;
@@ -26,6 +16,12 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 public interface IText extends ISerializable {
 	String getText();
@@ -44,10 +40,10 @@ public interface IText extends ISerializable {
 
 	@OnlyIn(Dist.CLIENT)
 	default String format() {
-		TextFormatEvent event = new TextFormatEvent(this.getText(), this.getParameters());
-		if(MinecraftForge.EVENT_BUS.post(event) && event.getFormatResult() != null) {
-			return event.getFormatResult();
-		}
+//		TextFormatEvent event = new TextFormatEvent(this.getText(), this.getParameters());
+//		if(MinecraftForge.EVENT_BUS.post(event) && event.getFormatResult() != null) {
+//			return event.getFormatResult();
+//		}
 		return I18n.get(this.getText(), IText.format(this.getParameters()));
 	}
 
@@ -146,7 +142,7 @@ public interface IText extends ISerializable {
 				if(e instanceof CompoundTag) {
 					parameters[i] = new Text((CompoundTag)e);
 				}else {
-					parameters[i] = e.toString();
+					parameters[i] = e.getAsString();
 				}
 			}
 			this.setParameters(parameters);

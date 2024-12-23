@@ -1,4 +1,4 @@
-package cat.jiu.core.events.client;
+package cat.jiu.core.client;
 
 import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;

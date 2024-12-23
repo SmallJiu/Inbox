@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import net.minecraft.ChatFormatting;

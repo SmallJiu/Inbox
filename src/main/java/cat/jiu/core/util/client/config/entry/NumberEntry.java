@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.StringUtil;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.awt.*;
@@ -54,14 +55,14 @@ public abstract class NumberEntry<T extends Number> extends ConfigEntry<T> {
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         boolean flag = super.charTyped(codePoint, modifiers);
-        this.setCacheValue(this.parse(this.field.getValue()));
+        this.setCacheValue(this.parse(StringUtil.isNullOrEmpty(this.field.getValue()) ? "0" : this.field.getValue()));
         return flag;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean flag = super.keyPressed(keyCode, scanCode, modifiers);
-        this.setCacheValue(this.parse(this.field.getValue()));
+        this.setCacheValue(this.parse(StringUtil.isNullOrEmpty(this.field.getValue()) ? "0" : this.field.getValue()));
         return flag;
     }
 
@@ -76,7 +77,7 @@ public abstract class NumberEntry<T extends Number> extends ConfigEntry<T> {
         if(this.field!=null) this.field.setValue(String.valueOf(newValue));
     }
 
-    public class GuiFilterTextField extends EditBox {
+    public static class GuiFilterTextField extends EditBox {
         private Predicate<Character> typedCharFilter;
         private final String defaultText;
         public GuiFilterTextField(String defaultText, Font font, int x, int y, int par5Width, int par6Height) {

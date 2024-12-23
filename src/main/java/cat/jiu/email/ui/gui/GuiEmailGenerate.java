@@ -1,9 +1,9 @@
 package cat.jiu.email.ui.gui;
 
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.util.element.Sound;
+import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.core.util.timer.MillisTimer;
+import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
@@ -14,7 +14,6 @@ import cat.jiu.email.ui.container.ContainerEmailGenerate;
 import cat.jiu.email.ui.gui.component.*;
 import cat.jiu.email.util.*;
 import cat.jiu.email.util.client.ShowInboxGui;
-import cat.jiu.formless.utils.client.AudioSystem;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -153,7 +152,11 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			}
 
 			if (this.useMCSound.selected()) {
-				email.setMcSound(new Sound(new Timer(59, 59, 19), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(this.mcSoundBtn.getMessage().getString())), 1, 1, SoundSource.PLAYERS));
+				email.setMcSound(new SoundMC()
+						.setDuration(59, 59, 19)
+						.setSoundEvent(ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(this.mcSoundBtn.getMessage().getString())))
+						.setSoundChannel(SoundSource.PLAYERS)
+				);
 			}else if (!this.localSound.getValue().isEmpty()) {
 				email.setExternalSound(new AudioSystem.Audio(this.localSound.getValue(), SoundSource.PLAYERS));
 			}
@@ -180,7 +183,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			object.remove("time");
 			if (!email.hasAttachment()) {
 				JsonArray array = new JsonArray();
-				for (ResourceLocation resourceLocation : IAttachment.getAllAttachmentID()) {
+				for (ResourceLocation resourceLocation : IAttachment.REGISTRY.getIDs()) {
 					array.add(String.valueOf(resourceLocation));
 				}
 				object.add("attachments", new JsonArray());

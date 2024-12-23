@@ -10,10 +10,10 @@ import java.util.UUID;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
-import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.net.msg.*;
+import cat.jiu.email.ui.gui.GuiInbox;
 import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -26,12 +26,14 @@ import cat.jiu.core.util.element.Text;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -361,6 +363,10 @@ public class EmailAPI {
 		return true;
 	}
 
+	@OnlyIn(Dist.CLIENT)
+	public static void openInbox() {
+		GuiInbox.display();
+	}
 
 	private static final HashMap<String, Email> ScheduledEmailMap = new HashMap<>();
 	public static HashMap<String, Email> getScheduledEmailMap() {
@@ -403,9 +409,9 @@ public class EmailAPI {
 			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendOther(inbox), player);
 			for (Long id : inbox.getEmailIDs()) {
 //			for (int id = 0; id < 2560; id++) {
-				if (!(player.containerMenu instanceof ContainerEmailMain)) {
-					break;
-				}
+//				if (!(player.containerMenu instanceof ContainerEmailMain)) {
+//					break;
+//				}
 				try {
 					Thread.sleep(25);
 					Email email = inbox.getEmail(id);

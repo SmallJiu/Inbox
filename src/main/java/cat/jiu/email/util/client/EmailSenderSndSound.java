@@ -2,9 +2,11 @@ package cat.jiu.email.util.client;
 
 import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.ISound;
+import cat.jiu.core.util.element.sound.SoundMC;
+import cat.jiu.core.util.timer.MillisTimer;
 import cat.jiu.email.event.InboxPlaySoundEvent;
-import cat.jiu.email.ui.container.ContainerEmailMain;
 
+import cat.jiu.email.ui.gui.GuiInbox;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
@@ -20,11 +22,11 @@ public class EmailSenderSndSound extends AbstractTickableSoundInstance {
 	public final ITimer time;
 	protected final ISound sound;
 	private final long emailID;
-	public EmailSenderSndSound(ISound sound, long emailID) {
-		super(sound.getSound(), SoundSource.PLAYERS, Minecraft.getInstance().level.random);
+	public EmailSenderSndSound(SoundMC sound, long emailID) {
+		super(sound.getSoundEvent(), SoundSource.PLAYERS, Minecraft.getInstance().font.random);
 		this.player = Minecraft.getInstance().player;
 		this.sound = sound;
-		this.time = sound.getTime();
+		this.time = new MillisTimer(sound.getDuration());
 		this.pitch = sound.getSoundPitch();
 		this.volume = sound.getSoundVolume();
 		this.emailID = emailID;
@@ -33,9 +35,9 @@ public class EmailSenderSndSound extends AbstractTickableSoundInstance {
 	@Override
 	public void tick() {
 		if(this.time.isDone()
-		|| !(this.player.containerMenu instanceof ContainerEmailMain container && container.getCurrentEmail()==this.emailID)) {
+		|| !(Minecraft.getInstance().screen instanceof GuiInbox gui && gui.getCurrentEmailID()==this.emailID)) {
 			this.stop();
-			MinecraftForge.EVENT_BUS.post(new InboxPlaySoundEvent.Stop(((ContainerEmailMain)this.player.containerMenu).getInbox().getEmail(this.emailID)));
+			MinecraftForge.EVENT_BUS.post(new InboxPlaySoundEvent.Stop(((GuiInbox)Minecraft.getInstance().screen).getInbox().getEmail(this.emailID)));
 		}
 		
 		this.time.update();

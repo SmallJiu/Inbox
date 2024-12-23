@@ -7,6 +7,7 @@ public final class EmailConfigs {
 //	public static final BooleanValue Enable_Inbox_Infinite_Storage_Cache;
 	public static final BooleanValue Save_To_Minecraft_Root_Directory;
 	public static final BooleanValue Save_Inbox_To_SQL;
+//	public static final BooleanValue Screen_Inbox_Gui;
 	public static final ConfigValue<String> Custom_Inbox_Path;
 	public static final Main Main;
 	public static class Main extends BaseConfig {
@@ -62,8 +63,8 @@ public final class EmailConfigs {
 					builder.translation("email.config.main.pos.inbox_btn").push("inbox_buttons");
 
 					this.Chat_Gui_Button = new Pos(builder, "chat_gui_button", "email.config.main.pos.inbox_btn.chat_btn", 25, 5);
-					this.Survival_Gui_Button = new Pos(builder, "survival_gui_button", "email.config.main.pos.inbox_btn.survival_btn", 27, 9);
-					this.Creative_Tab_Button = new Pos(builder, "creative_tab_button", "email.config.main.pos.inbox_btn.creative_btn", 145, 138);
+					this.Survival_Gui_Button = new Pos(builder, "survival_gui_button", "email.config.main.pos.inbox_btn.survival_btn", 76, 54);
+					this.Creative_Tab_Button = new Pos(builder, "creative_tab_button", "email.config.main.pos.inbox_btn.creative_btn", 172, 166);
 
 					builder.pop();
 				}
@@ -71,7 +72,7 @@ public final class EmailConfigs {
 		}
 	}
 
-	public static Send Send;
+	public static final Send Send;
 	public static class Send extends BaseConfig {
 		public final BooleanValue Enable_Send_BlackList;
 		public final BooleanValue Enable_Send_WhiteList;
@@ -186,6 +187,13 @@ public final class EmailConfigs {
 						"email.config.save_inbox_to_sql.1")
 				.define("Save_Inbox_To_SQL", false);
 
+//		Screen_Inbox_Gui = builder
+//				.worldRestart()
+//				.translation("email.config.screen_inbox_gui")
+//				.comment("email.config.screen_inbox_gui.0",
+//						"email.config.screen_inbox_gui.1")
+//				.define("Screen_Inbox_Gui", true);
+
 		Custom_Inbox_Path = builder
 				.worldRestart()
 				.translation("email.config.custom_inbox_path")
@@ -195,6 +203,7 @@ public final class EmailConfigs {
 						"email.config.custom_inbox_path.3",
 						"email.config.custom_inbox_path.4")
 				.define("inbox_path", "");
+
 
 		Main = new Main(builder);
 		Send = new Send(builder);

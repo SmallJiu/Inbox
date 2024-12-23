@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import cat.jiu.email.element.ScheduledEmail;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.ui.gui.*;
 import com.google.common.collect.Lists;
 
@@ -16,6 +16,7 @@ import cat.jiu.email.element.Inbox;
 import cat.jiu.email.net.msg.MsgOpenGui;
 import cat.jiu.email.ui.container.*;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -42,11 +43,10 @@ public class GuiHandler {
 	public static final DeferredRegister<MenuType<?>> MENU_TYPE_REGISTER = DeferredRegister.create(ForgeRegistries.MENU_TYPES, EmailMain.MODID);
 	private static final Map<Integer, GuiConsumer<?>> GUIS = new HashMap<>();
 
-	public static final RegistryObject<MenuType<ContainerEmailMain>> main_TYPE;
+//	public static final RegistryObject<MenuType<ContainerEmailMain>> main_TYPE;
 	public static final RegistryObject<MenuType<ContainerEmailSend>> send_TYPE;
 	public static final RegistryObject<MenuType<ContainerInboxBlacklist>> blacklist_TYPE;
 	public static final RegistryObject<MenuType<ContainerEmailGenerate>> generate_TYPE;
-	public static final RegistryObject<MenuType<ContainerScheduledEmail>> scheduled_TYPE;
 
 	public static final int EMAIL_MAIN = 0;
 	public static final int EMAIL_SEND = 1;
@@ -58,9 +58,8 @@ public class GuiHandler {
 	public static void registerScreen() {
 		MenuScreens.<ContainerEmailSend, GuiEmailSend>register(GuiHandler.send_TYPE.get(), (container, inventory, title) -> new GuiEmailSend(container, inventory));
 		MenuScreens.<ContainerInboxBlacklist, GuiBlacklist>register(GuiHandler.blacklist_TYPE.get(), (container, inventory, title) -> new GuiBlacklist(container, inventory));
-		MenuScreens.<ContainerEmailMain, GuiEmailMain>register(GuiHandler.main_TYPE.get(), (container, inventory, title) -> new GuiEmailMain(container, inventory));
+//		MenuScreens.<ContainerEmailMain, GuiEmailMain>register(GuiHandler.main_TYPE.get(), (container, inventory, title) -> new GuiEmailMain(container, inventory));
 		MenuScreens.<ContainerEmailGenerate, GuiEmailGenerate>register(GuiHandler.generate_TYPE.get(), (container, inventory, title) -> new GuiEmailGenerate(container, inventory));
-		MenuScreens.<ContainerScheduledEmail, GuiScheduledEmail>register(GuiHandler.scheduled_TYPE.get(), (container, inventory, title) -> new GuiScheduledEmail(container, inventory));
 
 		ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class, ()->new ConfigScreenHandler.ConfigScreenFactory((mc, parent)->
 				new cat.jiu.core.util.client.config.GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
@@ -68,10 +67,10 @@ public class GuiHandler {
 	}
 
 	static {
-		main_TYPE = register(EMAIL_MAIN, "email_main_container", new GuiConsumer<>(
-				(guiID, inventory, data) -> new ContainerEmailMain(guiID, inventory),
-				null
-		));
+//		main_TYPE = register(EMAIL_MAIN, "email_main_container", new GuiConsumer<>(
+//				(guiID, inventory, data) -> new ContainerEmailMain(guiID, inventory),
+//				null
+//		));
 
 		send_TYPE = register(EMAIL_SEND, "email_send_container", new GuiConsumer<>(
 				(guiID, inventory, data) -> {
@@ -110,13 +109,6 @@ public class GuiHandler {
 				}
 		));
 
-		scheduled_TYPE = register(EMAIL_Scheduled, "email_scheduled_container", new GuiConsumer<>(
-				(guiID, inventory, data) -> new ContainerScheduledEmail(guiID),
-				null
-		));
-
-
-
 		generate_TYPE = register(EMAIL_Generate, "email_generate_container", new GuiConsumer<>(
 				(guiID, inventory, data) -> new ContainerEmailGenerate(guiID, inventory),
 				null
@@ -125,7 +117,15 @@ public class GuiHandler {
 
 	@OnlyIn(Dist.CLIENT)
 	public static void openGui(int ID){
-		EmailMain.net.sendMessageToServer(new MsgOpenGui(ID));
+		if (ID == EMAIL_MAIN
+//				&& EmailConfigs.Screen_Inbox_Gui.get()
+		) {
+			EmailAPI.openInbox();
+		}else if (ID == EMAIL_Scheduled) {
+			Minecraft.getInstance().setScreen(new GuiScheduledEmail());
+		}else {
+			EmailMain.net.sendMessageToServer(new MsgOpenGui(ID));
+		}
 	}
 
 	public static <T extends AbstractContainerMenu> RegistryObject<MenuType<T>> register(int id, String name, GuiConsumer<T> supplier){

@@ -128,9 +128,9 @@ public class AttachmentXP implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentRender(AttachmentEvent.Render.Pre event) {
-        if (event.attachment instanceof AttachmentXP attachment && !attachment.isEmpty()) {
+    @Override
+    public void render(AttachmentEvent.Render event) {
+        if (!this.isEmpty()) {
             event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
 //            event.addY(event.font.lineHeight + 2);
 
@@ -143,8 +143,8 @@ public class AttachmentXP implements IAttachment {
                 event.disableScissor();
 
                 event.graphics.renderComponentTooltip(event.font, List.of(
-                        Component.literal(I18n.get("info.email.xp_save_to_email.0", attachment.getLevels())),
-                        Component.literal(I18n.get("info.email.xp_save_to_email.1", attachment.getPoints()))
+                        Component.literal(I18n.get("info.email.xp_save_to_email.0", this.getLevels())),
+                        Component.literal(I18n.get("info.email.xp_save_to_email.1", this.getPoints()))
                 ), event.mouseX, event.mouseY);
 
                 event.enableScissor();
@@ -154,9 +154,9 @@ public class AttachmentXP implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentGetHeight(AttachmentEvent.GetHeight event) {
-        if (event.attachment instanceof AttachmentXP attachment && !attachment.isEmpty()) {
+    @Override
+    public void getHeight(AttachmentEvent.GetHeight event) {
+        if (!this.isEmpty()) {
             event.addHeight(16);
         }
     }

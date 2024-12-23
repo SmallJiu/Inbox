@@ -2,25 +2,28 @@ package cat.jiu.email.api;
 
 import cat.jiu.core.api.handler.ISerializable;
 
+import cat.jiu.core.util.registry.DynamicRegistry;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.JsonParser;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-public interface IAttachment extends Consumer<Player>, ISerializable {
+public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<ResourceLocation> {
     Logger LOGGER = LogManager.getLogger("Inbox:Attachment");
     ResourceLocation EMPTY_ID = new ResourceLocation(EmailMain.MODID, "attachment/empty");
     IAttachment EMPTY = new IAttachment() {
@@ -40,9 +43,26 @@ public interface IAttachment extends Consumer<Player>, ISerializable {
         public ResourceLocation getID() {return EMPTY_ID;}
     };
 
+    DynamicRegistry<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry<>((id, json) -> {
+        LOGGER.error("Attachment '{}' is not registered.", id);
+        return EMPTY;
+    }, (id, nbt) -> {
+        LOGGER.error("Attachment '{}' is not registered.", id);
+        return EMPTY;
+    });
+
     ResourceLocation getID();
+
+    @Override
+    default ResourceLocation get(){return this.getID();}
+
     void merge(IAttachment other);
     void accept(Player player);
+
+    @OnlyIn(Dist.CLIENT)
+    default void render(AttachmentEvent.Render event) {}
+    @OnlyIn(Dist.CLIENT)
+    default void getHeight(AttachmentEvent.GetHeight event) {}
 
     default boolean isEmpty() {
         return EMPTY_ID.equals(this.getID());
@@ -67,64 +87,24 @@ public interface IAttachment extends Consumer<Player>, ISerializable {
     }
 
     static <T extends SerializableAttachment> void register(ResourceLocation id, Class<T> clazz) {
-        register(id, nbt->{
-            try {
-                return clazz.getDeclaredConstructor(CompoundTag.class).newInstance(nbt);
-            }catch (Exception e){
-                e.printStackTrace();
-                return EMPTY;
-            }
-        }, json->{
-            try {
-                return clazz.getDeclaredConstructor(JsonObject.class).newInstance(json);
-            }catch (Exception e){
-                e.printStackTrace();
-                return EMPTY;
-            }
-        });
+        IAttachment.REGISTRY.register(id, clazz);
     }
 
-    static void register(ResourceLocation id, Function<CompoundTag, IAttachment> nbtGetter, Function<JsonObject, IAttachment> jsonGetter) {
-        if (!Registry.REGISTRY.containsKey(id)) {
-            Registry.REGISTRY.put(id, new Registry.Getter(nbtGetter, jsonGetter));
-        }
-    }
-
+    @Deprecated
     static IAttachment newInstance(ResourceLocation id, CompoundTag tag) {
-        if (Registry.REGISTRY.containsKey(id)) {
-            return Registry.REGISTRY.get(id).nbtGetter.apply(tag);
-        }
-        LOGGER.error("Attachment '{}' is unregistered.", id);
-        return EMPTY;
+        return IAttachment.REGISTRY.get(id, tag);
     }
+    @Deprecated
     static IAttachment newInstance(ResourceLocation id, JsonObject json) {
-        if (Registry.REGISTRY.containsKey(id)) {
-            return Registry.REGISTRY.get(id).jsonGetter.apply(json);
-        }
-        LOGGER.error("Attachment '{}' is unregistered.", id);
-        return EMPTY;
+        return IAttachment.REGISTRY.get(id, json);
     }
-
+    @Deprecated
     static Set<ResourceLocation> getAllAttachmentID() {
-        return Collections.unmodifiableSet(Registry.REGISTRY.keySet());
+        return IAttachment.REGISTRY.getIDs();
     }
 
     default IAttachment copy() {
-        return newInstance(this.getID(), this.writeTo(JsonObject.class));
-    }
-
-    class Registry {
-        static final ConcurrentHashMap<ResourceLocation, Getter> REGISTRY = new ConcurrentHashMap<>();
-
-        static class Getter {
-            final Function<CompoundTag, IAttachment> nbtGetter;
-            final Function<JsonObject, IAttachment> jsonGetter;
-
-            public Getter(Function<CompoundTag, IAttachment> nbtGetter, Function<JsonObject, IAttachment> jsonGetter) {
-                this.nbtGetter = nbtGetter;
-                this.jsonGetter = jsonGetter;
-            }
-        }
+        return IAttachment.REGISTRY.get(this.getID(), this.writeTo(JsonObject.class));
     }
 
     abstract class SerializableAttachment implements IAttachment {

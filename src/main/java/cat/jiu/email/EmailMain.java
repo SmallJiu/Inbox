@@ -43,24 +43,14 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.2-a0";
+                                VERSION = "1.20.1-1.1.2-a1";
     public static final String SYSTEM = "?????";
     public static EmailNetworkHandler net;
     public static MinecraftServer server;
-    private static long sysTime = 0;
+    private static final long initTime = System.currentTimeMillis();
     @OnlyIn(Dist.CLIENT)
     public static long getSysTime() {
-        return sysTime;
-    }
-    static {
-        new Thread(()->{
-            while (proxy.isClient()) {
-                try {
-                    Thread.sleep(1);
-                    sysTime++;
-                } catch (InterruptedException ignored) {}
-            }
-        }).start();
+        return System.currentTimeMillis() - initTime;
     }
 
     public EmailMain() {
@@ -90,11 +80,8 @@ public class EmailMain {
         return unaccepted;
     }
 
-    public static void setUnread(int unRead) {
+    public static void setAccept(int unRead, int unReceived) {
         unread = unRead;
-    }
-
-    public static void setAccept(int unReceived) {
         unaccepted = unReceived;
     }
 
@@ -102,9 +89,9 @@ public class EmailMain {
         ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
         event.enqueueWork(()-> net = new EmailNetworkHandler());
 
-        IAttachment.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
-        IAttachment.register(AttachmentCommand.ID, AttachmentCommand::new, AttachmentCommand::new);
-        IAttachment.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
+        IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
+        IAttachment.REGISTRY.register(AttachmentCommand.ID, AttachmentCommand::new, AttachmentCommand::new);
+        IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
 //        IAttachment.register(IAttachment.EMPTY_ID, nbt -> IAttachment.EMPTY, nbt -> IAttachment.EMPTY);
 //        IAttachment.register(AttachmentDatapack.ID, AttachmentDatapack::new, AttachmentDatapack::new);
 
@@ -118,9 +105,9 @@ public class EmailMain {
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {
         server = event.getServer();
+        EmailUtils.initNameAndUUID(event.getServer());
         proxy.isServerClosed = false;
         Cooling.load();
-        EmailUtils.initNameAndUUID(event.getServer());
         ScheduledEmail.initScheduledEmail();
     }
     @SubscribeEvent

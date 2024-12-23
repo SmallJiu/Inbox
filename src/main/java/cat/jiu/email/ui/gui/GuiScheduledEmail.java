@@ -11,9 +11,7 @@ import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.net.msg.MsgScheduledEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
 import cat.jiu.email.ui.GuiHandler;
-import cat.jiu.email.ui.container.ContainerScheduledEmail;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
-import cat.jiu.email.ui.gui.component.GuiPopupMenu;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.client.GuiDynamicImage;
@@ -27,33 +25,31 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.StringUtil;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.client.gui.widget.ScrollPanel;
 import net.minecraftforge.common.MinecraftForge;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class GuiScheduledEmail extends AbstractContainerScreen<ContainerScheduledEmail> {
+public class GuiScheduledEmail extends Screen {
     private EditBox currentEmailTitle, currentEmailLastTime;
     private ScheduledEmailList emailList;
     private ScheduledEmailInfo emailInfo;
     private Button deleteEmailBtn, addBtn, refreshBtn;
-    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiEmailMain.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
+    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
     private final List<ScheduledEmail> emails = new ArrayList<>();
 
-    public GuiScheduledEmail(ContainerScheduledEmail container, Inventory inventory) {
-        super(container, inventory, Component.empty());
+    public GuiScheduledEmail() {
+        super(Component.empty());
         EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
     }
 
@@ -103,13 +99,13 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
                         }, ()->
                                 this.refreshBtn.visible = true
                 )
-        )).setBackground(()->GuiEmailMain.BackGround);
+        )).setBackground(()-> GuiInbox.BackGround);
         this.loadImage.visible = false;
         this.loadImage.width = this.refreshBtn.getWidth();
         this.loadImage.height = this.refreshBtn.getHeight();
 
         int width = RenderUtils.getFontRenderer().width(Component.translatable("info.email.black.back"));
-        Button btn = this.addRenderableWidget(GuiEmailMain.GuiButton.builder(
+        Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                         Component.translatable("info.email.black.back"),
                         b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)
                 )
@@ -119,7 +115,7 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
 
         if (EmailUtils.isOP(Minecraft.getInstance().player)) {
             width = this.font.width(Component.translatable("info.email.black.add"));
-            this.addBtn = btn = this.addRenderableWidget(GuiEmailMain.GuiButton.builder(
+            this.addBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                             Component.translatable("info.email.black.add"),
                             b->
                                     Minecraft.getInstance().setScreen(new GuiGenerateScheduledEmail(()->GuiHandler.openGui(GuiHandler.EMAIL_Scheduled)))
@@ -129,7 +125,7 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
                     .build());
 
             width = this.font.width(Component.translatable("info.email.delete"));
-            btn = this.deleteEmailBtn = this.addRenderableWidget(GuiEmailMain.GuiButton.builder(
+            btn = this.deleteEmailBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                             Component.translatable("info.email.delete"),
                             b-> {
                                 if (this.getCurrentScheduledEmail()!=null && EmailUtils.isOP(Minecraft.getInstance().player)) {
@@ -185,11 +181,10 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
         EmailUtils.hLineGradient(graphics, false, this.currentEmailLastTime.getX(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 4, this.emailInfo.getRight(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 3, Color.YELLOW.getRGB(), 0);
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
         this.renderTooltip(graphics, pMouseX, pMouseY);
+        this.renderLabels(graphics, pMouseX, pMouseY);
     }
 
-    @Override
     protected void renderTooltip(GuiGraphics graphics, int pX, int pY) {
-        super.renderTooltip(graphics, pX, pY);
         for (int i = 0; i < this.emailList.children().size(); i++) {
             ScheduledEmailList.ScheduledEmailEntry entry = null;
             try {
@@ -228,10 +223,6 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
         }
     }
 
-    @Override
-    protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {}
-
-    @Override
     protected void renderLabels(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {
         if (this.getCurrentScheduledEmail()!=null) {
             this.currentEmailLastTime.setValue(I18n.get("info.email.scheduled.last_time", this.getCurrentLastTime()));
@@ -365,6 +356,7 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
                 for (IAttachment attachment : email.getAttachments()) {
                     AttachmentEvent.GetHeight event = new AttachmentEvent.GetHeight(email, attachment, RenderUtils.getFontRenderer(), this.width, this.height);
                     MinecraftForge.EVENT_BUS.post(event);
+                    attachment.getHeight(event);
                     height += event.getHeight();
                     height += 4;
                 }
@@ -396,6 +388,7 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
                 for (IAttachment attachment : email.getAttachments()) {
                     AttachmentEvent.Render.Pre event = new AttachmentEvent.Render.Pre(email, attachment, graphics, font, this.width, this.height, x, y, mouseX, mouseY, this.top, this.bottom, this.left, this.right);
                     if (!MinecraftForge.EVENT_BUS.post(event)) {
+                        attachment.render(event);
                         MinecraftForge.EVENT_BUS.post(new AttachmentEvent.Render.Post(email, attachment, graphics, font, this.width, this.height, x, y, mouseX, mouseY, this.top, this.bottom, this.left, this.right));
                     }
                     event.addY(4);
@@ -473,17 +466,17 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
             int x = this.x0 + (this.width - width) / 2;
             width -= 9;
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y, 7, 5, 168, 200); // 左上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + height - 3, 5, 7, 168, 225); //左下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 7, 5, 168, 200); // 左上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height - 3, 5, 7, 168, 225); //左下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 4, y, 7, 7, 240, 200); // 右上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 2, y + height - 3, 5, 7, 242, 225); // 右下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 4, y, 7, 7, 240, 200); // 右上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 2, y + height - 3, 5, 7, 242, 225); // 右下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 7, y, width - 11, 3, 175, 200, 1, 3, null); // 上
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 5, y + height - 3, width - 7, 7, 173, 225, 1, 7, null); // 下
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + 7, y, width - 11, 3, 175, 200, 1, 3, null); // 上
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + 5, y + height - 3, width - 7, 7, 173, 225, 1, 7, null); // 下
 
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + 5, 7, height - 8, 168, 205, 7, 1, null); //左
-            RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width - 4, y + 7, 7, height - 10, 240, 207, 7, 1, null); //右
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + 5, 7, height - 8, 168, 205, 7, 1, null); //左
+            RenderUtils.draw(graphics, GuiInbox.BackGround, x + width - 4, y + 7, 7, height - 10, 240, 207, 7, 1, null); //右
         }
 
         @Override
@@ -546,19 +539,19 @@ public class GuiScheduledEmail extends AbstractContainerScreen<ContainerSchedule
             public void renderBack(GuiGraphics graphics, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
                 x -= 2;
                 width -= 9;
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y, 3, 3, 168, 168); // 左上
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + height + 1, 3, 3, 168, 197); //左下
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 3, 3, 168, 168); // 左上
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height + 1, 3, 3, 168, 197); //左下
 
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y, 3, 3, 244, 168); // 右上
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y + height + 1, 3, 3, 244, 197); // 右下
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y, 3, 3, 244, 168); // 右上
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y + height + 1, 3, 3, 244, 197); // 右下
 
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y, width - 3, 3, 171, 168, 1, 3, null); // 上
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y + height + 1, width - 3, 3, 171, 197, 1, 3, null); // 下
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y, width - 3, 3, 171, 168, 1, 3, null); // 上
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y + height + 1, width - 3, 3, 171, 197, 1, 3, null); // 下
 
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x, y + 3, 3, height - 2, 168, 171, 3, 1, null); //左
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + width, y + 3, 3, height - 2, 244, 171, 3, 1, null); //右
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + 3, 3, height - 2, 168, 171, 3, 1, null); //左
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + width, y + 3, 3, height - 2, 244, 171, 3, 1, null); //右
 
-                RenderUtils.draw(graphics, GuiEmailMain.BackGround, x + 3, y + 3, width - 3, height - 2, 171, 171, 1, 1, null); //右
+                RenderUtils.draw(graphics, GuiInbox.BackGround, x + 3, y + 3, width - 3, height - 2, 171, 171, 1, 1, null); //右
             }
 
             @Override

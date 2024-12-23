@@ -1,6 +1,6 @@
 package cat.jiu.email.event;
 
-import cat.jiu.formless.utils.client.AudioSystem;
+import cat.jiu.core.util.client.AudioSystem;
 import net.minecraftforge.eventbus.api.Event;
 
 import java.util.UUID;

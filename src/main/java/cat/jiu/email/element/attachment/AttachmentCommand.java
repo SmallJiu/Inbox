@@ -1,5 +1,9 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.api.handler.IJsonSerializable;
+import cat.jiu.core.api.handler.INBTSerializable;
+import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.api.ParameterFunction;
@@ -130,11 +134,7 @@ public class AttachmentCommand implements IAttachment {
         if (!this.isEmpty()){
             JsonArray array = new JsonArray();
             for (Cmd cmd : this.commands) {
-                JsonObject object = new JsonObject();
-                object.addProperty("cmd", cmd.cmd());
-                object.addProperty("serverCmd", cmd.performer().isServer());
-                object.addProperty("hide", cmd.isHideInTooltip());
-                array.add(object);
+                array.add(cmd.write(new JsonObject()));
             }
             json.add("commands", array);
         }
@@ -143,14 +143,14 @@ public class AttachmentCommand implements IAttachment {
 
     @Override
     public void read(JsonObject json) {
-        boolean allServerCmd = json.has("serverCmd") && json.get("serverCmd").getAsBoolean();
+        boolean allServerCmd = JsonUtils.get(json, "serverCmd", false);
         if (json.has("commands")) {
             for (JsonElement element : json.getAsJsonArray("commands")) {
                 if (element.isJsonObject()) {
                     JsonObject object = element.getAsJsonObject();
                     this.addCommand(object.get("cmd").getAsString(),
-                            (object.has("serverCmd") && object.get("serverCmd").getAsBoolean()) || allServerCmd,
-                            object.has("hide") && object.get("hide").getAsBoolean());
+                            JsonUtils.get(object, "serverCmd", false) || allServerCmd,
+                            JsonUtils.get(json, "hide", false));
                 }else if (element.isJsonPrimitive()) {
                     this.addCommand(element.getAsString(), allServerCmd);
                 }
@@ -163,11 +163,7 @@ public class AttachmentCommand implements IAttachment {
         if (!this.isEmpty()){
             ListTag array = new ListTag();
             for (Cmd cmd : this.commands) {
-                CompoundTag tag = new CompoundTag();
-                tag.putString("cmd", cmd.cmd());
-                tag.putBoolean("serverCmd", cmd.performer().isServer());
-                tag.putBoolean("hide", cmd.isHideInTooltip());
-                array.add(tag);
+                array.add(cmd.write(new CompoundTag()));
             }
             nbt.put("commands", array);
         }
@@ -178,8 +174,7 @@ public class AttachmentCommand implements IAttachment {
     public void read(CompoundTag nbt) {
         if (nbt.contains("commands")) {
             for (Tag tag : nbt.getList("commands", 10)) {
-                CompoundTag compound = (CompoundTag) tag;
-                this.addCommand(compound.getString("cmd"), compound.getBoolean("serverCmd"), compound.getBoolean("hide"));
+                this.addCommand(Cmd.create((CompoundTag) tag));
             }
         }
     }
@@ -203,9 +198,9 @@ public class AttachmentCommand implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentRender(AttachmentEvent.Render.Pre event) {
-        if (event.attachment instanceof AttachmentCommand attachment && !attachment.isEmpty()) {
+    @Override
+    public void render(AttachmentEvent.Render event) {
+        if (!this.isEmpty()) {
 
             event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
 
@@ -219,7 +214,7 @@ public class AttachmentCommand implements IAttachment {
 
                 List<Component> cmdTooltip = new ArrayList<>();
                 int hideCount = 0;
-                for (Cmd cmd : attachment.getCommands()) {
+                for (Cmd cmd : this.getCommands()) {
                     if (cmd.isHideInTooltip()) {
                         hideCount++;
                         continue;
@@ -242,14 +237,14 @@ public class AttachmentCommand implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentGetHeight(AttachmentEvent.GetHeight event) {
-        if (event.attachment instanceof AttachmentCommand attachment && !attachment.isEmpty()) {
+    @Override
+    public void getHeight(AttachmentEvent.GetHeight event) {
+        if (!this.isEmpty()) {
             event.addHeight(16);
         }
     }
 
-    public static class Cmd {
+    public static class Cmd implements IJsonSerializable, INBTSerializable {
         protected String cmd;
         protected Performer performer;
         protected boolean hideInTooltip = false;
@@ -287,6 +282,47 @@ public class AttachmentCommand implements IAttachment {
         public Cmd setPerformer(Performer performer) {
             this.performer = performer;
             return this;
+        }
+
+        @Override
+        public JsonObject write(JsonObject data) {
+            data.addProperty("cmd", this.cmd());
+            data.addProperty("serverCmd", this.performer().isServer());
+            data.addProperty("hide", this.isHideInTooltip());
+            return data;
+        }
+
+        @Override
+        public void read(JsonObject data) {
+            this.setCommand(JsonUtils.get(data, "cmd", ""));
+            this.setPerformer(Performer.get(JsonUtils.get(data, "serverCmd", false)));
+            this.setHideInTooltip(JsonUtils.get(data, "hide", false));
+        }
+
+        @Override
+        public CompoundTag write(CompoundTag data) {
+            data.putString("cmd", this.cmd());
+            data.putBoolean("serverCmd", this.performer().isServer());
+            data.putBoolean("hide", this.isHideInTooltip());
+            return data;
+        }
+
+        @Override
+        public void read(CompoundTag data) {
+            this.setCommand(NBTUtils.get(data, "cmd", ""));
+            this.setPerformer(Performer.get(NBTUtils.get(data, "serverCmd", false)));
+            this.setHideInTooltip(NBTUtils.get(data, "hide", false));
+        }
+
+        public static Cmd create(CompoundTag data) {
+            Cmd instance = new Cmd("", false);
+            instance.read(data);
+            return instance;
+        }
+        public static Cmd create(JsonObject data) {
+            Cmd instance = new Cmd("", false);
+            instance.read(data);
+            return instance;
         }
     }
 

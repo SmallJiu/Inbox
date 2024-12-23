@@ -1,23 +1,35 @@
 package cat.jiu.core.util.client;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.logging.LogUtils;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.Dumpable;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
-import org.lwjgl.BufferUtils;
+import org.slf4j.Logger;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,9 +81,42 @@ public class GifDecoder {
 	/**
 	 * @author small_jiu
 	 */
+	public static SingletonGifTexture singleton(String file) throws IOException {
+		return new SingletonGifTexture(file);
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static SingletonGifTexture singleton(File file) throws IOException {
+		return new SingletonGifTexture(file);
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static SingletonGifTexture singleton(InputStream image) throws IOException {
+		return new SingletonGifTexture(ImageIO.read(image));
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static SingletonGifTexture singleton(BufferedImage image) {
+		return new SingletonGifTexture(image);
+	}
+
+	/**
+	 * @author small_jiu
+	 */
 	public static GifDecoder decode(String file) {
 		GifDecoder decoder = new GifDecoder();
 		decoder.read(file);
+		return decoder;
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static GifDecoder decode(File file) {
+		GifDecoder decoder = new GifDecoder();
+		decoder.read(String.valueOf(file));
 		return decoder;
 	}
 	/**
@@ -85,30 +130,55 @@ public class GifDecoder {
 	/**
 	 * @author small_jiu
 	 */
-	public static GifTexture getTexture(String file, boolean useSingleTextureID) {
-		return new GifTexture(GifDecoder.decode(file), useSingleTextureID);
+	public static GifTexture getTexture(String file, int glID) {
+		return new GifTexture(GifDecoder.decode(file), glID);
 	}
 	/**
 	 * @author small_jiu
 	 */
-	public static GifTexture getTexture(InputStream stream, boolean useSingleTextureID) {
-		return new GifTexture(GifDecoder.decode(stream), useSingleTextureID);
+	public static GifTexture getTexture(File file, int glID) {
+		return new GifTexture(GifDecoder.decode(file), glID);
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static GifTexture getTexture(InputStream stream, int glID) {
+		return new GifTexture(GifDecoder.decode(stream), glID);
 	}
 
-	public static GifTextures getTextures(boolean useSingleTextureID, String... files) {
+	/**
+	 * @author small_jiu
+	 */
+	public static GifTextures getTextures(String... files) {
 		GifTextures textures = new GifTextures();
 		for (String file : files) {
-			textures.addTexture(getTexture(file, useSingleTextureID));
+			textures.addTexture(getTexture(file, -1));
 		}
 		return textures;
 	}
-	public static GifTextures getTextures(boolean useSingleTextureID, InputStream... files) {
+	/**
+	 * @author small_jiu
+	 */
+	public static GifTextures getTextures(File... files) {
+		GifTextures textures = new GifTextures();
+		for (File file : files) {
+			textures.addTexture(getTexture(file, -1));
+		}
+		return textures;
+	}
+	/**
+	 * @author small_jiu
+	 */
+	public static GifTextures getTextures(InputStream... files) {
 		GifTextures textures = new GifTextures();
 		for (InputStream file : files) {
-			textures.addTexture(getTexture(file, useSingleTextureID));
+			textures.addTexture(getTexture(file, -1));
 		}
 		return textures;
 	}
+	/**
+	 * @author small_jiu
+	 */
 	public static GifTextures getTextures(IGifTexture... gifs) {
 		GifTextures textures = new GifTextures();
 		for (IGifTexture gif : gifs) {
@@ -117,15 +187,274 @@ public class GifDecoder {
 		return textures;
 	}
 
+	/**
+	 * @author small_jiu
+	 */
 	public static interface IGifTexture {
+		@OnlyIn(Dist.CLIENT)
+		default void render(GuiGraphics graphics) {
+			this.render(graphics, -1, true);
+		}
+		@OnlyIn(Dist.CLIENT)
 		void render(GuiGraphics graphics, long delay, boolean addCurrentIndex);
+		void nextFrame(long delay, boolean addCurrentIndex);
 		IGifTexture setImageInfo(int u, int v, int uWidth, int vHeight);
 		IGifTexture setRenderInfo(int x, int y, int width, int height);
+		int getImageWidth();
+		int getImageHeight();
+		BufferedImage getImage(int index);
 		IGifTexture setCurrentIndex(int currentIndex);
 		int getCurrentIndex();
 		int getAllTextureCount();
 		void destroy();
 		IGifTexture copy();
+
+		int getCurrentTextureID();
+		@OnlyIn(Dist.CLIENT)
+		ResourceLocation registerToMinecraft(ResourceLocation id) throws IOException;
+	}
+
+	/**
+	 * @author small_jiu
+	 */
+	public static void uploadTexture(int glID, BufferedImage image) {
+		new BufferedTexture(glID, image, true).close();
+	}
+
+	/**
+	 * @author small_jiu
+	 */
+	public static int uploadTexture(BufferedImage image) {
+		int glID;
+		try(BufferedTexture texture = new BufferedTexture(image, true)) {
+			glID = texture.getId();
+		}
+		return glID;
+	}
+
+	/**
+	 * @author small_jiu
+	 */
+	public static class BufferedTexture extends AbstractTexture implements Dumpable {
+		private static final Logger LOGGER = LogUtils.getLogger();
+		private NativeImage pixels;
+		protected BufferedImage image;
+
+		public BufferedTexture(BufferedImage image, boolean useCalloc) {
+			this(-1, image, useCalloc);
+		}
+		public BufferedTexture(int id, BufferedImage image, boolean useCalloc) {
+			this.id = id;
+			this.image = image;
+			this.pixels = new NativeImage(image.getWidth(), image.getHeight(), useCalloc);
+
+			for (int y = 0; y < image.getHeight(); y++) {
+				for (int x = 0; x < image.getWidth(); x++) {
+					int abgr = image.getRGB(x, y);
+					this.getPixels().setPixelRGBA(x, y, (abgr & 0xFF00FF00) | ((abgr & 0xFF) << 16) | ((abgr >> 16) & 0xFF));
+				}
+			}
+
+			if (!RenderSystem.isOnRenderThread()) {
+				RenderSystem.recordRenderCall(() -> {
+					TextureUtil.prepareImage(this.getId(), this.pixels.getWidth(), this.pixels.getHeight());
+					this.upload();
+				});
+			} else {
+				TextureUtil.prepareImage(this.getId(), this.pixels.getWidth(), this.pixels.getHeight());
+				this.upload();
+			}
+		}
+
+		public void load(ResourceManager pManager) {
+		}
+
+		public void upload() {
+			if (this.pixels != null) {
+				this.bind();
+				this.pixels.upload(0, 0, 0, false);
+			}else {
+				LOGGER.warn("Trying to upload disposed texture {}", this.getId());
+			}
+		}
+
+		public NativeImage getPixels() {
+			return this.pixels;
+		}
+
+		public BufferedImage getImage() {
+			return image;
+		}
+
+		public void setImage(BufferedImage image, boolean useCalloc) {
+			this.image = image;
+			this.setPixels(new NativeImage(image.getWidth(), image.getHeight(), useCalloc));
+		}
+		public void setPixels(NativeImage pPixels) {
+			if (this.pixels != null) {
+				this.pixels.close();
+			}
+			this.pixels = pPixels;
+		}
+
+		public void close() {
+			if (this.pixels != null) {
+				this.pixels.close();
+//				this.releaseId();
+				this.pixels = null;
+			}
+
+		}
+
+		public void dumpContents(ResourceLocation pResourceLocation, Path pPath) throws IOException {
+			if (this.pixels != null) {
+				String s = pResourceLocation.toDebugFileName() + ".png";
+				Path path = pPath.resolve(s);
+				this.pixels.writeToFile(path);
+			}
+		}
+	}
+
+	/**
+	 * @author small_jiu
+	 */
+	@OnlyIn(Dist.CLIENT)
+	public static class MCGifTexture extends AbstractTexture {
+		protected final IGifTexture gif;
+		public MCGifTexture(IGifTexture gif) {
+			this.gif = gif;
+			if (gif instanceof GifTexture) {
+				((GifTexture) gif).setAutoNextFrame(true);
+			}
+			if (gif instanceof GifTextures) {
+				((GifTextures) gif).setAutoNextFrame(true);
+			}
+		}
+
+		@Override
+		public int getId() {
+			gif.nextFrame(-1, true);
+			return gif.getCurrentTextureID();
+		}
+
+		@Override
+		public void releaseId() {
+			this.gif.destroy();
+		}
+
+		@Override
+		public void load(@NotNull ResourceManager rm) {
+		}
+	}
+
+	/**
+	 * @author small_jiu
+	 */
+	public static class SingletonGifTexture implements IGifTexture {
+		protected final BufferedImage image;
+		protected final int glID;
+		protected int
+				x, y,  width,  height,
+				u, v, uWidth, vHeight;
+
+		public SingletonGifTexture(String image) throws IOException {
+			this(new File(image));
+		}
+		public SingletonGifTexture(File image) throws IOException {
+			this(ImageIO.read(image));
+		}
+
+		public SingletonGifTexture(BufferedImage image) {
+			this.image = image;
+			this.glID = GifDecoder.uploadTexture(image);
+			this.setImageInfo(0, 0, this.image.getWidth(), this.image.getHeight());
+			this.setRenderInfo(0, 0, this.image.getWidth(), this.image.getHeight());
+		}
+
+		@OnlyIn(Dist.CLIENT)
+		public ResourceLocation registerToMinecraft(ResourceLocation id) throws IOException {
+			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			return id;
+		}
+
+		@OnlyIn(Dist.CLIENT)
+		@Override
+		public void render(GuiGraphics graphics, long delay, boolean addCurrentIndex) {
+			GifTexture.draw(graphics,
+					this.glID,
+					this.x, this.y, this.width, this.height,
+					this.u, this.v, this.uWidth, this.vHeight,
+					this.image.getWidth(), this.image.getHeight()
+			);
+		}
+
+		@Override
+		public void nextFrame(long delay, boolean addCurrentIndex) {
+
+		}
+
+		@Override
+		public BufferedImage getImage(int index) {
+			return this.image;
+		}
+
+		@Override
+		public SingletonGifTexture setImageInfo(int u, int v, int uWidth, int vHeight) {
+			this.u = u;
+			this.v = v;
+			this.uWidth = uWidth;
+			this.vHeight = vHeight;
+			return this;
+		}
+
+		@Override
+		public SingletonGifTexture setRenderInfo(int x, int y, int width, int height) {
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
+			return this;
+		}
+
+		@Override
+		public int getImageWidth() {
+			return this.image.getWidth();
+		}
+
+		@Override
+		public int getImageHeight() {
+			return this.image.getHeight();
+		}
+
+		@Override
+		public SingletonGifTexture setCurrentIndex(int currentIndex) {
+			return this;
+		}
+
+		@Override
+		public int getCurrentIndex() {
+			return 0;
+		}
+
+		@Override
+		public int getAllTextureCount() {
+			return 1;
+		}
+
+		@Override
+		public int getCurrentTextureID() {
+			return this.glID;
+		}
+
+		@Override
+		public void destroy() {
+			GlStateManager._deleteTexture(this.glID);
+		}
+
+		@Override
+		public SingletonGifTexture copy() {
+			return new SingletonGifTexture(this.image);
+		}
 	}
 
 	/**
@@ -134,9 +463,8 @@ public class GifDecoder {
 	public static class GifTexture implements IGifTexture {
 		public final GifDecoder gif;
 		public final Dimension imageSize;
-		protected final ArrayList<Integer> textureIDs = new ArrayList<>();
-		protected int currentIndex = 0, glID, lastImageIndex;
-		protected boolean enableAutoNextFrame, useCustomFrameOrder, isSingleTextureID;
+		protected int currentIndex = 0, glID;
+		protected boolean enableAutoNextFrame = true, useCustomFrameOrder;
 		protected int
 				x, y,  width,  height,
 				u, v, uWidth, vHeight;
@@ -144,103 +472,60 @@ public class GifDecoder {
 		protected Function<Integer, Integer> nextFrameGetter;
 
 		public GifTexture(GifDecoder gif) {
-			this(gif, true, true);
+			this(gif, -1, true);
 		}
-		public GifTexture(GifDecoder gif, boolean isSingleTextureID) {
-			this(gif, isSingleTextureID, !isSingleTextureID);
+		public GifTexture(GifDecoder gif, int glID) {
+			this(gif, glID, true);
 		}
-		public GifTexture(GifDecoder gif, boolean isSingleTextureID, boolean genTextureID) {
+		public GifTexture(GifDecoder gif, int glID, boolean uploadTexture) {
 			this.gif = gif;
-			this.isSingleTextureID = isSingleTextureID;
 			this.imageSize = this.gif.getFrameSize();
 			this.setImageInfo(0, 0).setRenderSize(1.0f, true);
-			if (isSingleTextureID) {
-				this.glID = TextureUtil.generateTextureId();
-			}else if (genTextureID){
-				this.genGLTextureID();
+
+			this.glID = glID != -1 ? glID : TextureUtil.generateTextureId();
+			if (uploadTexture){
+				this.uploadTexture();
 			}
 		}
+		@OnlyIn(Dist.CLIENT)
+		public ResourceLocation registerToMinecraft(ResourceLocation id) {
+			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			return id;
+		}
 
-		protected void genGLTextureID() {
-			this.destroy();
+		@Override
+		public BufferedImage getImage(int index) {
+			return this.gif.getFrame(index);
+		}
+
+		protected void uploadTexture() {
+			BufferedImage image = new BufferedImage(this.getImageWidth(), this.getImageHeight() * this.getAllTextureCount(), BufferedImage.TYPE_INT_ARGB);
 			for (int i = 0; i < this.gif.getFrameCount(); i++) {
-				this.textureIDs.add(genGLTextureID(this.gif.getFrame(i)));
-			}
-		}
-
-		public static int genGLTextureID(BufferedImage image) {
-			int glID = TextureUtil.generateTextureId();
-			uploadTexture(glID, image);
-			return glID;
-		}
-		public static void uploadTexture(int glID, BufferedImage image) {
-			int[] pixels = new int[image.getWidth() * image.getHeight()];//创建像素列表
-			image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels, 0, image.getWidth());//获取图片像素
-
-			ByteBuffer buffer = BufferUtils.createByteBuffer(image.getWidth() * image.getHeight() * 4);//创建字节缓冲区，*4是包含alpha *3不包含
-
-			//遍历图片像素转换为RGBA
-			for (int y = 0; y < image.getHeight(); y++) {
-				for (int x = 0; x < image.getWidth(); x++) {
-					int pixel = pixels[y * image.getWidth() + x];
-					Color color = new Color(pixel);
-					buffer.put((byte) color.getRed());//像素点的Red
-					buffer.put((byte) color.getGreen());//像素点的Green
-					buffer.put((byte) color.getBlue());//像素点的Blue
-					buffer.put((byte) color.getAlpha());//像素点的Alpha
+				BufferedImage image1 = this.getImage(i);
+				for (int y = i * this.getImageHeight(); y < image1.getHeight(); y++) {
+					for (int x = 0; x < image1.getWidth(); x++) {
+						image.setRGB(x, y, image1.getRGB(x, y));
+					}
 				}
 			}
-			buffer.flip(); //一定要翻转
-
-			try(NativeImage nativeImage = NativeImage.read(buffer)) {
-				if (!RenderSystem.isOnRenderThread()) {
-					RenderSystem.recordRenderCall(() -> {
-						TextureUtil.prepareImage(glID, image.getWidth(), image.getHeight());
-						nativeImage.upload(0, 0, 0, false);
-					});
-				} else {
-					TextureUtil.prepareImage(glID, image.getWidth(), image.getHeight());
-					nativeImage.upload(0, 0, 0, false);
-				}
-			} catch (IOException ignored) {
-			}
-		}
-
-		public void genGLTextureID(Function2<Integer, BufferedImage, Integer> function) {
-			this.destroy();
-			for (int i = 0; i < this.gif.getFrameCount(); i++) {
-				this.textureIDs.add(function.apply(i, this.gif.getFrame(i)));
-			}
+			GifDecoder.uploadTexture(this.glID, image);
 		}
 
 		public void destroy() {
-			this.textureIDs.forEach(TextureUtil::releaseTextureId);
-			this.textureIDs.clear();
+			GlStateManager._deleteTexture(this.glID);
 			this.currentIndex = 0;
 		}
 
 		public GifTexture readNewTexture(String file) {
 			this.destroy();
 			this.gif.read(file);
-			this.genGLTextureID();
-			return this;
-		}
-		public GifTexture readNewTexture(String file, Function2<Integer, BufferedImage, Integer> function) {
-			this.destroy();
-			this.gif.read(file);
-			this.genGLTextureID(function);
+			this.uploadTexture();
 			return this;
 		}
 		public GifTexture readNewTexture(InputStream file) {
 			this.destroy();
 			this.gif.read(file);
-			this.genGLTextureID();
-			return this;
-		}
-		public GifTexture readNewTexture(InputStream file, Function2<Integer, BufferedImage, Integer> function) {
-			this.destroy();
-			this.gif.read(file);
-			this.genGLTextureID(function);
+			this.uploadTexture();
 			return this;
 		}
 
@@ -283,11 +568,7 @@ public class GifDecoder {
 
 		@Override
 		public GifTexture copy() {
-			GifTexture gif = new GifTexture(this.gif, this.isSingleTextureID, false);
-			if (!this.isSingleTextureID) {
-				gif.textureIDs.addAll(this.textureIDs);
-			}
-			return gif
+			return new GifTexture(this.gif, this.getCurrentTextureID(), false)
 					.setAutoNextFrame(this.enableAutoNextFrame)
 					.setNextFrameGetter(this.nextFrameGetter)
 					.setFrameOrder(this.getFrameOrder())
@@ -302,7 +583,6 @@ public class GifDecoder {
 		 * @param width draw width
 		 * @param height draw height
 		 */
-
 		public GifTexture setRenderInfo(int x, int y, int width, int height) {
 			return this.setRenderPos(x, y).setRenderSize(width, height);
 		}
@@ -341,6 +621,16 @@ public class GifDecoder {
 			return this;
 		}
 
+		@Override
+		public int getImageWidth() {
+			return this.gif.width;
+		}
+
+		@Override
+		public int getImageHeight() {
+			return this.gif.height;
+		}
+
 		/**
 		 * @param u image u
 		 * @param v image v
@@ -367,41 +657,24 @@ public class GifDecoder {
 			this.nextFrameGetter = nextFrameGetter;
 			return this;
 		}
-
-		public void render(GuiGraphics graphics) {
-			this.render(graphics, -1, true);
-		}
 		/**
 		 * draw current frame into gui
 		 * @param delay next frame delay. set -1 to use default delay.
 		 */
+		@OnlyIn(Dist.CLIENT)
 		@Override
 		public void render(GuiGraphics graphics, long delay, boolean addCurrentIndex) {
 			this.nextFrame(delay, addCurrentIndex);
-			if (this.isSingleTextureID) {
-				if (this.lastImageIndex != this.getCurrentImageIndex()) {
-					uploadTexture(this.glID, this.gif.getFrame(this.getCurrentImageIndex()));
-					this.lastImageIndex = this.getCurrentImageIndex();
-				}
-
-				draw(graphics,
-						this.glID,
-						this.x, this.y, this.width, this.height,
-						this.u, this.v, this.uWidth, this.vHeight,
-						(float) this.imageSize.getWidth(), (float) this.imageSize.getHeight()
-				);
-			}else {
-				draw(graphics,
-						this.getCurrentTextureID(),
-						this.x, this.y, this.width, this.height,
-						this.u, this.v, this.uWidth, this.vHeight,
-						(float) this.imageSize.getWidth(), (float) this.imageSize.getHeight()
-				);
-			}
+			draw(graphics, this.glID,
+					this.x, this.y, this.width, this.height,
+					this.u, this.getCurrentRenderIndex() * this.getImageHeight(), this.uWidth, this.vHeight,
+					(float) this.imageSize.getWidth(), (float) this.imageSize.getHeight()
+			);
+//			graphics.drawString(Minecraft.getInstance().font, String.valueOf(this.getCurrentRenderIndex()), this.x, this.y - 20, Color.RED.getRGB(), true);
 		}
 
 		protected long delay;
-		protected void nextFrame(long delay, boolean addCurrentIndex) {
+		public void nextFrame(long delay, boolean addCurrentIndex) {
 			if (this.enableAutoNextFrame) {
 				long m = System.currentTimeMillis();
 				if (m > this.delay) {
@@ -412,7 +685,7 @@ public class GifDecoder {
 					} else {
 						this.subtractCurrentIndex();
 					}
-					this.delay = m + (delay > 0 ? delay : this.gif.getDelay(this.getCurrentImageIndex()));
+					this.delay = m + (delay > 0 ? delay : this.gif.getDelay(this.getCurrentRenderIndex()));
 				}
 			}
 		}
@@ -443,11 +716,13 @@ public class GifDecoder {
 			return this.gif.getFrameCount();
 		}
 
-		public int getCurrentImageIndex() {
+		public int getCurrentRenderIndex() {
 			return this.isUseCustomFrameOrder() ? this.getFrameOrder()[this.getCurrentIndex()] : this.getCurrentIndex();
 		}
+
+		@Override
 		public int getCurrentTextureID() {
-			return this.isSingleTextureID ? this.glID : this.textureIDs.get(this.getCurrentImageIndex());
+			return this.glID;
 		}
 
 		public static void draw(GuiGraphics graphics, int texture, int x, int y, int width, int height, float u, float v, int uWidth, int vHeight, float textureWidth, float textureHeight) {
@@ -477,17 +752,25 @@ public class GifDecoder {
 		}
 	}
 
+	/**
+	 * @author small_jiu
+	 */
 	public static class GifTextures implements IGifTexture {
 		protected final ArrayList<IGifTexture> textures = new ArrayList<>();
-		protected boolean enableAutoNextFrame, useCustomFrameOrder;
+		protected boolean enableAutoNextFrame = true, useCustomFrameOrder;
 		protected Function<Integer, Integer> nextFrameGetter;
 		protected int[] frameOrder;
 		protected int
 				x, y,  width,  height,
-				u, v, uWidth, vHeight,
 				currentTextureIdx, nextTextureDelay = 0;
 
 		public GifTextures() {
+		}
+
+		@OnlyIn(Dist.CLIENT)
+		public ResourceLocation registerToMinecraft(ResourceLocation id) {
+			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			return id;
 		}
 
 		public GifTextures addTexture(IGifTexture... texture) {
@@ -497,6 +780,14 @@ public class GifDecoder {
 		public GifTextures addTexture(List<IGifTexture> texture) {
 			this.textures.addAll(texture);
 			return this;
+		}
+
+		@Override
+		public BufferedImage getImage(int index) {
+			return this.getImage(this.getCurrentImageIndex(), index);
+		}
+		public BufferedImage getImage(int subImageIndex, int index) {
+			return this.textures.get(subImageIndex).getImage(index);
 		}
 
 		public IGifTexture getTexture(int index) {
@@ -523,9 +814,7 @@ public class GifDecoder {
 			return this;
 		}
 
-		public void render(GuiGraphics graphics) {
-			this.render(graphics, -1, true);
-		}
+		@OnlyIn(Dist.CLIENT)
 		@Override
 		public void render(GuiGraphics graphics, long delay, boolean addCurrentIndex) {
 			this.nextFrame(delay, addCurrentIndex);
@@ -533,7 +822,7 @@ public class GifDecoder {
 		}
 
 		protected long delay;
-		protected void nextFrame(long delay, boolean addCurrentIndex) {
+		public void nextFrame(long delay, boolean addCurrentIndex) {
 			if (this.enableAutoNextFrame) {
 				long m = System.currentTimeMillis();
 				if (m > this.delay) {
@@ -562,7 +851,21 @@ public class GifDecoder {
 			for (IGifTexture texture : this.textures) {
 				texture.setRenderInfo(x, y, width, height);
 			}
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
 			return this;
+		}
+
+		@Override
+		public int getImageWidth() {
+			return this.width;
+		}
+
+		@Override
+		public int getImageHeight() {
+			return this.height;
 		}
 
 		@Override
@@ -588,6 +891,11 @@ public class GifDecoder {
 
 		public int getCurrentImageIndex() {
 			return this.isUseCustomFrameOrder() ? this.getFrameOrder()[this.getCurrentIndex()] : this.getCurrentIndex();
+		}
+
+		@Override
+		public int getCurrentTextureID() {
+			return this.getTexture(this.getCurrentImageIndex()).getCurrentTextureID();
 		}
 
 		public GifTextures addCurrentIndex() {

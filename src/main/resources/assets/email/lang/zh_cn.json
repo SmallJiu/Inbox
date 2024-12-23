@@ -7,8 +7,8 @@
   "info.config.world_restart": "需要重启世界",
 
   "info.email.name": "邮箱",
-  "info.email.has_unread": "你的邮箱内有 %s 封未读邮件.",
-  "info.email.has_unreceive": "你的邮箱内有 %s 封未领邮件.",
+  "info.email.has_unread": "§f你的邮箱内有 §e%s §f封未读邮件.",
+  "info.email.has_unreceive": "§f你的邮箱内有 §e%s §f封未领邮件.",
   "info.email.has_unread_and_unreceive": "你的邮箱内有 %s 封未读邮件和 %s 封未领邮件",
 
   "info.email.error.to_big.0": "§7邮箱 或 邮件内的物品 或 邮件内的物品NBT 过大，请联系管理员删除.",
@@ -51,6 +51,10 @@
   "info.email.xp_save_to_email.1": "经验: %s",
   "info.email.no_select_time": "现在时间: %s",
   "info.email.no_select_title": "从左侧选择一封邮件查看详细信息吧！",
+  "info.email.delete.tip": "选中邮件后按下 'Delete' 键也可以删除邮件.",
+  "info.email.delete.title": "是否删除已选中的邮件.",
+  "info.email.delete.confirm": "按下 ' Del ' 以确认.",
+  "info.email.delete.cancel": "任意键以取消.",
 
   "info.email.filter": "过滤器",
 
@@ -66,6 +70,9 @@
   "info.email.filter.has_item": "含有物品",
   "info.email.filter.is_accept": "已领",
   "info.email.filter.not_accept": "未领",
+
+  "info.email.sound_not_found": "无法播放音频，注册名: %s",
+  "info.email.sound_not_found.ext": "无法播放音频，路径: %s",
 
   #gen
   "info.email.generate": "生成邮件",
@@ -209,6 +216,10 @@
   "email.config.custom_inbox_path.2": "除高版本物品外, 其余与低版本邮箱兼容.",
   "email.config.custom_inbox_path.3": "例: 'C:/' 邮箱将保存在 'C:/email/<uuid>.json', 而非 'C:/<uuid>.json', 若开启'保存至SQL', 则保存至 'C:/inboxs.db'",
   "email.config.custom_inbox_path.4": "例: './data' 邮箱将保存在 './data/email/<uuid>.json', 而非 './data/<uuid>.json', 若开启'保存至SQL', 则保存至 'C:/inboxs.db'",
+
+  "email.config.screen_inbox_gui": "使用无容器GUI",
+  "email.config.screen_inbox_gui.0": "使用无容器的GUI，可以有效取消显示类似于JEI的覆盖层",
+  "email.config.screen_inbox_gui.1": "测试内容，有bug请上报",
 
   "email.config.enable_chat_btn": "聊天栏按钮",
   "email.config.enable_chat_btn.0": "启用在聊天栏的可打开邮箱的按钮",

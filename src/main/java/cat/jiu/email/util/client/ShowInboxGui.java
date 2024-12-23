@@ -61,7 +61,7 @@ public class ShowInboxGui {
 				if(this.gui instanceof ChatScreen) {
 					graphics.blit(email, this.getX() - 25 + this.progress.progress - 1, this.getY() + 3, 92, 15, 17, 6);
 				}else if(this.gui instanceof CreativeModeInventoryScreen) {
-					graphics.blit(email, this.getX() + 7, this.getY() + 15 + this.progress.progress - 1, 88, 0, 6, 14);
+					graphics.blit(email, this.getX() + 20 + this.progress.progress + 1, this.getY() + 4, 73, 15, 15, 6);
 				}
 				this.progress.updata();
 			}
@@ -77,7 +77,8 @@ public class ShowInboxGui {
 		private final Progress progress = new Progress();
 
 		public InventoryButton(Screen gui, int guiId, int x, int y, String buttonText) {
-			super(gui, x, y, 9, 6, buttonText, 23, 15, 23, 15, b-> GuiHandler.openGui(guiId));
+//			super(gui, x, y, 18, 10, buttonText, 23, 15, 23, 15, b-> GuiHandler.openGui(guiId));
+			super(gui, x, y, 10, 6, buttonText, 23, 15, 23, 15, b-> GuiHandler.openGui(guiId));
 			this.gui = gui;
 			this.setBackground(()->this.isHovered() ? inbox_hover : inbox);
 		}
@@ -87,11 +88,11 @@ public class ShowInboxGui {
 			super.renderWidget(graphics, mouseX, mouseY, partialTick);
 			if(this.visible) {
 				if(this.gui instanceof InventoryScreen inv) {
-					this.setX(inv.getGuiLeft() + 27);
+					this.setX(inv.getGuiLeft() + EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
 				}
 
 				if(EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
-					graphics.blit(email, this.getX() + 9 + this.progress.progress + 1, this.getY(), 73, 15, 15, 6);
+					graphics.blit(email, this.getX() + 2, this.getY() - 26 + this.progress.progress, 88, 19, 6, 17);
 					this.progress.updata();
 				}
 				if(this.isHovered()) {

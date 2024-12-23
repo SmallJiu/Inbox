@@ -1,12 +1,13 @@
 package cat.jiu.core.util.client.config;
 
 import cat.jiu.core.util.client.config.entry.*;
-import cat.jiu.email.util.EmailUtils;
 import com.electronwill.nightconfig.core.Config;
 
+import com.google.common.collect.Lists;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,6 +19,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.gui.widget.ScrollPanel;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.MinecraftForge;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.*;
@@ -170,7 +172,7 @@ public class GuiConfig extends Screen {
 
         graphics.drawString(this.font, this.configFile, (this.getMinecraft().getWindow().getGuiScaledWidth() / 2f) - (this.font.width(this.configFile)/2f), 5, Color.WHITE.getRGB(), true);
         if(this.font.width(this.path) > this.getMinecraft().getWindow().getGuiScaledWidth()/2){
-            List<String> texts = EmailUtils.splitString(this.path, this.getMinecraft().getWindow().getGuiScaledWidth()/2);
+            List<String> texts = splitString(this.path, this.getMinecraft().getWindow().getGuiScaledWidth()/2);
             for (int i = 0; i < texts.size(); i++) {
                 graphics.drawString(this.font, texts.get(i), (this.getMinecraft().getWindow().getGuiScaledWidth() / 2f) - (this.font.width(texts.get(i))/2f), 5 + this.font.lineHeight+this.font.lineHeight*i, Color.WHITE.getRGB(), true);
             }
@@ -268,5 +270,27 @@ public class GuiConfig extends Screen {
         }
         @Override
         public void updateNarration(NarrationElementOutput pNarrationElementOutput) {}
+    }
+
+    public static List<String> splitString(String text, int textMaxLength) {
+        Font fr = Minecraft.getInstance().font;
+        List<String> texts = Lists.newArrayList();
+        if(fr.width(text) >= textMaxLength) {
+            StringBuilder s = new StringBuilder();
+            for(int i = 0; i < text.length(); i++) {
+                String str = s.toString();
+                if(fr.width(str) >= textMaxLength) {
+                    texts.add(str);
+                    s.setLength(0);
+                }
+                s.append(text.charAt(i));
+            }
+            if(s.length() > 0) {
+                texts.add(s.toString());
+            }
+        }else {
+            texts.add(text);
+        }
+        return texts;
     }
 }

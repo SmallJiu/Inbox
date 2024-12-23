@@ -11,7 +11,10 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class BaseCommand {
@@ -113,7 +116,7 @@ public class BaseCommand {
 
         @Override
         public int execute(MinecraftServer server, CommandSource sender, String[] args, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-            return 0;
+            return ICommand.SINGLE_SUCCESS;
         }
     }
 

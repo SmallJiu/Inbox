@@ -1,6 +1,6 @@
 package cat.jiu.email.net;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.net.msg.refresh.*;
@@ -39,9 +39,10 @@ public class EmailNetworkHandler {
 
 				.register(MsgReceiveEmail.Receive.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgReceiveEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
-				.register(MsgUnreceived.class, NetworkDirection.PLAY_TO_CLIENT)
-//				.register(MsgInboxToClient.class, NetworkDirection.PLAY_TO_CLIENT)
-//				.register(MsgInboxToClient.CreateInbox.class, NetworkDirection.PLAY_TO_CLIENT)
+
+				.register(MsgUnaccepted.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgToast.class, NetworkDirection.PLAY_TO_CLIENT)
+
 				.register(MsgInboxToClient.SendEmail.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgInboxToClient.SendOther.class, NetworkDirection.PLAY_TO_CLIENT)
 
@@ -52,7 +53,6 @@ public class EmailNetworkHandler {
 				.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
-				.register(MsgUnread.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT)
 
 				.register(MsgBlacklist.Add.class, NetworkDirection.PLAY_TO_SERVER)
@@ -85,6 +85,8 @@ public class EmailNetworkHandler {
 								instance.fromBytes(buf);
 								return instance;
 							} catch (Exception e) {
+								EmailMain.log.error("Can not read message from network. class: {}, side: {}", msgClass, side);
+								e.printStackTrace();
 								return null;
 							}
 						})

@@ -4,20 +4,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.element.Email;
-import cat.jiu.email.ui.gui.GuiEmailMain;
+import cat.jiu.email.ui.gui.GuiInbox;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.ui.container.ContainerEmailMain;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.*;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraftforge.network.NetworkEvent;
 
 public class MsgInboxToClient /* extends BaseMessage */ {
@@ -133,7 +132,7 @@ public class MsgInboxToClient /* extends BaseMessage */ {
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> context) {
 			if(EmailMain.proxy.isClient()) {
-				if(Minecraft.getInstance().screen instanceof GuiEmailMain gui){
+				if(Minecraft.getInstance().screen instanceof GuiInbox gui){
 					gui.addEmail(this.id, this.email);
 				}
 			}
@@ -183,11 +182,11 @@ public class MsgInboxToClient /* extends BaseMessage */ {
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 			if(EmailMain.proxy.isClient()) {
-				AbstractContainerMenu con = Minecraft.getInstance().player.containerMenu;
-				
-				if(con instanceof ContainerEmailMain && ((ContainerEmailMain) con).getInbox() != null) {
-					this.customValue.forEach((k,v) -> ((ContainerEmailMain) con).getInbox().addCustom(k, v));
-					this.senderBlacklist.forEach(e -> ((ContainerEmailMain) con).getInbox().addSenderBlacklist(e));
+				Screen gui = Minecraft.getInstance().screen;
+
+				if(gui instanceof GuiInbox && ((GuiInbox) gui).getInbox() != null) {
+					this.customValue.forEach((k,v) -> ((GuiInbox) gui).getInbox().addCustom(k, v));
+					this.senderBlacklist.forEach(e -> ((GuiInbox) gui).getInbox().addSenderBlacklist(e));
 				}
 			}
 			return true;

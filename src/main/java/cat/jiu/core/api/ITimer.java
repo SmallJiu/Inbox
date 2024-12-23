@@ -1,17 +1,15 @@
 package cat.jiu.core.api;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.StringJoiner;
-
-import com.google.gson.JsonObject;
-
 import cat.jiu.core.api.handler.ISerializable;
 import cat.jiu.core.util.timer.MillisTimer;
 import cat.jiu.core.util.timer.Timer;
 import cat.jiu.sql.SQLValues;
-
+import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.StringJoiner;
 
 public interface ITimer extends ISerializable {
 	/**

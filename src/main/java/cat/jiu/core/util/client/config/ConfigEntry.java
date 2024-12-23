@@ -1,7 +1,5 @@
 package cat.jiu.core.util.client.config;
 
-import cat.jiu.email.util.EmailUtils;
-
 import com.google.common.collect.Lists;
 
 import net.minecraft.ChatFormatting;
@@ -18,7 +16,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 
 /**
@@ -64,8 +61,8 @@ public abstract class ConfigEntry<T> {
 
     protected final void addUndoAndReset(){
         if(this.getConfigWidget()!=null){
-            this.undo = this.addWidget(new GuiButton(this.getConfigWidget().getX() +this.getConfigWidget().getWidth()+2, 0, 20, 20, Component.nullToEmpty("U"), btn->this.undo(), Supplier::get));
-            this.reset = this.addWidget(new GuiButton(this.undo.getX() +this.undo.getWidth()+2, 0, 20, 20, Component.nullToEmpty("R"), btn->this.reset(), Supplier::get));
+            this.undo = this.addWidget(new GuiButton(this.getConfigWidget().getX() +this.getConfigWidget().getWidth()+2, 0, 20, 20, Component.nullToEmpty("U"), btn->this.undo()));
+            this.reset = this.addWidget(new GuiButton(this.undo.getX() +this.undo.getWidth()+2, 0, 20, 20, Component.nullToEmpty("R"), btn->this.reset()));
         }
     }
 
@@ -119,12 +116,15 @@ public abstract class ConfigEntry<T> {
     }
 
     public boolean mouseClick(double mouseX, double mouseY, int button){
+        boolean flag = false;
         for (AbstractWidget widget : this.widgets) {
-            if(widget.mouseClicked(mouseX, mouseY, button)){
-                return true;
+            widget.setFocused(false);
+            if(!flag && widget.mouseClicked(mouseX, mouseY, button)){
+                widget.setFocused(true);
+                flag =  true;
             }
         }
-        return false;
+        return flag;
     }
     public boolean charTyped(char codePoint, int modifiers) {
         for (AbstractWidget widget : this.widgets) {
@@ -148,7 +148,7 @@ public abstract class ConfigEntry<T> {
     }
 
     protected void drawCommentWithRange(Screen gui, GuiGraphics graphics, int mouseX, int mouseY, int x, int y, int width, int height) throws Exception {
-        if(EmailUtils.isInRange(mouseX, mouseY, x, y, width, height)){
+        if(isInRange(mouseX, mouseY, x, y, width, height)){
             this.drawComment(gui, graphics, mouseX, mouseY);
         }
     }
@@ -193,5 +193,11 @@ public abstract class ConfigEntry<T> {
         comments.add(Component.literal(ChatFormatting.AQUA + String.format("[%sdefault: %s]", range!=null? range : "", this.spec.getDefault())));
 
         graphics.renderComponentTooltip(gui.getMinecraft().font, comments, mouseX+5, mouseY);
+    }
+
+    public static boolean isInRange(double mouseX, double mouseY, int x, int y, int width, int height) {
+        int maxX = x + width;
+        int maxY = y + height;
+        return (mouseX >= x && mouseY >= y) && (mouseX <= maxX && mouseY <= maxY);
     }
 }

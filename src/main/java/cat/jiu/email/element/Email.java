@@ -13,9 +13,10 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import cat.jiu.core.util.client.AudioSystem;
+import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.element.attachment.*;
-import cat.jiu.formless.utils.client.AudioSystem;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -26,7 +27,6 @@ import com.google.gson.JsonPrimitive;
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.api.handler.ISerializable;
-import cat.jiu.core.util.element.Sound;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
@@ -48,7 +48,7 @@ public class Email implements ISerializable {
 	protected String create_time_s;
 
 	protected boolean read;
-	protected boolean accept;
+	protected boolean receive;
 
 	protected TimeMillis expiration_time;
 	protected long expiration_time_l;
@@ -158,7 +158,7 @@ public class Email implements ISerializable {
 	/**
 	 * @return 邮件是否已领
 	 */
-	public boolean isReceived() {return accept;}
+	public boolean isReceived() {return receive;}
 
 	public boolean hasAttachments(ResourceLocation id) {
 		return this.attachments!=null && this.attachments.containsKey(id);
@@ -169,7 +169,7 @@ public class Email implements ISerializable {
 	 */
 	public <T extends IAttachment> T getAttachment(ResourceLocation id) {
 		if (!this.hasAttachments(id)) {
-			this.addAttachment(IAttachment.newInstance(id, new JsonObject()));
+			this.addAttachment(IAttachment.REGISTRY.get(id, new JsonObject()));
 		}
 		return this.attachments.get(id).cast();
 	}
@@ -252,9 +252,10 @@ public class Email implements ISerializable {
 	 */
 	public Email setRead(boolean read) {this.read = read; return this;}
 	/**
-	 * @param accept 邮件是否已领
+	 * @param receive 邮件是否已领
 	 */
-	public Email setAccept(boolean accept) {this.accept = accept; return this;}
+	public Email setReceive(boolean receive) {this.receive = receive; return this;}
+	public Email setAccept(boolean receive) {return this.setReceive(receive);}
 
 	public void setMcSound(ISound mc_sound) {
 		this.mc_sound = mc_sound;
@@ -655,7 +656,7 @@ public class Email implements ISerializable {
 	 * @return 是否带有附加的声音(音效)
 	 */
 	public boolean hasSound() {
-		return (this.mc_sound !=null && this.mc_sound.getSound()!=null) || (this.external_sound != null && !this.external_sound.getFile().isEmpty());
+		return (this.mc_sound !=null && this.mc_sound.getAudioFile()!=null) || (this.external_sound != null && !this.external_sound.getFile().isEmpty());
 	}
 	/**
 	 * @return 是否带有附加的物品
@@ -718,8 +719,8 @@ public class Email implements ISerializable {
 		}
 
 		json.add("sender", this.sender.writeTo(JsonObject.class));
-		if(read) json.addProperty("read", true);
-		if(accept) json.addProperty("accept", true);
+		if(this.isRead()) json.addProperty("read", true);
+		if(this.isReceived()) json.addProperty("receive", true);
 		if(this.hasSound()) {
 			if (this.isExternalSound()) {
 				JsonObject sound_obj = new JsonObject();
@@ -796,8 +797,15 @@ public class Email implements ISerializable {
 				this.expiration_time = new TimeMillis(json.get("expiration").getAsLong());
 				this.expiration_time_l = -404;
 			}
+
 			if(json.has("read")) this.read = json.get("read").getAsBoolean();
-			if(json.has("accept")) this.accept = json.get("accept").getAsBoolean();
+
+			if(json.has("accept")) {
+				this.receive = json.get("accept").getAsBoolean();
+			}else if(json.has("receive")) {
+				this.receive = json.get("receive").getAsBoolean();
+			}
+
 			if(json.has("sound")) {
 				if ((json.has("network_local_sound") && json.get("network_local_sound").getAsBoolean())
 				|| (json.has("external_sound") && json.get("external_sound").getAsBoolean())) {
@@ -810,7 +818,7 @@ public class Email implements ISerializable {
 											: SoundSource.PLAYERS
 							));
 				}else {
-					this.mc_sound = new Sound(json.getAsJsonObject("sound"));
+					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, json.getAsJsonObject("sound"));
 				}
 			}
 
@@ -821,7 +829,7 @@ public class Email implements ISerializable {
 			if (json.has("attachments")) {
 				for (JsonElement element : json.getAsJsonArray("attachments")) {
 					JsonObject object = element.getAsJsonObject();
-					this.addAttachment(IAttachment.newInstance(new ResourceLocation(object.get("id").getAsString()), object));
+					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getAsString()), object));
 				}
 			}
 
@@ -873,7 +881,7 @@ public class Email implements ISerializable {
 		}
 		nbt.put("sender", this.sender.writeTo(CompoundTag.class));
 		if(this.isRead()) nbt.putBoolean("read", this.isRead());
-		if(this.isReceived()) nbt.putBoolean("accept", this.isReceived());
+		if(this.isReceived()) nbt.putBoolean("receive", this.isReceived());
 		if(this.hasSound()) {
 			if (this.isExternalSound()) {
 				CompoundTag sound_obj = new CompoundTag();
@@ -934,7 +942,7 @@ public class Email implements ISerializable {
 			}
 			this.sender = new Text(nbt.getCompound("sender"));
 			if(nbt.contains("read")) this.read = nbt.getBoolean("read");
-			if(nbt.contains("accept")) this.accept = nbt.getBoolean("accept");
+			if(nbt.contains("receive")) this.receive = nbt.getBoolean("receive");
 			if(nbt.contains("sound")) {
 				if (nbt.contains("external_sound") && nbt.getBoolean("external_sound")) {
 					CompoundTag network_local = nbt.getCompound("sound");
@@ -946,7 +954,7 @@ public class Email implements ISerializable {
 											: SoundSource.PLAYERS
 							));
 				}else {
-					this.mc_sound = new Sound(nbt.getCompound("sound"));
+					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, nbt.getCompound("sound"));
 				}
 			}
 
@@ -961,7 +969,7 @@ public class Email implements ISerializable {
 				ListTag attachments = nbt.getList("attachments", 10);
 				for (int i = 0; i < attachments.size(); i++) {
 					CompoundTag object = attachments.getCompound(i);
-					this.addAttachment(IAttachment.newInstance(new ResourceLocation(object.get("id").getAsString()), object));
+					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getAsString()), object));
 				}
 			}
 

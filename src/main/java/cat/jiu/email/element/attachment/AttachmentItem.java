@@ -14,7 +14,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
@@ -142,15 +141,15 @@ public class AttachmentItem implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentRender(AttachmentEvent.Render.Pre event) {
-        if (event.attachment instanceof AttachmentItem attachment && !attachment.isEmpty()) {
+    @Override
+    public void render(AttachmentEvent.Render event) {
+        if (!this.isEmpty()) {
             event.graphics.drawString(event.font, Component.translatable("info.email.item_save_to_email").append(" (").append(Component.translatable(event.email.isReceived() ? "info.email.filter.is_accept" : "info.email.filter.not_accept")).append(")"), event.x, event.getY(), Color.WHITE.getRGB());
             event.addY(event.font.lineHeight + 2);
 
             int itemX = event.x;
-            for (ItemStack item : attachment.getItems()) {
-                if (itemX >= event.x + event.guiWidth - 36) {
+            for (ItemStack item : this.getItems()) {
+                if (itemX >= event.x + event.viewWidth - 36) {
                     event.addY(16 + 2);
                     itemX = event.x;
                 }
@@ -168,9 +167,9 @@ public class AttachmentItem implements IAttachment {
     }
 
     @OnlyIn(Dist.CLIENT)
-    @SubscribeEvent
-    public static void onAttachmentGetHeight(AttachmentEvent.GetHeight event) {
-        if (event.attachment instanceof AttachmentItem attachment && !attachment.isEmpty()) {
+    @Override
+    public void getHeight(AttachmentEvent.GetHeight event) {
+        if (!this.isEmpty()) {
             event.addHeight(event.font.lineHeight + 2);
 
 //            int maxWidth = event.guiWidth - 36;
@@ -185,7 +184,7 @@ public class AttachmentItem implements IAttachment {
 
             event.addHeight(16 + 2);
             int itemX = 0;
-            for (ItemStack item : attachment.getItems()) {
+            for (ItemStack item : this.getItems()) {
                 if (itemX >= event.guiWidth - 36) {
                     event.addHeight(16 + 2);
                     itemX = 0;

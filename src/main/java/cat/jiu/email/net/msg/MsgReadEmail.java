@@ -1,12 +1,11 @@
 package cat.jiu.email.net.msg;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReadEvent;
-import cat.jiu.email.ui.container.ContainerEmailMain;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.network.FriendlyByteBuf;
@@ -44,7 +43,6 @@ public class MsgReadEmail extends BaseMessage {
 							return;
 						}
 						email.setRead(true);
-						EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), player);
 
 						if(inbox.isEmptyInbox()){
 							EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", inbox);
@@ -87,7 +85,6 @@ public class MsgReadEmail extends BaseMessage {
 						EmailUtils.saveInboxToDisk(inbox);
 //						EmailAPI.sendInboxToClient(inbox, player);
 					}
-					EmailMain.net.sendMessageToPlayer(new MsgUnread(inbox.getUnRead()), player);
 				});
 			}
 			return true;
