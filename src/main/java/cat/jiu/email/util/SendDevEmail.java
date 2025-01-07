@@ -1,32 +1,34 @@
 package cat.jiu.email.util;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import cat.jiu.email.net.msg.MsgUnreceived;
+import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.attachment.AttachmentCommand;
+import cat.jiu.email.net.msg.MsgUnaccepted;
+import cat.jiu.core.util.client.AudioSystem;
 import com.google.common.collect.Lists;
 
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.util.element.Sound;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendDevMessageEvent;
 import cat.jiu.email.net.msg.MsgPlayerPermissionLevel;
-import cat.jiu.email.net.msg.MsgUnread;
 
 import com.google.common.collect.Maps;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.toasts.SystemToast;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.management.OpEntry;
 import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
@@ -39,61 +41,60 @@ public class SendDevEmail {
 	static final Email devEmail;
 	static {
 		List<IText> msgs = Lists.newArrayList();
-		msgs.add(new Text("email.dev_message.0", ""));
-		for(int i = 1; i < 30; i++) {
-			msgs.add(new Text("email.dev_message."+i));
+		for(int i = 0; i < 14; i++) {
+			msgs.add(new Text("inbox.dev_message."+i));
 		}
-		devEmail = new Email(new Text("email.dev_message.title", ""), new Text("email.dev_message.sender"),
-				new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundCategory.PLAYERS),
-				Arrays.asList(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8)), msgs);
-		devEmail.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
+		devEmail = new Email(new Text("inbox.dev_message.title"), EmailAPI.SYSTEM)
+//				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundCategory.PLAYERS))
+				.addMessages(msgs)
+				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
+				.addCommands(
+						new AttachmentCommand.Cmd("/say 'this command is ' server ' command, use ' server console permission ' to execute.'", true),
+						new AttachmentCommand.Cmd("/me 'this command is ' player ' command, use ' player permission ' to execute.'", false),
+						new AttachmentCommand.Cmd("/say 'this command is hide in tooltip, you cant seed this command.'", true).setHideInTooltip(true),
+						new AttachmentCommand.Cmd("/me 'this command is hide in tooltip, you cant seed this command.'", false).setHideInTooltip(true)
+				)
+				.setExperience(9980, 9980)
+				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
+				.setExternalSound(new AudioSystem.Audio("E:/application/tools/ffmpeg/bin/inbox_dev_sound.mp3", SoundCategory.PLAYERS))
 				.setAccept(true);
 	}
 	
 	public static Email getDevEmail() {
-		return devEmail;
+		return devEmail.setCreateTimeToNow();
 	}
 	
 	@SubscribeEvent
 	public static void onJoin(PlayerEvent.PlayerLoggedInEvent event) {
-		if(!event.getPlayer().getEntityWorld().isRemote()) {
-			Inbox inbox = Inbox.get(event.getPlayer());
+		if(event.getPlayer() instanceof ServerPlayerEntity) {
+			ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
+			Inbox inbox = Inbox.get(player);
 			
 			int level = 0;
-			OpEntry opEntry = event.getPlayer().getServer().getPlayerList().getOppedPlayers().getEntry(event.getPlayer().getGameProfile());
+			OpEntry opEntry = player.getServer().getPlayerList().getOppedPlayers().getEntry(player.getGameProfile());
             if (opEntry != null) {
                 level = opEntry.getPermissionLevel();
             }
 			
-			EmailMain.net.sendMessageToPlayer(new MsgPlayerPermissionLevel(level), (ServerPlayerEntity) event.getPlayer());
+			EmailMain.net.sendMessageToPlayer(new MsgPlayerPermissionLevel(level), player);
 			
 			if(!inbox.isSendDevMsg()) {
-				devEmail.setMessageParameters(0, 0, event.getPlayer().getName().getString());
-				devEmail.setTitleParameters(0, event.getPlayer().getName().getString());
-				devEmail.setCreateTimeToNow();
-				
-				inbox.addEmail(devEmail);
+				inbox.addEmail(devEmail.copy().setCreateTimeToNow());
 				inbox.setSendDevMsg(true);
 				
 //				EmailExecuteEvent.initDefaultCustomValue(inbox);
-				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent((ServerPlayerEntity) event.getPlayer(), inbox));
+				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(player, inbox));
 				EmailUtils.saveInboxToDisk(inbox);
 			}
 		}
 	}
-
+	
 	@SubscribeEvent
 	public static void onJoinWorld(EntityJoinWorldEvent event) {
 		if(event.getEntity() instanceof ServerPlayerEntity) {
-			ServerPlayerEntity player = (ServerPlayerEntity) event.getEntity();
-			Inbox inbox = Inbox.get(player);
-			int unread = inbox.getUnRead();
-			int unReceived = inbox.getUnReceived();
-			if(unread > 0) {
-				EmailMain.net.sendMessageToPlayer(new MsgUnread(unread), player);
-			}
-			if(unReceived > 0) {
-				EmailMain.net.sendMessageToPlayer(new MsgUnreceived(unReceived), player);
+			Un un = Un.getInstance((PlayerEntity) event.getEntity());
+			if(un.unread > 0 || un.unReceived > 0) {
+				EmailMain.net.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), (ServerPlayerEntity) event.getEntity());
 			}
 		}
 	}
@@ -102,38 +103,15 @@ public class SendDevEmail {
 	@SubscribeEvent
 	public static void onPlayerTick(TickEvent.PlayerTickEvent event){
 		if(event.player instanceof ServerPlayerEntity && event.phase == TickEvent.Phase.END){
-			ServerPlayerEntity player = (ServerPlayerEntity) event.player;
-			String name = player.getName().getString();
+			String name = event.player.getName().getString();
 			if(!reminds.containsKey(name)) reminds.put(name, new Delay());
 			Delay delay = reminds.get(name);
-
-			if(delay.msg >= 10 * 20){
-				delay.msg = 0;
-				Inbox inbox = Inbox.get(player);
-				int unread = inbox.getUnRead();
-				int unaccepted = inbox.getUnReceived();
-				if(unread>0 && unaccepted>0){
-					player.sendStatusMessage(new TranslationTextComponent("info.email.has_unread_and_unreceive", unread, unaccepted), true);
-				} else if (unread > 0) {
-					player.sendStatusMessage(new TranslationTextComponent("info.email.has_unread", unread), true);
-				} else if (unaccepted > 0) {
-					player.sendStatusMessage(new TranslationTextComponent("info.email.has_unreceive", unaccepted), true);
-				}
-			}else {
-				delay.msg++;
-			}
-
 			if(delay.net >= 10){
-				Inbox inbox = Inbox.get(player);
-				int unread = inbox.getUnRead();
-				int unReceived = inbox.getUnReceived();
-				if(delay.unread != unread) {
-					delay.unread = unread;
-					EmailMain.net.sendMessageToPlayer(new MsgUnread(unread), player);
-				}
-				if(delay.unReceived != unReceived) {
-					delay.unReceived = unReceived;
-					EmailMain.net.sendMessageToPlayer(new MsgUnreceived(unReceived), player);
+				Un un = Un.getInstance(event.player);
+				if(un.unread != delay.unread || un.unReceived != delay.unReceived) {
+					delay.unread = un.unread;
+					delay.unReceived = un.unReceived;
+					EmailMain.net.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), (ServerPlayerEntity) event.player);
 				}
 				delay.net = 0;
 			}else {
@@ -142,10 +120,42 @@ public class SendDevEmail {
 		}
 	}
 
+	static long showToast;
+	@OnlyIn(Dist.CLIENT)
+	@SubscribeEvent
+	public static void onClientTick(TickEvent.WorldTickEvent event){
+		if (event.phase == TickEvent.Phase.END) {
+			if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
+				long s = showToast - System.currentTimeMillis();
+				if (s <= 0) {
+					Minecraft.getInstance().getToastGui().add(new SystemToast(
+							SystemToast.Type.PACK_COPY_FAILURE,
+							new TranslationTextComponent("info.inbox.has_unread", EmailMain.getUnread()),
+							new TranslationTextComponent("info.inbox.has_unreceive", EmailMain.getUnaccepted())
+					));
+					showToast = System.currentTimeMillis() + 10 * 1000;
+				}
+			}
+		}
+	}
+
 	static class Delay {
 		int net = 0;
-		int msg = 0;
-		int unread = -1;
-		int unReceived = -1;
+		int unread = 0;
+		int unReceived = 0;
+	}
+
+	static class Un{
+		public final int unread, unReceived;
+
+		public Un(int unread, int unReceived) {
+			this.unread = unread;
+			this.unReceived = unReceived;
+		}
+
+		static Un getInstance(PlayerEntity player){
+			Inbox inbox = Inbox.get(player);
+			return new Un(inbox.getUnRead(), inbox.getUnReceived());
+		}
 	}
 }

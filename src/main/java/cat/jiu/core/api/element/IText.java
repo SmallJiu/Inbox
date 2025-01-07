@@ -1,33 +1,31 @@
 package cat.jiu.core.api.element;
 
+import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.util.client.RenderUtils;
+import cat.jiu.core.util.element.Text;
+import cat.jiu.sql.SQLValues;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-import cat.jiu.core.api.handler.ISerializable;
-import cat.jiu.core.events.client.TextFormatEvent;
-import cat.jiu.core.util.element.Text;
-import cat.jiu.sql.SQLValues;
-
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.util.text.Color;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.MinecraftForge;
 
 public interface IText extends ISerializable {
 	String getText();
@@ -46,10 +44,10 @@ public interface IText extends ISerializable {
 
 	@OnlyIn(Dist.CLIENT)
 	default String format() {
-		TextFormatEvent event = new TextFormatEvent(this.getText(), this.getParameters());
-		if(MinecraftForge.EVENT_BUS.post(event) && event.getFormatResult() != null) {
-			return event.getFormatResult();
-		}
+//		TextFormatEvent event = new TextFormatEvent(this.getText(), this.getParameters());
+//		if(MinecraftForge.EVENT_BUS.post(event) && event.getFormatResult() != null) {
+//			return event.getFormatResult();
+//		}
 		return I18n.format(this.getText(), IText.format(this.getParameters()));
 	}
 
@@ -69,33 +67,25 @@ public interface IText extends ISerializable {
 
 	@OnlyIn(Dist.CLIENT)
 	default int getStringWidth(FontRenderer fr) {
-		return fr.getStringWidth(this.format());
+		return RenderUtils.width(this.format());
 	}
 
-	default TranslationTextComponent toTextComponent() {
+	default ITextComponent toTextComponent() {
 		return new TranslationTextComponent(this.getText(), this.getParameters());
 	}
-	default TranslationTextComponent toTextComponent(TextFormatting color) {
-		TranslationTextComponent text = new TranslationTextComponent(this.getText(), this.getParameters());
-		return (TranslationTextComponent) text.setStyle(text.getStyle().setColor(Color.fromTextFormatting(color)));
-	}
-	default TranslationTextComponent toTextComponent(Color color) {
-		TranslationTextComponent text = new TranslationTextComponent(this.getText(), this.getParameters());
-		return (TranslationTextComponent) text.setStyle(text.getStyle().setColor(color));
+	default ITextComponent toTextComponent(TextFormatting color) {
+		ITextComponent text = new TranslationTextComponent(this.getText(), this.getParameters());
+		return text.copyRaw().setStyle(text.getStyle().setFormatting(color));
 	}
 
 	@Override
-	default void read(JsonObject json) {
-		if(json.has("text")) {
-			this.setText(json.get("text").getAsString());
-		}else if(json.has("key")) {
-			this.setText(json.get("key").getAsString());
-		}
-		
-		if(json.has("isVanillaWrap")) this.setUseVanillaWrap(json.get("isVanillaWrap").getAsBoolean());
-		if(json.has("isCenter")) this.setCenter(json.get("isCenter").getAsBoolean());
-		if(json.has("parameters") || json.has("args")) {
-			JsonArray parametersArray = json.has("parameters") ? json.getAsJsonArray("parameters") : json.getAsJsonArray("args");
+	default void read(JsonObject data) {
+		this.setText(JsonUtils.get(data, "text", JsonUtils.get(data, "key", "empty")));
+		this.setUseVanillaWrap(JsonUtils.get(data, "isVanillaWrap", false));
+		this.setCenter(JsonUtils.get(data, "isCenter", false));
+
+		if(data.has("parameters") || data.has("args")) {
+			JsonArray parametersArray = data.getAsJsonArray(data.has("parameters") ? "parameters" : "args");
 			Object[] parameters = new Object[parametersArray.size()];
 			for(int i = 0; i < parameters.length; i++) {
 				JsonElement e = parametersArray.get(i);
@@ -110,13 +100,14 @@ public interface IText extends ISerializable {
 	}
 
 	@Override
-	default JsonObject write(JsonObject json) {
-		if(json == null)
-			json = new JsonObject();
+	default JsonObject write(JsonObject data) {
+		if(data == null)
+			data = new JsonObject();
 		
-		json.addProperty("text", this.getText());
-		if(this.isCenter()) json.addProperty("isCenter", this.isCenter());
-		if(this.isVanillaWrap()) json.addProperty("isVanillaWrap", this.isVanillaWrap());
+		data.addProperty("text", this.getText());
+		data.addProperty("isCenter", this.isCenter());
+		data.addProperty("isVanillaWrap", this.isVanillaWrap());
+
 		if(this.getParameters()!=null && this.getParameters().length > 0) {
 			JsonArray parametersArray = new JsonArray();
 			for(int i = 0; i < this.getParameters().length; i++) {
@@ -127,19 +118,20 @@ public interface IText extends ISerializable {
 					parametersArray.add(String.valueOf(o));
 				}
 			}
-			json.add("parameters", parametersArray);
+			data.add("parameters", parametersArray);
 		}
 		
-		return json;
+		return data;
 	}
 
 	@Override
-	default void read(CompoundNBT nbt) {
-		this.setText(nbt.getString("text"));
-		if(nbt.contains("isVanillaWrap")) this.setUseVanillaWrap(nbt.getBoolean("isVanillaWrap"));
-		if(nbt.contains("isCenter")) this.setCenter(nbt.getBoolean("isCenter"));
-		if(nbt.contains("parameters")) {
-			CompoundNBT parametersArray = nbt.getCompound("parameters");
+	default void read(CompoundNBT data) {
+		this.setText(NBTUtils.get(data, "text", NBTUtils.get(data, "key", "empty")));
+		this.setUseVanillaWrap(NBTUtils.get(data, "isVanillaWrap", false));
+		this.setCenter(NBTUtils.get(data, "isCenter", false));
+
+		if(data.contains("parameters")) {
+			CompoundNBT parametersArray = data.getCompound("parameters");
 			Object[] parameters = new Object[parametersArray.size()];
 			List<String> keys = parametersArray.keySet().stream().sorted(Comparator.comparingLong(Long::valueOf)).collect(Collectors.toList());
 
@@ -148,7 +140,7 @@ public interface IText extends ISerializable {
 				if(e instanceof CompoundNBT) {
 					parameters[i] = new Text((CompoundNBT)e);
 				}else {
-					parameters[i] = e.toString();
+					parameters[i] = e.getString();
 				}
 			}
 			this.setParameters(parameters);

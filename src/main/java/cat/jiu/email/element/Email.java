@@ -5,15 +5,19 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.client.AudioSystem;
+import cat.jiu.core.util.element.sound.SoundMC;
+import cat.jiu.email.api.IAttachment;
+import cat.jiu.email.element.attachment.*;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -24,37 +28,40 @@ import com.google.gson.JsonPrimitive;
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.api.handler.ISerializable;
-import cat.jiu.core.util.element.Sound;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ByteNBT;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.StringNBT;
+import net.minecraft.nbt.*;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
 
 @SuppressWarnings("unused")
 public class Email implements ISerializable {
 	protected IText title;
 	protected IText sender;
-	
+
 	protected long create_time = System.currentTimeMillis();
 	protected String create_time_s;
-	
+
+	protected boolean read;
+	protected boolean receive;
+
 	protected TimeMillis expiration_time;
 	protected long expiration_time_l;
 
-	protected ISound sound;
-	protected List<ItemStack> items;
 	protected List<IText> messages;
-	protected boolean read;
-	protected boolean accept;
-	
+
+	protected Map<ResourceLocation, IAttachment> attachments;
+
+	protected ISound mc_sound;
+	protected AudioSystem.Audio external_sound;
+	protected boolean isNetworkOrLocalSound;
+
 	public Email(@Nonnull IText title, @Nonnull IText sender) {
 		this.title = title;
 		this.sender = sender;
@@ -63,27 +70,49 @@ public class Email implements ISerializable {
 	/**
 	 * @param title 邮件标题
 	 * @param sender 邮件发送者
-	 * @param sound 邮件附带的音效
+	 * @param mc_sound 邮件附带的音效
 	 * @param items 邮件附带的物品
 	 * @param messages 邮件附带的消息
-	 * 
+	 *
 	 * @author small_jiu
 	 */
-	public Email(@Nonnull IText title, @Nonnull IText sender, ISound sound, List<ItemStack> items, List<IText> messages) {
+	public Email(@Nonnull IText title, @Nonnull IText sender, ISound mc_sound, List<ItemStack> items, List<IText> messages) {
 		this.title = title;
 		this.sender = sender;
-		this.sound = sound;
-		this.items = items;
+		this.mc_sound = mc_sound;
+		if (items!=null && !items.isEmpty()) {
+			this.addItems(items);
+		}
 		this.messages = messages;
 	}
-	
+
+	/**
+	 * @param title 邮件标题
+	 * @param sender 邮件发送者
+	 * @param external_sound 邮件附带的音效
+	 * @param items 邮件附带的物品
+	 * @param messages 邮件附带的消息
+	 *
+	 * @author small_jiu
+	 */
+	public Email(@Nonnull IText title, @Nonnull IText sender, AudioSystem.Audio external_sound, List<ItemStack> items, List<IText> messages) {
+		this.title = title;
+		this.sender = sender;
+		this.external_sound = external_sound;
+		this.isNetworkOrLocalSound = true;
+		if (items!=null && !items.isEmpty()) {
+			this.addItems(items);
+		}
+		this.messages = messages;
+	}
+
 	public Email(CompoundNBT nbt) {
 		this.read(nbt);
 	}
 	public Email(JsonObject json) {
 		this.read(json);
 	}
-	
+
 	@Deprecated
 	public String getTime() {
 		return this.getCreateTimeAsString();
@@ -100,9 +129,13 @@ public class Email implements ISerializable {
 	@Nonnull
 	public String getCreateTimeAsString() {
 		if(this.create_time_s == null) {
-			this.create_time_s = EmailUtils.dateFormat.format(new Date(this.create_time));
+			this.create_time_s = this.getCreateTimeAsString(EmailUtils.dateFormat);
 		}
 		return this.create_time_s;
+	}
+	@Nonnull
+	public String getCreateTimeAsString(SimpleDateFormat format) {
+		return format.format(new Date(this.create_time));
 	}
 	/**
 	 * @return 邮件标题
@@ -118,7 +151,7 @@ public class Email implements ISerializable {
 	 * @return 邮件附带的声音(音效)
 	 */
 	@Nullable
-	public ISound getSound() {return sound;}
+	public ISound getSound() {return mc_sound;}
 	/**
 	 * @return 邮件是否已读
 	 */
@@ -126,18 +159,76 @@ public class Email implements ISerializable {
 	/**
 	 * @return 邮件是否已领
 	 */
-	public boolean isReceived() {return accept;}
+	public boolean isReceived() {return receive;}
+
+	public boolean hasAttachments(ResourceLocation id) {
+		return this.attachments!=null && this.attachments.containsKey(id);
+	}
+
+	/**
+	 * 获取对应ID的附件
+	 */
+	public <T extends IAttachment> T getAttachment(ResourceLocation id) {
+		if (!this.hasAttachments(id)) {
+			this.addAttachment(IAttachment.REGISTRY.get(id, new JsonObject()));
+		}
+		return this.attachments.get(id).cast();
+	}
+
+	public Collection<IAttachment> getAttachments(){
+		return this.hasAttachment() ? Collections.unmodifiableCollection(this.attachments.values()) : Collections.emptyList();
+	}
+	public boolean hasAttachment() {
+		if (this.attachments!=null) {
+			for (IAttachment value : this.attachments.values()) {
+				if (!value.isEmpty()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 添加一种附件，已有同一种附件的情况下，会合并到已有附件内
+	 */
+	public Email addAttachment(IAttachment attachment) {
+		if (this.attachments==null) {
+			this.attachments = new ConcurrentHashMap<>();
+		}
+		if (this.hasAttachments(attachment.getID())) {
+			this.getAttachment(attachment.getID()).merge(attachment);
+		}else {
+			this.attachments.put(attachment.getID(), attachment);
+		}
+		return this;
+	}
+
 	/**
 	 * @return 邮件附带的物品
 	 */
-	@Nullable
-	public List<ItemStack> getItems() {return Lists.newArrayList(items);}
+	public List<ItemStack> getItems() {
+		if (this.hasAttachments(AttachmentItem.ID)) {
+			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).getItems();
+		}
+		return Collections.emptyList();
+	}
+	/**
+	 * @return 邮件附带的物品
+	 */
+	public List<AttachmentCommand.Cmd> getCommands() {
+		if (this.hasAttachments(AttachmentCommand.ID)) {
+			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).getCommands();
+		}
+		return Collections.emptyList();
+	}
 	/**
 	 * @return 邮件附带的消息
 	 */
-	@Nullable
-	public List<IText> getMessages() {return messages;}
-	
+	public List<IText> getMessages() {
+		return messages==null?Collections.emptyList() : messages;
+	}
+
 	protected long networkSize = -404;
 	/**
 	 * @return 邮件的网络包大小
@@ -162,12 +253,62 @@ public class Email implements ISerializable {
 	 */
 	public Email setRead(boolean read) {this.read = read; return this;}
 	/**
-	 * @param accept 邮件是否已领
+	 * @param receive 邮件是否已领
 	 */
-	public Email setAccept(boolean accept) {this.accept = accept; return this;}
+	public Email setReceive(boolean receive) {this.receive = receive; return this;}
+	public Email setAccept(boolean receive) {return this.setReceive(receive);}
+
+	public void setMcSound(ISound mc_sound) {
+		this.mc_sound = mc_sound;
+	}
+
+	@Deprecated
+	public AudioSystem.Audio getNetworkOrLocalSound(){
+		return this.getExternalSound();
+	}
+
+	public AudioSystem.Audio getExternalSound(){
+		return external_sound;
+	}
+
+	@Deprecated
+	public boolean isNetworkOrLocalSound() {
+		return this.isExternalSound();
+	}
+	public boolean isExternalSound() {
+		return isNetworkOrLocalSound;
+	}
+
+	/**
+	 * NetworkOrLocalSound
+	 * @param external_sound 本地或网络音效
+	 */
+	@Deprecated
+	public Email setNetworkOrLocalSound(AudioSystem.Audio external_sound) {
+		return this.setExternalSound(external_sound);
+	}
+	public Email setExternalSound(AudioSystem.Audio external_sound) {
+		this.external_sound = external_sound;
+		this.setIsExternalSound(true);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param externalSound 是否是本地或网络音效
+	 */
+	public Email setIsExternalSound(boolean externalSound) {
+		isNetworkOrLocalSound = externalSound;
+		return this;
+	}
+	@Deprecated
+	public Email setIsNetworkOrLocalSound(boolean externalSound) {
+		return this.setIsExternalSound(externalSound);
+	}
+
 	/**
 	 * @param time 邮件的新的创建时间
-	 * @deprecated {@link #setCreateTime(LocalDateTime)} 
+	 * @deprecated {@link #setCreateTime(LocalDateTime)}
 	 */
 	@Deprecated
 	public void setTime(LocalDateTime time) {
@@ -176,7 +317,7 @@ public class Email implements ISerializable {
 	}
 	/**
 	 * @param time 邮件的新的创建时间
-	 * @deprecated {@link #setCreateTime(Date)} 
+	 * @deprecated {@link #setCreateTime(Date)}
 	 */
 	@Deprecated
 	public void setTime(Date time) {
@@ -207,7 +348,7 @@ public class Email implements ISerializable {
 		this.create_time_s = null;
 		return this;
 	}
-	
+
 	/**
 	 * @param expiration_time 邮件的新的过期时间
 	 */
@@ -229,7 +370,7 @@ public class Email implements ISerializable {
 	public boolean hasExpirationTime() {
 		return this.getExpirationTime() != null && this.getExpirationTime().millis > 0;
 	}
-	
+
 	/**
 	 * @return 邮件是否已过期
 	 */
@@ -243,7 +384,7 @@ public class Email implements ISerializable {
 	public boolean isExpiration(long time) {
 		return this.getExpirationTime()!=null && time >= this.getExpirationTimeAsTimestamp();
 	}
-	
+
 	/**
 	 * @return 获取过期时间为时间戳
 	 */
@@ -253,7 +394,7 @@ public class Email implements ISerializable {
 		}
 		return this.expiration_time_l;
 	}
-	
+
 	/**
 	 * 设置邮件标题的附加内容
 	 * @param index index
@@ -263,7 +404,7 @@ public class Email implements ISerializable {
 		this.getTitle().getParameters()[index] = obj;
 		return this;
 	}
-	
+
 	/**
 	 * 设置邮件附加消息的附加内容
 	 */
@@ -271,7 +412,7 @@ public class Email implements ISerializable {
 		this.getMessages().get(msgIndex).getParameters()[index] = obj;
 		return this;
 	}
-	
+
 	/**
 	 * 设置邮件发送者的附加内容
 	 */
@@ -279,59 +420,171 @@ public class Email implements ISerializable {
 		this.getSender().getParameters()[index] = obj;
 		return this;
 	}
-	
+
 	/**
 	 * 移除附加物品
 	 * @param slot slot
 	 * @return 已被移除的物品
 	 */
 	public ItemStack removeItem(int slot) {
-		if(this.items!=null && slot >= 0 && slot < this.items.size()) {
-			return this.items.remove(slot);
+		if(this.hasAttachments(AttachmentItem.ID)) {
+			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).remove(slot);
 		}
-		return null;
+		return ItemStack.EMPTY;
 	}
 	/**
 	 * 清空邮件附带的所有物品
 	 */
 	public Email clearItems() {
-		if(this.items!=null) {
-			this.items.clear();
+		if(this.hasAttachments(AttachmentItem.ID)) {
+			this.<AttachmentItem>getAttachment(AttachmentItem.ID).removeAll();
 		}
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 添加物品到邮件
 	 */
 	public Email addItems(List<ItemStack> stacks) {
-		if(this.items==null) this.items = Lists.newArrayList();
-		if(stacks!=null && !stacks.isEmpty()) {
-			for(int i = 0; i < stacks.size() && this.items.size()<16; i++) {
-				this.items.add(stacks.get(i));
+		if(!this.hasAttachments(AttachmentItem.ID)) {
+			this.addAttachment(new AttachmentItem());
+		}
+		if (stacks!=null && !stacks.isEmpty()){
+			this.<AttachmentItem>getAttachment(AttachmentItem.ID).addStacks(stacks);
+		}
+		return this;
+	}
+	/**
+	 * 添加物品到邮件
+	 */
+	public Email addItem(ItemStack... stacks) {
+		if(!this.hasAttachments(AttachmentItem.ID)) {
+			this.addAttachment(new AttachmentItem());
+		}
+		if (stacks!=null && stacks.length > 0) {
+			this.<AttachmentItem>getAttachment(AttachmentItem.ID).addStack(stacks);
+		}
+		return this;
+	}
+	/**
+	 * 设置邮件的附加指令
+	 */
+	public ItemStack setItem(int slot, ItemStack newItem) {
+		if(this.hasAttachments(AttachmentItem.ID)) {
+			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).setStack(slot, newItem);
+		}
+		return ItemStack.EMPTY;
+	}
+
+	/**
+	 * 移除附加指令
+	 * @param slot slot
+	 * @return 已被移除指令
+	 */
+	public AttachmentCommand.Cmd removeCommand(int slot) {
+		if(this.hasAttachments(AttachmentCommand.ID)) {
+			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).removeCommand(slot);
+		}
+		return null;
+	}
+	/**
+	 * 清空邮件附带的所有指令
+	 */
+	public Email clearAllCommands() {
+		if(this.hasAttachments(AttachmentCommand.ID)) {
+			this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).removeAllCommand();
+		}
+		return this;
+	}
+	/**
+	 * 添加指令到邮件
+	 */
+	public Email addCommands(List<AttachmentCommand.Cmd> cmds) {
+		if(!this.hasAttachments(AttachmentCommand.ID)) {
+			this.addAttachment(new AttachmentCommand());
+		}
+		if (cmds!=null){
+			cmds.forEach(this.<AttachmentCommand>getAttachment(AttachmentCommand.ID)::addCommand);
+		}
+		return this;
+	}
+	/**
+	 * 添加指令到邮件
+	 */
+	public Email addCommands(AttachmentCommand.Cmd... cmds) {
+		if(!this.hasAttachments(AttachmentCommand.ID)) {
+			this.addAttachment(new AttachmentCommand());
+		}
+		if (cmds!=null){
+			for (AttachmentCommand.Cmd cmd : cmds) {
+				this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).addCommand(cmd);
 			}
 		}
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 设置邮件的附加指令
 	 */
-	public Email addItem(ItemStack stack) {
-		if(this.items==null) this.items = Lists.newArrayList();
-		if(stack!=null && !stack.isEmpty() && this.items.size()<16) {
-			this.items.add(stack);
-		}
-		return this;
-	}
-	/**
-	 * 设置邮件的附加物品
-	 */
-	public ItemStack setItem(int slot, ItemStack newItem) {
-		if(this.items!=null && slot >= 0 && slot < this.items.size()) {
-			return this.items.set(slot, newItem);
+	public AttachmentCommand.Cmd setCommand(int slot, AttachmentCommand.Cmd newCmd) {
+		if(this.hasAttachments(AttachmentCommand.ID)) {
+			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).setCommand(slot, newCmd);
 		}
 		return null;
 	}
-	
+
+	public Email setExperience(int levels, int points) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		this.getAttachmentXP().setLevels(levels).setPoints(points);
+		return this;
+	}
+	public Email addExperienceLevel(int levels) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		this.getAttachmentXP().addLevels(levels);
+		return this;
+	}
+	public Email addExperiencePoint(int points) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		this.getAttachmentXP().addPoints(points);
+		return this;
+	}
+	public Email subExperience(int levels, int points) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		AttachmentXP attachment = this.getAttachmentXP();
+		attachment
+				.setPoints(attachment.getPoints() - points)
+				.setLevels(attachment.getLevels() - levels);
+		return this;
+	}
+	public Email subExperienceLevel(int levels) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		AttachmentXP attachment = this.getAttachmentXP();
+		attachment.setLevels(attachment.getLevels() - levels);
+		return this;
+	}
+	public Email subExperiencePoint(int points) {
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		AttachmentXP attachment = this.getAttachmentXP();
+		attachment.setPoints(attachment.getPoints() - points);
+		return this;
+	}
+	public AttachmentXP getAttachmentXP(){
+		if(!this.hasAttachments(AttachmentXP.ID)) {
+			this.addAttachment(new AttachmentXP());
+		}
+		return this.getAttachment(AttachmentXP.ID);
+	}
+
 	/**
 	 * 添加新消息到邮件
 	 */
@@ -343,18 +596,26 @@ public class Email implements ISerializable {
 		}
 		return this;
 	}
-	
 	/**
 	 * 添加新消息到邮件
 	 */
 	public Email addMessage(IText text) {
 		if(this.messages ==null) this.messages =Lists.newArrayList();
-		
 		if(text!=null) this.messages.add(text);
-		
 		return this;
 	}
-	
+	public Email addMessages(Collection<IText> text) {
+		for (IText msg : text) {
+			this.addMessage(msg);
+		}
+		return this;
+	}
+	public Email addMessages(IText... text) {
+		for (IText msg : text) {
+			this.addMessage(msg);
+		}
+		return this;
+	}
 	/**
 	 * 设置邮件的附加消息
 	 */
@@ -364,20 +625,16 @@ public class Email implements ISerializable {
 		}
 		return this;
 	}
-	
 	/**
 	 * 设置邮件的附加消息
 	 */
 	public Email setMessage(int index, IText text) {
 		if(this.messages ==null || this.messages.isEmpty()) return this;
-		
 		if(index >= 0 && index < this.messages.size()) {
 			this.messages.set(index, text);
 		}
-		
 		return this;
 	}
-	
 	/**
 	 * 移除邮件的附加消息
 	 */
@@ -388,18 +645,31 @@ public class Email implements ISerializable {
 		}
 		return null;
 	}
-	
+
+	public void receive(PlayerEntity player) {
+		if (!this.isReceived() && this.attachments!=null) {
+			this.setReceive(true);
+			this.attachments.forEach((k,v) -> v.accept(player));
+		}
+	}
+
 	/**
 	 * @return 是否带有附加的声音(音效)
 	 */
 	public boolean hasSound() {
-		return this.sound!=null;
+		return (this.mc_sound !=null && this.mc_sound.getAudioFile()!=null) || (this.external_sound != null && !this.external_sound.getFile().isEmpty());
 	}
 	/**
 	 * @return 是否带有附加的物品
 	 */
 	public boolean hasItems() {
-		return this.items!=null && !this.items.isEmpty();
+		return this.hasAttachments(AttachmentItem.ID) && !this.getAttachment(AttachmentItem.ID).isEmpty();
+	}
+	public boolean hasCommands() {
+		return this.hasAttachments(AttachmentCommand.ID) && !this.getAttachment(AttachmentCommand.ID).isEmpty();
+	}
+	public boolean hasXPs() {
+		return this.hasAttachments(AttachmentXP.ID) && !this.getAttachment(AttachmentXP.ID).isEmpty();
 	}
 	/**
 	 * @return 是否带有附加的消息
@@ -407,21 +677,21 @@ public class Email implements ISerializable {
 	public boolean hasMessages() {
 		return this.messages !=null && !this.messages.isEmpty();
 	}
-	
+
 	/**
 	 * @return 新的邮件对象
 	 */
 	public Email copy() {
-		Email copy = new Email(this.getTitle().copy(), this.getSender().copy(), null, null, null);
+		Email copy = new Email(this.getTitle().copy(), this.getSender().copy());
 		if(this.hasSound()) {
-			copy.sound = this.getSound().copy();
-		}
-		if(this.hasItems()) {
-			List<ItemStack> items = Lists.newArrayList();
-			for(int i = 0; i < this.getItems().size(); i++) {
-				items.add(this.getItems().get(i).copy());
+			if (this.isExternalSound()) {
+				copy.external_sound = this.external_sound;
+			}else {
+				copy.mc_sound = this.getSound().copy();
 			}
-			copy.items = items;
+		}
+		if(this.attachments!=null) {
+			this.attachments.forEach((k,v)->copy.addAttachment(v.copy()));
 		}
 		if(this.hasMessages()){
 			List<IText> msgs = Lists.newArrayList();
@@ -430,25 +700,50 @@ public class Email implements ISerializable {
 			}
 			copy.messages = msgs;
 		}
+		if (this.hasExpirationTime()) {
+			copy.setExpirationTime(this.getExpirationTime());
+		}
+		copy.setRead(this.isRead());
+		copy.setAccept(this.isReceived());
+
 		return copy;
 	}
-	
+
 	@Override
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
-		
+
 		json.add("title", this.title.writeTo(JsonObject.class));
 		json.addProperty("time", this.create_time);
 		if(this.expiration_time!=null) {
 			json.addProperty("expiration", this.expiration_time.millis);
 		}
-		
+
 		json.add("sender", this.sender.writeTo(JsonObject.class));
-		if(read) json.addProperty("read", true);
-		if(accept) json.addProperty("accept", true);
-		if(this.hasSound()) json.add("sound", this.sound.write(new JsonObject()));
-		if(this.hasItems()) json.add("items", JsonToStackUtil.toJsonObject(this.items, false));
-		
+		if(this.isRead()) json.addProperty("read", true);
+		if(this.isReceived()) json.addProperty("receive", true);
+		if(this.hasSound()) {
+			if (this.isExternalSound()) {
+				JsonObject sound_obj = new JsonObject();
+				sound_obj.addProperty("file", this.getExternalSound().getFile());
+				sound_obj.addProperty("category", this.getExternalSound().getCategory().getName());
+				json.add("sound", sound_obj);
+				json.addProperty("external_sound", true);
+			}else if(this.mc_sound != null) {
+				json.add("sound", this.mc_sound.write(new JsonObject()));
+			}
+		}
+
+		if (this.attachments!=null && !this.attachments.isEmpty()) {
+			JsonArray attachments = new JsonArray();
+			this.attachments.forEach((k,v)->{
+				JsonObject object = v.writeTo(JsonObject.class);
+				object.addProperty("id", String.valueOf(k));
+				attachments.add(object);
+			});
+			json.add("attachments", attachments);
+		}
+
 		if(this.hasMessages()) {
 			JsonObject msgs = new JsonObject();
 			for (IText msg : this.messages) {
@@ -466,46 +761,79 @@ public class Email implements ISerializable {
 		}
 		return json;
 	}
-	
+
 	public static final SimpleDateFormat old_dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 	@Override
 	public void read(JsonObject json) {
 		if(json!=null && json.size()>0) {
-			if(json.get("title").isJsonObject()) {
+			if(json.has("title") && json.get("title").isJsonObject()) {
 				this.title = new Text(json.getAsJsonObject("title"));
-			}else if(json.get("title").isJsonPrimitive()) {
+			}else if(json.has("title") && json.get("title").isJsonPrimitive()) {
 				this.title = new Text(json.get("title").getAsString());
 			}
-			
-			if(json.get("sender").isJsonObject()) {
+
+			if(json.has("sender") && json.get("sender").isJsonObject()) {
 				this.sender = new Text(json.getAsJsonObject("sender"));
-			}else if(json.get("sender").isJsonPrimitive()) {
+			}else if(json.has("sender") && json.get("sender").isJsonPrimitive()) {
 				this.sender = new Text(json.get("sender").getAsString());
 			}
-			
-			JsonElement time = json.get("time");
-			if(time.isJsonPrimitive()) {
-				JsonPrimitive p = time.getAsJsonPrimitive();
-				if(p.isString()) {
-					try {
-						this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
-					}catch(Exception e) {
-						e.printStackTrace();
-						this.create_time = System.currentTimeMillis();
+
+			if(json.has("time")) {
+				JsonElement time = json.get("time");
+				if (time.isJsonPrimitive()) {
+					JsonPrimitive p = time.getAsJsonPrimitive();
+					if(p.isString()) {
+						try {
+							this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
+						}catch(Exception e) {
+							e.printStackTrace();
+							this.create_time = System.currentTimeMillis();
+						}
+					}else if(p.isNumber()) {
+						this.create_time = p.getAsLong();
 					}
-				}else if(p.isNumber()) {
-					this.create_time = p.getAsLong();
 				}
 			}
 			if(json.has("expiration")) {
 				this.expiration_time = new TimeMillis(json.get("expiration").getAsLong());
 				this.expiration_time_l = -404;
 			}
+
 			if(json.has("read")) this.read = json.get("read").getAsBoolean();
-			if(json.has("accept")) this.accept = json.get("accept").getAsBoolean();
-			if(json.has("sound")) this.sound = new Sound(json.getAsJsonObject("sound"));
-			if(json.has("items")) this.items = JsonToStackUtil.toStacks(json.get("items"));
-			
+
+			if(json.has("accept")) {
+				this.receive = json.get("accept").getAsBoolean();
+			}else if(json.has("receive")) {
+				this.receive = json.get("receive").getAsBoolean();
+			}
+
+			if(json.has("sound")) {
+				if (JsonUtils.get(json, "network_local_sound", false)
+				 || JsonUtils.get(json, "external_sound", false)) {
+					JsonObject network_local = json.getAsJsonObject("sound");
+					this
+							.setExternalSound(new AudioSystem.Audio(
+									network_local.get("file").getAsString(),
+									network_local.has("category") ?
+											EmailUtils.getSoundCategory(network_local.get("category").getAsString())
+											: SoundCategory.PLAYERS
+							));
+				}else {
+					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, json.getAsJsonObject("sound"));
+				}
+			}
+
+			if(json.has("items")) {
+				this.addItems(JsonToStackUtil.toStacks(json.get("items")));
+			}
+
+			if (json.has("attachments")) {
+				for (JsonElement element : json.getAsJsonArray("attachments")) {
+					JsonObject object = element.getAsJsonObject();
+					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getAsString()), object));
+				}
+			}
+
 			if(json.has("msgs")) {
 				this.messages = Lists.newArrayList();
 				JsonElement msgElement = json.get("msgs");
@@ -542,11 +870,11 @@ public class Email implements ISerializable {
 		}
 		return emptyTag;
 	}
-	
+
 	@Override
 	public CompoundNBT write(CompoundNBT nbt) {
 		if(nbt==null) nbt = new CompoundNBT();
-		
+
 		nbt.put("title", this.title.writeTo(CompoundNBT.class));
 		nbt.putLong("time", this.create_time);
 		if(this.expiration_time!=null) {
@@ -554,15 +882,29 @@ public class Email implements ISerializable {
 		}
 		nbt.put("sender", this.sender.writeTo(CompoundNBT.class));
 		if(this.isRead()) nbt.putBoolean("read", this.isRead());
-		if(this.isReceived()) nbt.putBoolean("accept", this.isReceived());
-		if(this.hasSound()) nbt.put("sound", this.sound.write(new CompoundNBT()));
-		if(this.hasItems()) {
-			CompoundNBT items = new CompoundNBT();
-			for(int i = 0; i < this.items.size(); i++) {
-				items.put(Integer.toString(i), this.items.get(i).serializeNBT());
+		if(this.isReceived()) nbt.putBoolean("receive", this.isReceived());
+		if(this.hasSound()) {
+			if (this.isExternalSound()) {
+				CompoundNBT sound_obj = new CompoundNBT();
+				sound_obj.putString("file", this.getExternalSound().getFile());
+				sound_obj.putString("category", this.getExternalSound().getCategory().getName());
+				nbt.put("sound", sound_obj);
+				nbt.putBoolean("external_sound", true);
+			}else if(this.mc_sound != null) {
+				nbt.put("sound", this.mc_sound.write(new CompoundNBT()));
 			}
-			nbt.put("items", items);
 		}
+
+		if (this.attachments!=null && !this.attachments.isEmpty()) {
+			ListNBT attachments = new ListNBT();
+			this.attachments.forEach((k,v)->{
+				CompoundNBT object = v.writeTo(CompoundNBT.class);
+				object.putString("id", String.valueOf(k));
+				attachments.add(object);
+			});
+			nbt.put("attachments", attachments);
+		}
+
 		if(this.hasMessages()) {
 			CompoundNBT msgs = new CompoundNBT();
 			for(int i = 0; i < this.messages.size(); i++) {
@@ -586,7 +928,7 @@ public class Email implements ISerializable {
 			}
 			nbt.put("msgs", msgs);
 		}
-		
+
 		return nbt;
 	}
 
@@ -601,15 +943,37 @@ public class Email implements ISerializable {
 			}
 			this.sender = new Text(nbt.getCompound("sender"));
 			if(nbt.contains("read")) this.read = nbt.getBoolean("read");
-			if(nbt.contains("accept")) this.accept = nbt.getBoolean("accept");
-			if(nbt.contains("sound")) this.sound = new Sound(nbt.getCompound("sound"));
-			if(nbt.contains("items")) {
-				this.items = Lists.newArrayList();
-				CompoundNBT items = nbt.getCompound("items");
-				for(String item : items.keySet()) {
-					this.items.add(ItemStack.read(items.getCompound(item)));
+			if(nbt.contains("receive")) this.receive = nbt.getBoolean("receive");
+			if(nbt.contains("sound")) {
+				if (nbt.contains("external_sound") && nbt.getBoolean("external_sound")) {
+					CompoundNBT network_local = nbt.getCompound("sound");
+					this
+							.setExternalSound(new AudioSystem.Audio(
+									network_local.getString("file"),
+									network_local.contains("category") ?
+											EmailUtils.getSoundCategory(network_local.getString("category"))
+											: SoundCategory.PLAYERS
+							));
+				}else {
+					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, nbt.getCompound("sound"));
 				}
 			}
+
+			if(nbt.contains("items")) {
+				CompoundNBT items = nbt.getCompound("items");
+				for(String item : items.keySet()) {
+					this.addItem(ItemStack.read(items.getCompound(item)));
+				}
+			}
+
+			if (nbt.contains("attachments")) {
+				ListNBT attachments = nbt.getList("attachments", 10);
+				for (int i = 0; i < attachments.size(); i++) {
+					CompoundNBT object = attachments.getCompound(i);
+					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getString()), object));
+				}
+			}
+
 			if(nbt.contains("msgs")) {
 				this.messages = Lists.newArrayList();
 				CompoundNBT msgs = nbt.getCompound("msgs");
@@ -619,14 +983,13 @@ public class Email implements ISerializable {
 					if(msg instanceof StringNBT) {
 						this.messages.add(new Text(msg.getString()));
 					}else if(msg instanceof CompoundNBT) {
-						CompoundNBT text = (CompoundNBT) msg;
-						ListNBT argsNBT = text.getList("args", 8);
+						ListNBT argsNBT = ((CompoundNBT)msg).getList("args", 8);
 
 						Object[] args = new Object[argsNBT.size()];
 						for(int i = 0; i < args.length; i++) {
 							args[i] = argsNBT.getString(i);
 						}
-						this.messages.add(new Text(text.getString("text"), args));
+						this.messages.add(new Text(((CompoundNBT)msg).getString("text"), args));
 					}else if(msg instanceof ByteNBT) {
 						this.messages.add(Text.empty);
 					}
@@ -634,7 +997,7 @@ public class Email implements ISerializable {
 			}
 		}
 	}
-	
+
 	@Override
 	public SQLValues write(SQLValues value) {
 		return value;
@@ -642,70 +1005,14 @@ public class Email implements ISerializable {
 
 	@Override
 	public void read(ResultSet result) throws SQLException {}
-	
+
 	@Override
 	public String toString() {
 		return this.writeTo(JsonObject.class).toString();
 	}
-	
+
 	@Override
 	public Email clone() {
 		return this.copy();
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (accept ? 1231 : 1237);
-		result = prime * result + (int) (create_time ^ (create_time >>> 32));
-		result = prime * result + ((items == null) ? 0 : items.hashCode());
-		result = prime * result + ((messages == null) ? 0 : messages.hashCode());
-		result = prime * result + (read ? 1231 : 1237);
-		result = prime * result + ((sender == null) ? 0 : sender.hashCode());
-		result = prime * result + ((sound == null) ? 0 : sound.hashCode());
-		result = prime * result + ((title == null) ? 0 : title.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if(this == obj)
-			return true;
-		if(obj == null)
-			return false;
-		if(getClass() != obj.getClass())
-			return false;
-		Email other = (Email) obj;
-		if(accept != other.accept)
-			return false;
-		if(create_time != other.create_time)
-			return false;
-		if(items == null) {
-			if(other.items != null)
-				return false;
-		}else if(!items.equals(other.items))
-			return false;
-		if(messages == null) {
-			if(other.messages != null)
-				return false;
-		}else if(!messages.equals(other.messages))
-			return false;
-		if(read != other.read)
-			return false;
-		if(sender == null) {
-			if(other.sender != null)
-				return false;
-		}else if(!sender.equals(other.sender))
-			return false;
-		if(sound == null) {
-			if(other.sound != null)
-				return false;
-		}else if(!sound.equals(other.sound))
-			return false;
-		if(title == null) {
-			return other.title == null;
-		}
-		return title.equals(other.title);
 	}
 }

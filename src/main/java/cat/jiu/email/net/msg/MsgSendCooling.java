@@ -1,11 +1,10 @@
 package cat.jiu.email.net.msg;
 
-import cat.jiu.core.api.BaseMessage;
-import cat.jiu.email.EmailMain;
+import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.inventory.container.Container;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.network.NetworkEvent;
 
@@ -27,10 +26,9 @@ public class MsgSendCooling extends BaseMessage {
 		buf.writeLong(this.millis);
 	}
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()){
-			Container con = Minecraft.getInstance().player.openContainer;
-			if(con instanceof ContainerEmailSend) {
-				((ContainerEmailSend)con).setCooling(this.millis);
+		if(SideProxy.isClient()){
+			if(Minecraft.getInstance().player.openContainer instanceof ContainerEmailSend) {
+				((ContainerEmailSend) Minecraft.getInstance().player.openContainer).setCooling(this.millis);
 			}
 		}
 		return true;

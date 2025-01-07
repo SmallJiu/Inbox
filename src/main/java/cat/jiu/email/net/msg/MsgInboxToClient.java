@@ -1,39 +1,26 @@
 package cat.jiu.email.net.msg;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
-import cat.jiu.core.api.BaseMessage;
-import cat.jiu.email.ui.gui.GuiEmailMain;
+import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
+import cat.jiu.email.element.Email;
+import cat.jiu.email.ui.gui.GuiInbox;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
-import cat.jiu.email.ui.container.ContainerEmailMain;
-import cat.jiu.email.util.EmailConfigs;
-import cat.jiu.email.util.SizeReport;
-import cat.jiu.email.util.EmailUtils;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.ClientPlayerEntity;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.inventory.container.Container;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.*;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-
 import net.minecraftforge.fml.network.NetworkEvent;
 
-public class MsgInboxToClient extends BaseMessage {
+public class MsgInboxToClient /* extends BaseMessage */ {
+	/*
 	protected Inbox inbox;
 	protected SizeReport report = SizeReport.SUCCESS;
 	public MsgInboxToClient() {}
@@ -44,38 +31,15 @@ public class MsgInboxToClient extends BaseMessage {
 	@Override
 	public void fromBytes(PacketBuffer buf) {
 		if(EmailConfigs.isInfiniteSize()) {
-			PacketBuffer pb = new PacketBuffer(buf);
-			int i = pb.readerIndex();
-	        byte b0 = pb.readByte();
-	        
-	        if(b0 != 0) {
-	        	pb.readerIndex(i);
-		        try {
-					CompoundNBT nbt = CompressedStreamTools.read(new ByteBufInputStream(pb), new NBTSizeTracker(Long.MAX_VALUE));
-					this.inbox = Inbox.get(nbt.getUniqueId("owner"), nbt.getCompound("inbox"));
-				}catch(IOException e) {
-					e.printStackTrace();
-				}
-	        }
+			CompoundNBT nbt = buf.readNbt(NbtAccounter.UNLIMITED);
+			this.inbox = Inbox.get(nbt.getUUID("owner"), nbt.getCompound("inbox"));
 		}else {
-			ByteBuf buf0 = buf.copy();
-			PacketBuffer pb = new PacketBuffer(buf0);
-			int i = pb.readerIndex();
-	        byte b0 = pb.readByte();
-	        
-	        if(b0 != 0) {
-	        	pb.readerIndex(i);
-		        try {
-					CompoundNBT inboxTag = CompressedStreamTools.read(new ByteBufInputStream(pb), new NBTSizeTracker(Long.MAX_VALUE));
-					if (inboxTag.contains("ToBig")) {
-						this.report = new SizeReport(inboxTag.getLong("id"), inboxTag.getInt("slot"), inboxTag.getInt("size"));
-					} else {
-						this.inbox = Inbox.get(inboxTag.getUniqueId("owner"), inboxTag.getCompound("inbox"));
-					}
-				}catch(IOException e) {
-					e.printStackTrace();
-				}
-	        }
+			CompoundNBT inboxTag = buf.readNbt(NbtAccounter.UNLIMITED);
+			if (inboxTag!=null && inboxTag.contains("ToBig")) {
+				this.report = new SizeReport(inboxTag.getLong("id"), inboxTag.getInt("slot"), inboxTag.getInt("size"));
+			} else {
+				this.inbox = Inbox.get(inboxTag.getUUID("owner"), inboxTag.getCompound("inbox"));
+			}
 		}
 	}
 	
@@ -84,29 +48,29 @@ public class MsgInboxToClient extends BaseMessage {
 		if(EmailConfigs.isInfiniteSize()) {
 			CompoundNBT nbt = new CompoundNBT();
 			
-			nbt.putUniqueId("owner", this.inbox.getOwnerAsUUID());
+			nbt.putUUID("owner", this.inbox.getOwnerAsUUID());
 			CompoundNBT inbox = this.inbox.writeTo(CompoundNBT.class);
 			inbox.remove("historySize");
 			inbox.remove("dev");
 			nbt.put("inbox", inbox);
 			
-			buf.writeCompoundTag(nbt);
+			buf.writeNbt(nbt);
 		}else {
 			SizeReport report = EmailUtils.checkInboxSize(this.inbox);
 			if(!SizeReport.SUCCESS.equals(report)) {
 				CompoundNBT nbt = new CompoundNBT();
 				
 				nbt.putBoolean("ToBig", true);
-				nbt.putLong("id", report.id);
-				nbt.putInt("slot", report.slot);
-				nbt.putLong("size", report.size);
+				nbt.putLong("id", report.id());
+				nbt.putInt("slot", report.slot());
+				nbt.putLong("size", report.size());
 				
-				buf.writeCompoundTag(nbt);
+				buf.writeNbt(nbt);
 				return;
 			}
 			
 			CompoundNBT nbt = new CompoundNBT();
-			nbt.putUniqueId("owner", this.inbox.getOwnerAsUUID());
+			nbt.putUUID("owner", this.inbox.getOwnerAsUUID());
 			
 			CompoundNBT inbox = this.inbox.writeTo(CompoundNBT.class);
 			inbox.remove("historySize");
@@ -114,44 +78,77 @@ public class MsgInboxToClient extends BaseMessage {
 			inbox.remove("blacklist");
 			nbt.put("inbox", inbox);
 			
-			buf.writeCompoundTag(nbt);
+			buf.writeNbt(nbt);
 		}
 	}
 
 	@Override
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
-			ClientPlayerEntity player = Minecraft.getInstance().player;
-			Container con = player.openContainer;
+		if(SideProxy.isClient()) {
+			LocalPlayer player = Minecraft.getInstance().player;
+			AbstractContainerMenu con = player.containerMenu;
 			if(con instanceof ContainerEmailMain) {
 				if(!SizeReport.SUCCESS.equals(this.report)) {
-					player.sendMessage(new StringTextComponent(TextFormatting.GRAY + "---------------------------------------------"), player.getUniqueID());
-					player.sendMessage(new StringTextComponent(I18n.format("info.email.error.to_big.0")), player.getUniqueID());
-					player.sendMessage(new StringTextComponent(I18n.format("info.email.error.to_big.1", this.report.id, this.report.slot, this.report.size)), player.getUniqueID());
-					player.closeScreenAndDropStack();
+					player.sendSystemMessage(Component.nullToEmpty(TextFormatting.GRAY + "---------------------------------------------"));
+					player.sendSystemMessage(new TranslationTextComponent("info.inbox.error.to_big.0"));
+					player.sendSystemMessage(new TranslationTextComponent("info.inbox.error.to_big.1", this.report.id(), this.report.slot(), this.report.size()));
+					player.closeContainer();
 				}else {
-					EmailMain.setUnread(this.inbox.getUnRead());
-					EmailMain.setAccept(this.inbox.getUnReceived());
-					((ContainerEmailMain) con).setInbox(this.inbox);
-					((ContainerEmailMain) con).setRefresh(false);
-					if(Minecraft.getInstance().currentScreen instanceof GuiEmailMain){
-						((GuiEmailMain)Minecraft.getInstance().currentScreen).goEmail(0);
+					if(Minecraft.getInstance().screen instanceof GuiEmailMain gui){
+						EmailMain.setUnread(this.inbox.getUnRead());
+						EmailMain.setAccept(this.inbox.getUnReceived());
+						gui.setInbox(this.inbox);
 					}
 				}
 			}
 		}
 		return true;
 	}
-	
-	public static class MsgOtherToClient extends BaseMessage {
+	 */
+
+	public static class SendEmail extends BaseMessage {
+		private long id;
+		private Email email;
+
+		public SendEmail() {}
+
+		public SendEmail(long id, Email email) {
+			this.id = id;
+			this.email = email;
+		}
+
+		@Override
+		public void toBytes(PacketBuffer buffer) {
+			buffer.writeLong(this.id);
+			buffer.writeCompoundTag(this.email.write(new CompoundNBT()));
+		}
+
+		@Override
+		public void fromBytes(PacketBuffer buf) {
+			this.id = buf.readLong();
+			this.email = new Email(buf.readCompoundTag());
+		}
+
+		@Override
+		public boolean handler(Supplier<NetworkEvent.Context> context) {
+			if(SideProxy.isClient()) {
+				if(Minecraft.getInstance().currentScreen instanceof GuiInbox){
+					((GuiInbox)Minecraft.getInstance().currentScreen).addEmail(this.id, this.email);
+				}
+			}
+			return true;
+		}
+	}
+
+	public static class SendOther extends BaseMessage {
 		private final Map<String, Object> customValue = Maps.newHashMap();
 		private final List<String> senderBlacklist = Lists.newArrayList();
-		public MsgOtherToClient() {}
+		public SendOther() {}
 		
-		public MsgOtherToClient(Inbox inbox) {
+		public SendOther(Inbox inbox) {
 			this(inbox.getCustomValue(), inbox.getSenderBlacklist());
 		}
-		public MsgOtherToClient(Map<String, Object> customValue, List<String> senderBlacklist) {
+		public SendOther(Map<String, Object> customValue, List<String> senderBlacklist) {
 			this.customValue.putAll(customValue);
 			this.senderBlacklist.addAll(senderBlacklist);
 		}
@@ -184,12 +181,12 @@ public class MsgInboxToClient extends BaseMessage {
 
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-			if(EmailMain.proxy.isClient()) {
-				Container con = Minecraft.getInstance().player.openContainer;
-				
-				if(con instanceof ContainerEmailMain && ((ContainerEmailMain) con).getInbox() != null) {
-					this.customValue.forEach((k,v) -> ((ContainerEmailMain) con).getInbox().addCustom(k, v));
-					this.senderBlacklist.forEach(e -> ((ContainerEmailMain) con).getInbox().addSenderBlacklist(e));
+			if(SideProxy.isClient()) {
+				Screen gui = Minecraft.getInstance().currentScreen;
+
+				if(gui instanceof GuiInbox && ((GuiInbox) gui).getInbox() != null) {
+					this.customValue.forEach((k,v) -> ((GuiInbox) gui).getInbox().addCustom(k, v));
+					this.senderBlacklist.forEach(e -> ((GuiInbox) gui).getInbox().addSenderBlacklist(e));
 				}
 			}
 			return true;

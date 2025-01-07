@@ -1,13 +1,12 @@
 package cat.jiu.core.util.timer;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import com.google.gson.JsonObject;
-
 import cat.jiu.core.api.ITimer;
 import cat.jiu.sql.SQLValues;
+import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundNBT;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * use {@linkplain System#currentTimeMillis()} to build timer<p>
@@ -52,7 +51,7 @@ public class MillisTimer implements ITimer {
 	
 	@Override
 	public boolean isDone() {
-		return this.isStarted() ? System.currentTimeMillis() >= this.currentMillis : false;
+		return this.isStarted() && System.currentTimeMillis() >= this.currentMillis;
 	}
 	
 	public long getLastMillis() {
@@ -146,10 +145,10 @@ public class MillisTimer implements ITimer {
 	}
 	
 	@Override
-	public void read(CompoundNBT nbt) {
-		this.millis = nbt.getLong("ms");
-		this.sysMillis = nbt.getLong("sysMillis");
-		this.currentMillis = nbt.getLong("current");
+	public void read(CompoundNBT data) {
+		this.millis = data.getLong("ms");
+		this.sysMillis = data.getLong("sysMillis");
+		this.currentMillis = data.getLong("current");
 	}
 	
 	@Override
@@ -162,10 +161,10 @@ public class MillisTimer implements ITimer {
 		return json;
 	}
 	@Override
-	public void read(JsonObject json) {
-		this.millis = json.get("ms").getAsLong();
-		this.sysMillis = json.get("sysMillis").getAsLong();
-		this.currentMillis = json.get("current").getAsLong();
+	public void read(JsonObject data) {
+		this.millis = data.get("ms").getAsLong();
+		this.sysMillis = data.get("sysMillis").getAsLong();
+		this.currentMillis = data.get("current").getAsLong();
 	}
 	
 	@Override
@@ -180,11 +179,11 @@ public class MillisTimer implements ITimer {
 		return value;
 	}
 	@Override
-	public void read(ResultSet result) throws SQLException {
-		if(result.next()) {
-			this.millis = result.getLong("ms");
-			this.sysMillis = result.getLong("sysMillis");
-			this.currentMillis = result.getLong("current");
+	public void read(ResultSet data) throws SQLException {
+		if(data.next()) {
+			this.millis = data.getLong("ms");
+			this.sysMillis = data.getLong("sysMillis");
+			this.currentMillis = data.getLong("current");
 		}
 	}
 	

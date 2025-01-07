@@ -1,92 +1,55 @@
 package cat.jiu.email.net;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseNetworkHandler;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.net.msg.refresh.*;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.network.NetworkDirection;
-import net.minecraftforge.fml.network.NetworkRegistry;
-import net.minecraftforge.fml.network.PacketDistributor;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
 
-public class EmailNetworkHandler {
-	private final SimpleChannel channel;
-	
-	private static int ID = 0;
-	private static int nextID() {
-		return ID++;
-	}
+public class EmailNetworkHandler extends BaseNetworkHandler {
 	
 	public EmailNetworkHandler() {
-		ID = 0; 
-		this.channel = NetworkRegistry.newSimpleChannel(
-				new ResourceLocation(EmailMain.MODID, "main_network"),
-				() -> EmailMain.VERSION,
-				(version) -> version.equals(EmailMain.VERSION),
-				(version) -> version.equals(EmailMain.VERSION)
-		);
+		super(new ResourceLocation(EmailMain.MODID, "main_network"), EmailMain.VERSION);
+		this.register(MsgOpenGui.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.Delete.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.AllRead.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDeleteEmail.AllReceive.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgOpenGui.class, NetworkDirection.PLAY_TO_SERVER);
+				.register(MsgReceiveEmail.Receive.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgReceiveEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgDeleteEmail.Delete.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgDeleteEmail.AllRead.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgDeleteEmail.AllReceive.class, NetworkDirection.PLAY_TO_SERVER);
+				.register(MsgUnaccepted.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgToast.class, NetworkDirection.PLAY_TO_CLIENT)
 
-		this.register(MsgReceiveEmail.Receive.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgReceiveEmail.All.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgUnreceived.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgInboxToClient.SendEmail.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgInboxToClient.SendOther.class, NetworkDirection.PLAY_TO_CLIENT)
 
-		this.register(MsgInboxToClient.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgInboxToClient.MsgOtherToClient.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgSend.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgSendRenderText.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT)
 
-		this.register(MsgSend.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgSendRenderText.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgBlacklist.Add.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgBlacklist.Remove.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgUnread.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgRefreshInbox.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshOther.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshBlacklist.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgRefreshBlacklist.Refresh.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDisplayInbox.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT);
+				.register(MsgScheduledEmail.Add.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgScheduledEmail.Remove.class, NetworkDirection.PLAY_TO_SERVER)
 
-		this.register(MsgBlacklist.Add.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgBlacklist.Remove.class, NetworkDirection.PLAY_TO_SERVER);
-
-		this.register(MsgRefreshInbox.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgRefreshOther.class, NetworkDirection.PLAY_TO_SERVER);
-		this.register(MsgRefreshBlacklist.class, NetworkDirection.PLAY_TO_CLIENT);
-		this.register(MsgRefreshBlacklist.Refresh.class, NetworkDirection.PLAY_TO_SERVER);
-	}
-
-	private <T extends BaseMessage> void register(Class<T> msgClass, NetworkDirection sendTo) {
-		this.channel.messageBuilder(msgClass, nextID(), sendTo)
-				.encoder(T::toBytes)
-				.decoder(buf ->{
-					try {
-						T instance = msgClass.newInstance();
-						instance.fromBytes(buf);
-						return instance;
-					} catch (Exception e) {
-						e.printStackTrace();
-						return null;
-					}
-				})
-				.consumer(T::handler)
-				.add();
-	}
-
-	/** server to client */
-	public void sendMessageToPlayer(BaseMessage msg, ServerPlayerEntity player) {
-		if(msg!=null && player!=null)
-			channel.send(PacketDistributor.PLAYER.with(()->player), msg);
-	}
-	
-	/** client to server */
-	public void sendMessageToServer(BaseMessage msg) {
-		if(msg!=null) channel.sendToServer(msg);
+				.register(MsgRefreshScheduledEmail.Refresh.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshScheduledEmail.Send.class, NetworkDirection.PLAY_TO_CLIENT)
+				.register(MsgRefreshScheduledEmail.RefreshMap.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgRefreshScheduledEmail.SendMap.class, NetworkDirection.PLAY_TO_CLIENT)
+		;
 	}
 }

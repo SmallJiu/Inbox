@@ -3,7 +3,8 @@ package cat.jiu.email.net.msg.refresh;
 import java.util.List;
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.gui.GuiBlacklist;
 import com.google.common.collect.Lists;
@@ -17,7 +18,6 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.network.PacketBuffer;
-
 import net.minecraftforge.fml.network.NetworkEvent;
 
 public class MsgRefreshBlacklist extends BaseMessage {
@@ -46,8 +46,8 @@ public class MsgRefreshBlacklist extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
-			Container con = Minecraft.getInstance().player.openContainer;
+		if(SideProxy.isClient()) {
+			Container con = Minecraft.getInstance().player.container;
 			if(con instanceof ContainerInboxBlacklist) {
 				((ContainerInboxBlacklist) con).setBlacklist(this.senderBlacklist);
 				if(Minecraft.getInstance().currentScreen instanceof GuiBlacklist){

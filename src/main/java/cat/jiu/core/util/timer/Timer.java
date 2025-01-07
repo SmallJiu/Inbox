@@ -1,11 +1,10 @@
 package cat.jiu.core.util.timer;
 
+import cat.jiu.core.api.ITimer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-
-import cat.jiu.core.api.ITimer;
 
 public class Timer implements ITimer {
 	protected long day;
@@ -309,7 +308,7 @@ public class Timer implements ITimer {
 		return result;
 	}
 	
-	static enum JsonType {
+	enum JsonType {
 		Object, Array, Primitive, Element;
 		static <T extends JsonElement> JsonType getType(Class<T> type) {
 			if(type == JsonObject.class) {

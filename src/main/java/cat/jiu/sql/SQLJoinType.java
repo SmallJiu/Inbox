@@ -4,7 +4,7 @@ public enum SQLJoinType {
 	INNER, LEFT, RIGHT, FULL;
 	
 	public final String sql;
-	private SQLJoinType() {
+	SQLJoinType() {
 		this.sql = name() + " JOIN";
 	}
 }

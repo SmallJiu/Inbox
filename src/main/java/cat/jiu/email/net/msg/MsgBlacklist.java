@@ -2,16 +2,14 @@ package cat.jiu.email.net.msg;
 
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 
 import cat.jiu.email.net.msg.refresh.MsgRefreshBlacklist;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.util.EmailUtils;
-import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
-
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.network.NetworkEvent;
 
@@ -24,14 +22,12 @@ public abstract class MsgBlacklist extends BaseMessage {
 	
 	@Override
 	public void fromBytes(PacketBuffer buf) {
-		this.name = buf.readCompoundTag().getString("name");
+		this.name = buf.readString();
 	}
 
 	@Override
 	public void toBytes(PacketBuffer buf) {
-		CompoundNBT nbt = new CompoundNBT();
-		nbt.putString("name", name);
-		new PacketBuffer(buf).writeCompoundTag(nbt);
+		buf.writeString(name);
 	}
 	
 	public static class Add extends MsgBlacklist {
@@ -43,13 +39,15 @@ public abstract class MsgBlacklist extends BaseMessage {
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 			if(ctx.get().getSender() != null) {
-				Inbox inbox = Inbox.get(ctx.get().getSender());
-				if(!inbox.isInSenderBlacklist(this.name)) {
-					inbox.addSenderBlacklist(this.name);
-					inbox.saveToDisk();
-					ctx.get().getSender().sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.email.black.add.success", name), ctx.get().getSender().getUniqueID());
-					GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST, ctx.get().getSender());
-				}
+				ctx.get().enqueueWork(()->{
+					Inbox inbox = Inbox.get(ctx.get().getSender());
+					if(!inbox.isInSenderBlacklist(this.name)) {
+						inbox.addSenderBlacklist(this.name);
+						inbox.saveToDisk();
+						ctx.get().getSender().sendStatusMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.inbox.black.add.success", name), false);
+						GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST, ctx.get().getSender());
+					}
+				});
 			}
 			return true;
 		}
@@ -64,11 +62,13 @@ public abstract class MsgBlacklist extends BaseMessage {
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 			if(ctx.get().getSender() != null) {
-				Inbox inbox = Inbox.get(ctx.get().getSender());
-				inbox.removeSenderBlacklist(this.name);
-				inbox.saveToDisk();
-				EmailMain.net.sendMessageToPlayer(new MsgRefreshBlacklist(inbox.getSenderBlacklist()), ctx.get().getSender());
-				ctx.get().getSender().sendMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.email.black.remove.success", this.name), ctx.get().getSender().getUniqueID());
+				ctx.get().enqueueWork(()->{
+					Inbox inbox = Inbox.get(ctx.get().getSender());
+					inbox.removeSenderBlacklist(this.name);
+					inbox.saveToDisk();
+					EmailMain.net.sendMessageToPlayer(new MsgRefreshBlacklist(inbox.getSenderBlacklist()), ctx.get().getSender());
+					ctx.get().getSender().sendStatusMessage(EmailUtils.createTextComponent(TextFormatting.GREEN, "info.inbox.black.remove.success", this.name), false);
+				});
 			}
 			return true;
 		}

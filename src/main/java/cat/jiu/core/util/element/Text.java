@@ -1,15 +1,16 @@
 package cat.jiu.core.util.element;
 
-import java.util.Arrays;
-
+import cat.jiu.core.api.element.IText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import cat.jiu.core.api.element.IText;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+
+import java.util.Arrays;
 
 public class Text implements IText {
 	public static final Object[] EMPTY_ARGS = new Object[0];
@@ -23,7 +24,14 @@ public class Text implements IText {
 	protected boolean vanillaWrap;
 
 	public Text(ITextComponent component){
-		this.setText(component.getString());
+		if (component instanceof TranslationTextComponent) {
+			this.setText(((TranslationTextComponent) component).getKey());
+			this.setParameters(((TranslationTextComponent) component).getFormatArgs());
+		}else if (component instanceof StringTextComponent) {
+			this.setText(((StringTextComponent) component).getText());
+		}else {
+			this.setText(component.getString());
+		}
 	}
 
 	public Text(String key, Object... args) {
@@ -81,7 +89,7 @@ public class Text implements IText {
 	
 	public JsonArray writeArgs(JsonArray args) {
 		if(args==null) args = new JsonArray();
-		if(this.args!=null&&this.args.length>0) {
+		if(this.args != null) {
 			for(Object o : this.args) {
 				args.add(String.valueOf(o));
 			}
@@ -121,10 +129,7 @@ public class Text implements IText {
 		if(!Arrays.equals(args, other.args))
 			return false;
 		if(key == null) {
-			if(other.key != null)
-				return false;
-		}else if(!key.equals(other.key))
-			return false;
-		return true;
+			return other.key == null;
+		}else return key.equals(other.key);
 	}
 }

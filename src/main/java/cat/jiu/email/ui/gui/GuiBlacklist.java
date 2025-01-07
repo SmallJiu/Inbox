@@ -6,6 +6,7 @@ import java.util.Arrays;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 
 import cat.jiu.email.EmailMain;
@@ -213,8 +214,16 @@ public class GuiBlacklist extends ContainerScreen<ContainerInboxBlacklist> {
 	}
 
 	@Override
-	public void onClose() {
-		super.onClose();
+	public void closeScreen() {
+		super.closeScreen();
 		MinecraftForge.EVENT_BUS.unregister(this);
+	}
+	@Override
+	public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+		if (pKeyCode == Minecraft.getInstance().gameSettings.keyBindInventory.getKey().getKeyCode()) {
+			this.closeScreen();
+			return true;
+		}
+		return super.keyPressed(pKeyCode, pScanCode, pModifiers);
 	}
 }

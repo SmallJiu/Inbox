@@ -1,7 +1,6 @@
 package cat.jiu.core.util.base;
 
 import cat.jiu.core.api.ICommand;
-import cat.jiu.email.EmailMain;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -12,7 +11,10 @@ import net.minecraft.command.Commands;
 import net.minecraft.command.ICommandSource;
 import net.minecraft.server.MinecraftServer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class BaseCommand {
@@ -114,7 +116,7 @@ public class BaseCommand {
 
         @Override
         public int execute(MinecraftServer server, ICommandSource sender, String[] args, CommandContext<CommandSource> ctx) throws CommandSyntaxException {
-            return 0;
+            return ICommand.SINGLE_SUCCESS;
         }
     }
 

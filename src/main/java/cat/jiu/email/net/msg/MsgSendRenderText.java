@@ -3,10 +3,10 @@ package cat.jiu.email.net.msg;
 import java.awt.Color;
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailUtils;
 
@@ -53,9 +53,10 @@ public class MsgSendRenderText extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
-			((ContainerEmailSend)Minecraft.getInstance().player.openContainer)
-				.setRenderText(this.text.format(), this.color, this.renderTicks);
+		if(SideProxy.isClient()) {
+			if(Minecraft.getInstance().player.openContainer instanceof ContainerEmailSend){
+				((ContainerEmailSend) Minecraft.getInstance().player.openContainer).setRenderText(this.text.format(), this.color, this.renderTicks);
+			}
 		}
 		return true;
 	}

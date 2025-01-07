@@ -2,33 +2,26 @@ package cat.jiu.email.command;
 
 import cat.jiu.core.util.base.BaseCommand;
 
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.util.EmailUtils;
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.command.ICommandSource;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 
-import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 class CommandEmailDelete extends BaseCommand.Base {
     public CommandEmailDelete() {
-        super("delete", 3);
+        super("delete", 4);
     }
 
     @Override
@@ -60,45 +53,13 @@ class CommandEmailDelete extends BaseCommand.Base {
             if(inbox.hasEmail(email)){
                 inbox.deleteEmail(email);
                 EmailUtils.saveInboxToDisk(inbox);
-                ctx.getSource().sendFeedback(new StringTextComponent(String.format(TextFormatting.GREEN + "已删除 %s 的邮箱中ID为 %s 的邮件.", player, email)), false);
+                ctx.getSource().sendFeedback(new TranslationTextComponent(String.format(TextFormatting.GREEN + "已删除 %s 的邮箱中ID为 %s 的邮件.", player, email)), false);
             }else {
-                ctx.getSource().sendFeedback(new StringTextComponent(String.format(TextFormatting.YELLOW + "在 %s 的邮箱中找不到ID为 %s 的邮件.", player, email)), false);
+                ctx.getSource().sendErrorMessage(new TranslationTextComponent(String.format(TextFormatting.YELLOW + "在 %s 的邮箱中找不到ID为 %s 的邮件.", player, email)));
             }
         }else {
-            ctx.getSource().sendFeedback(new StringTextComponent(TextFormatting.RED + String.format("无法找到 '%s' 的邮箱", id)), false);
+            ctx.getSource().sendErrorMessage(new TranslationTextComponent(TextFormatting.RED + String.format("无法找到 '%s' 的邮箱", id)));
         }
         return 1;
-    }
-
-    static class InboxArgumentType implements ArgumentType<String> {
-
-        @Override
-        public String parse(StringReader reader) throws CommandSyntaxException {
-            int start = reader.getCursor();
-
-            reader.setCursor(start);
-            return null;
-        }
-
-        @Override
-        public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-            return ArgumentType.super.listSuggestions(context, builder);
-        }
-    }
-
-    static class EmailArgumentType implements ArgumentType<Long> {
-
-        @Override
-        public Long parse(StringReader reader) throws CommandSyntaxException {
-            int start = reader.getCursor();
-
-            reader.setCursor(start);
-            return null;
-        }
-
-        @Override
-        public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-            return ArgumentType.super.listSuggestions(context, builder);
-        }
     }
 }

@@ -1,6 +1,7 @@
 package cat.jiu.email.net.msg.refresh;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.net.msg.MsgInboxToClient;
@@ -13,13 +14,10 @@ import java.util.function.Supplier;
 public class MsgRefreshInbox extends BaseMessage {
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(ctx.get().getSender() != null) {
-			Inbox inbox = Inbox.get(ctx.get().getSender());
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient(inbox), ctx.get().getSender());
-			EmailMain.execute(()->
-				EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.MsgOtherToClient(inbox), ctx.get().getSender())
-			, 50);
+			EmailAPI.sendInboxToClient(Inbox.get(ctx.get().getSender()), ctx.get().getSender());
+			return true;
 		}
-		return true;
+		return false;
 	}
 
 	@Override

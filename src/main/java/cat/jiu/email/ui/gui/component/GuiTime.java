@@ -4,14 +4,18 @@ import java.awt.Color;
 import java.util.List;
 import java.util.function.Predicate;
 
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.util.EmailUtils;
 
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.IGuiEventListener;
+import net.minecraft.client.gui.IRenderable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
@@ -21,90 +25,96 @@ import org.lwjgl.glfw.GLFW;
 import javax.annotation.Nonnull;
 
 @OnlyIn(Dist.CLIENT)
-public class GuiTime extends Screen {
+public class GuiTime implements IGuiEventListener, IRenderable {
 	protected final Screen parent;
 	private boolean isEnable = false;
-	protected final FontRenderer fontRenderer;
+	protected final FontRenderer font;
 	private final boolean isHorizontal;
 	private final List<TextFieldWidget> fields = Lists.newArrayList();
 	
 	public GuiTime(Screen parent, boolean isHorizontal) {
-		super(ITextComponent.getTextComponentOrEmpty(null));
-		this.fontRenderer = Minecraft.getInstance().fontRenderer;
+		this.font = Minecraft.getInstance().fontRenderer;
 		this.parent = parent;
 		this.isHorizontal = isHorizontal;
 		
 		Predicate<Character> charFilter = typedChar ->
 			"0123456789".contains(String.valueOf(typedChar));
 		
-		int width = this.fontRenderer.getStringWidth("8") * 3 + 7;
+		int width = this.font.getStringWidth("8") * 3 + 7;
 		for (int i = 0; i < 6; i++) {
-			GuiFilterTextField field = new GuiFilterTextField("0", this.fontRenderer, 0, 0, width, this.fontRenderer.FONT_HEIGHT + 1).setTypedCharFilter(charFilter);
+			GuiFilterTextField field = new GuiFilterTextField("0", this.font, 0, 0, width, this.font.FONT_HEIGHT + 1).setTypedCharFilter(charFilter);
 			field.setEnableBackgroundDrawing(false);
 			field.setMaxStringLength(4);
-			this.fields.add(this.addListener(field));
+			this.fields.add(field);
 		}
+	}
+	public GuiTime setTextFieldWidth(int width) {
+		for (TextFieldWidget field : this.fields) {
+			field.setWidth(width);
+		}
+		return this;
 	}
 
 	@Override
-	public void render(MatrixStack matrix, int x, int y, float p_230430_4_) {
+	public void render(MatrixStack stack, int x, int y, float p_230430_4_) {
 		if(!this.isEnable) return;
 		final String[] times = {
-				I18n.format("email.config.time.day"),
-				I18n.format("email.config.time.hour"),
-				I18n.format("email.config.time.minute"),
-				I18n.format("email.config.time.second"),
-				I18n.format("email.config.time.tick"),
-				I18n.format("email.config.time.millis")
+				I18n.format("inbox.config.time.day"),
+				I18n.format("inbox.config.time.hour"),
+				I18n.format("inbox.config.time.minute"),
+				I18n.format("inbox.config.time.second"),
+				I18n.format("inbox.config.time.tick"),
+				I18n.format("inbox.config.time.millis")
 		};
 
 		int width = 0;
 		for (String time : times) {
-			width = Math.max(width, this.fontRenderer.getStringWidth(time));
+			width = Math.max(width, this.font.getStringWidth(time));
 		}
 		int weightWidth = this.fields.get(0).getWidth(),
 			weightHeight = this.fields.get(0).getHeight();
 
 		if(this.isHorizontal) {
-			fill(matrix, x - 2, y - 3, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
-			fill(matrix, x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
-			fill(matrix, x - 2, y - 4, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3, Color.BLACK.getRGB());
-			
-			this.hLine(matrix, x - 2, x + weightWidth - 3 + width + 5, y - 2, 1347420415);
-			this.hLine(matrix, x - 2, x + weightWidth - 3 + width + 5, y + weightHeight + 3 - 3, 1347420415);
-			
-			this.vLine(matrix, x-2, y - 2, y + weightHeight + 3 - 3, 1347420415);
-			this.vLine(matrix, x + weightWidth - 3 + width + 5, y - 2, y + weightHeight + 3 - 3, 1347420415);
+			RenderUtils.fill(stack, x - 2, y - 3, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
+			RenderUtils.fill(stack, x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
+			RenderUtils.fill(stack, x - 2, y - 4, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3, Color.BLACK.getRGB());
+
+			RenderUtils.hLine(stack, x - 2, x + weightWidth - 3 + width + 5, y - 2, 1347420415);
+			RenderUtils.hLine(stack, x - 2, x + weightWidth - 3 + width + 5, y + weightHeight + 3 - 3, 1347420415);
+
+			RenderUtils.vLine(stack, x-2, y - 2, y + weightHeight + 3 - 3, 1347420415);
+			RenderUtils.vLine(stack, x + weightWidth - 3 + width + 5, y - 2, y + weightHeight + 3 - 3, 1347420415);
 			x+=2;
 
 			for (int i = 0; i < this.fields.size(); i++) {
 				TextFieldWidget field = this.fields.get(i);
-				field.x = x;
+				field.setX(x);
 				field.y = y;
-				field.renderWidget(matrix, x, y, p_230430_4_);
+				field.renderWidget(stack, x, y, p_230430_4_);
 				x += field.getWidth();
 
-				this.fontRenderer.drawStringWithShadow(matrix, times[i]+",", x, y, Color.GREEN.getRGB());
-				x += this.fontRenderer.getStringWidth(times[i]) + 5;
+				RenderUtils.drawString(stack, times[i]+",", x, y, Color.GREEN.getRGB(), true);
+				x += this.font.getStringWidth(times[i]) + 5;
 			}
 		}else {
-			fill(matrix, x - 2, y - 3, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * 6 - 1, Color.BLACK.getRGB());
-			fill(matrix, x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + (weightHeight + 3) * 6 - 1, Color.BLACK.getRGB());
-			fill(matrix, x - 2, y - 4, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * 6, Color.BLACK.getRGB());
-			
-			this.hLine(matrix, x - 2, x + weightWidth - 3 + width + 5, y - 2, 1347420415);
-			this.hLine(matrix, x - 2, x + weightWidth - 3 + width + 5, y + (weightHeight + 3) * 6 - 3, 1347420415);
-			
-			this.vLine(matrix, x - 3, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
-			this.vLine(matrix, x + weightWidth + 3 + width, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
+			RenderUtils.square(stack, x-2, y-3, width + weightWidth + 5, (weightHeight+3) *times.length, Color.BLACK.getRGB(), 1347420415);
+//			RenderUtils.fill(stack, x - 2, y - 1, weightWidth - 3 + width + 2 + 5, (weightHeight + 3) * 6 - 1);
+//			RenderUtils.fill(stack, x - 4, y - 3, weightWidth - 3 + width + 3 + 5, (weightHeight + 3) * 6 - 1, Color.BLACK.getRGB());
+//			RenderUtils.fill(stack, x - 2, y - 4, weightWidth - 3 + width + 2 + 5, (weightHeight + 3) * 6, Color.BLACK.getRGB());
+
+//			RenderUtils.hLine(stack, x - 2, x + weightWidth - 3 + width + 5, y - 2);
+//			RenderUtils.hLine(stack, x - 2, x + weightWidth - 3 + width + 5, (weightHeight + 3) * 6 - 3, 1347420415);
+
+//			RenderUtils.vLine(stack, x - 3, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
+//			RenderUtils.vLine(stack, x + weightWidth + 3 + width, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
 			x++;
 
 			for (int i = 0; i < this.fields.size(); i++) {
 				TextFieldWidget field = this.fields.get(i);
-				field.x = x;
+				field.setX(x);
 				field.y = y;
-				field.renderWidget(matrix, x, y, p_230430_4_);
-				this.fontRenderer.drawStringWithShadow(matrix, times[i], x + weightWidth, y, Color.GREEN.getRGB());
+				field.renderWidget(stack, x, y, p_230430_4_);
+				RenderUtils.drawString(stack, times[i], x + weightWidth, y, Color.GREEN.getRGB(), true);
 				y += field.getHeight() + 3;
 			}
 		}
@@ -115,11 +125,13 @@ public class GuiTime extends Screen {
 		if(this.isEnable){
 			for (TextFieldWidget field : this.fields) {
 				if(field.mouseClicked(mouseX, mouseY, mouseButton)){
+					field.setFocused2(true);
 					return true;
 				}
+				field.setFocused2(false);
 			}
 		}
-		return super.mouseClicked(mouseX, mouseY, mouseButton);
+		return false;
 	}
 
 	@Override
@@ -131,7 +143,7 @@ public class GuiTime extends Screen {
 				}
 			}
 		}
-		return super.charTyped(typedChar, keyCode);
+		return false;
 	}
 
 	@Override
@@ -143,7 +155,7 @@ public class GuiTime extends Screen {
 				}
 			}
 		}
-		return super.keyPressed(keyCode, scanCode, modifiers);
+		return false;
 	}
 
 	public boolean isEnable() {
@@ -202,16 +214,5 @@ public class GuiTime extends Screen {
 	
 	public long getTimeOfTicks() {
 		return this.getTimeOfMillis() / 50;
-	}
-
-	@Override
-	public void closeScreen() {
-		this.parent.closeScreen();
-	}
-
-	@Nonnull
-	@Override
-	public Minecraft getMinecraft() {
-		return this.parent.getMinecraft();
 	}
 }

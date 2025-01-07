@@ -18,10 +18,8 @@ public class SQLPreparedStatement {
 	 * @throws SQLException
 	 */
 	public int insert(String table, SQLValues values) throws SQLException {
-		return this.db.getPreparedStatement(new StringBuilder()
-				.append("insert into ")
-				.append(values.toTable(table))
-				.toString()).executeUpdate();
+		return this.db.getPreparedStatement("insert into " +
+				values.toTable(table)).executeUpdate();
 	}
 
 	/**

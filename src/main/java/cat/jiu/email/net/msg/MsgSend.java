@@ -11,12 +11,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import cat.jiu.core.api.BaseMessage;
+import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.server.management.PlayerList;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.fml.network.NetworkEvent;
 import org.apache.logging.log4j.Level;
@@ -31,11 +35,8 @@ import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.SizeReport;
 import cat.jiu.email.util.EmailUtils;
 
-import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.management.PlayerList;
-import net.minecraft.util.text.TextFormatting;
 
 import net.minecraftforge.common.MinecraftForge;
 
@@ -76,16 +77,16 @@ public class MsgSend extends BaseMessage {
 	@Override
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		ctx.get().enqueueWork(()->{
-			EmailUtils.initNameAndUUID(EmailMain.server);
+			EmailUtils.initNameAndUUID(SideProxy.server);
 			ServerPlayerEntity sender = ctx.get().getSender();
 
 			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigs.Send.Enable_Send_To_Self.get()) {
-				this.sendMessage(sender, Level.ERROR, "info.email.error.send_self");
+				this.sendMessage(sender, Level.ERROR, "info.inbox.error.send_self");
 				return;
 			}
 
 			if(!EmailUtils.hasName(this.addressed) && !("@a".equals(this.addressed) || "@p".equals(this.addressed))) {
-				this.sendMessage(sender, Level.ERROR, "info.email.error.not_found_player", this.addressed);
+				this.sendMessage(sender, Level.ERROR, "info.inbox.error.not_found_player", this.addressed);
 				return;
 			}
 
@@ -96,7 +97,9 @@ public class MsgSend extends BaseMessage {
 							long time = System.currentTimeMillis();
 							int sended = 0;
 							if(this.group.isPlayerSend()) {
-								((ContainerEmailSend) sender.openContainer).setLock(true);
+								if(sender.openContainer instanceof ContainerEmailSend) {
+									((ContainerEmailSend)sender.openContainer).setLock(true);
+								}
 							}
 
 							if("@a".equals(this.addressed)) {
@@ -112,12 +115,14 @@ public class MsgSend extends BaseMessage {
 							}
 
 							if(this.group.isPlayerSend()) {
-								((ContainerEmailSend) sender.openContainer).setLock(false);
+								if(sender.openContainer instanceof ContainerEmailSend) {
+									((ContainerEmailSend) sender.openContainer).setLock(false);
+								}
 							}
 
-							this.sendMessage(sender, Level.INFO, "info.email.send.abs", sended, System.currentTimeMillis() - time);
+							this.sendMessage(sender, Level.INFO, "info.inbox.send.abs", sended, System.currentTimeMillis() - time);
 						}else {
-							this.sendMessage(sender, Level.ERROR, "info.email.send.not_op.abs", this.addressed);
+							this.sendMessage(sender, Level.ERROR, "info.inbox.send.not_op.abs", this.addressed);
 						}
 					}).start();
 				}
@@ -125,12 +130,13 @@ public class MsgSend extends BaseMessage {
 				this.sendEmail(sender, this.addressed, true);
 			}
 		});
+
 		return true;
 	}
 	
 	private void sendEmail(ServerPlayerEntity sender, String addresses, boolean lock) {
 		if(this.email.getExpirationTime()!=null && this.email.getExpirationTime().millis>0 && !EmailUtils.isOP(sender)) {
-			this.sendMessage(sender, Level.ERROR, "info.email.send.not_op.expiration");
+			this.sendMessage(sender, Level.ERROR, "info.inbox.send.not_op.expiration");
 			return;
 		}
 		Inbox inbox = Inbox.get(addresses);
@@ -140,7 +146,9 @@ public class MsgSend extends BaseMessage {
 			container = (ContainerEmailSend) sender.openContainer;
 			if(lock) container.setLock(true);
 			stacks = container.toItemList(false);
-			this.email.addItems(stacks);
+			if (container.isEmpty()) {
+				this.email.addItems(stacks);
+			}
 		}
 		
 		if(!EmailConfigs.isInfiniteSize()
@@ -154,7 +162,7 @@ public class MsgSend extends BaseMessage {
 		if(this.group.isPlayerSend() && Cooling.isCooling(sender.getName().getString()) || Cooling.isCooling(this.email.getSender().getText())){
 			container.putStack(this.email.getItems());
 			if(lock) container.setLock(false);
-			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail.cooling")), sender);
+			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.cooling")), sender);
 			return;
 		}
 		
@@ -178,11 +186,13 @@ public class MsgSend extends BaseMessage {
 		if(!SizeReport.SUCCESS.equals(report)) {
 			if(msgSender!=null) {
 				if(this.group.isPlayerSend()) {
-					((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
-					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.email.error.send.to_big", report.slot, report.size)), msgSender);
+					if(msgSender.openContainer instanceof ContainerEmailSend) {
+						((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
+						if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+					}
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.error.send.to_big", report.slot, report.size)), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.error.send.to_big", report.slot, report.size);
+					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.inbox.error.send.to_big", report.slot, report.size);
 				}
 			}else {
 				EmailMain.log.warn("Email item is to big, please remove some item or nbt. Slot: {}, Size: {} / 2097152 Bytes", report.slot, report.size);
@@ -194,11 +204,13 @@ public class MsgSend extends BaseMessage {
 		if(size >= 2097152L) {
 			if(msgSender!=null) {
 				if(this.group.isPlayerSend()) {
-					((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
-					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.email.error.send.to_big.email", size)), msgSender);
+					if(msgSender.openContainer instanceof ContainerEmailSend) {
+						((ContainerEmailSend) msgSender.openContainer).putStack(stacks);
+						if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+					}
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.error.send.to_big.email", size)), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.error.send.to_big.email", size);
+					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.inbox.error.send.to_big.email", size);
 				}
 			}else {
 				EmailMain.log.warn("Send email to big, Please reduce the e-mail size. Size: {} / 2097152 Bytes", size);
@@ -218,27 +230,31 @@ public class MsgSend extends BaseMessage {
 		if(success) {
 			if(!this.group.isSystemSend() && msgSender!=null) {
 				if(this.group.isPlayerSend()) {
-					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+					if(msgSender.openContainer instanceof ContainerEmailSend) {
+						if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+					}
 					if(EmailConfigs.Send.Enable_Send_Cooling.get()) {
 						Cooling.cooling(msgSender.getName().getString());
 					}
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.email.send.success", addresser)), msgSender);
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.inbox.send.success", addresser)), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, TextFormatting.GREEN, "info.email.send.success", addresser);
+					EmailUtils.sendMessage(msgSender, TextFormatting.GREEN, "info.inbox.send.success", addresser);
 				}
 				PlayerEntity player = getOnlinePlayer(addresser, msgSender.getServer());
 				if(player != null) {
-					EmailUtils.sendMessage(player, "info.email.from", this.email.getSender());
+					EmailUtils.sendMessage(player, "info.inbox.from", this.email.getSender());
 				}
 			}
 			sendLog(this.email.getSender().getText(), addresser, EmailUtils.getUUID(addresser));
 		}else {
 			if(!this.group.isSystemSend() && msgSender!=null) {
 				if(this.group.isPlayerSend()) {
-					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail")), msgSender);
+					if(msgSender.openContainer instanceof ContainerEmailSend) {
+						if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+					}
+					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail")), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.send.fail");
+					EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.inbox.send.fail");
 				}
 			}else {
 				EmailMain.log.info("Send e-mail fail, check log find the reason.");
@@ -249,10 +265,12 @@ public class MsgSend extends BaseMessage {
 	private void sendIsBlackMessage(ServerPlayerEntity msgSender, boolean lock) {
 		if(msgSender!=null) {
 			if(this.group.isPlayerSend()) {
-				if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
-				EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.email.send.fail.blacklist")), msgSender);
+				if(msgSender.openContainer instanceof ContainerEmailSend) {
+					if(lock) ((ContainerEmailSend) msgSender.openContainer).setLock(false);
+				}
+				EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.blacklist")), msgSender);
 			}else {
-				EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.email.send.fail.blacklist");
+				EmailUtils.sendMessage(msgSender, TextFormatting.RED, "info.inbox.send.fail.blacklist");
 			}
 		}else {
 			EmailMain.log.info("Send email fail, you have been block by the Addressee!");

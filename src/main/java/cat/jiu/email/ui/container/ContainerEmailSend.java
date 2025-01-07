@@ -12,17 +12,14 @@ import cat.jiu.email.element.Cooling;
 import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-
-import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.items.ItemStackHandler;
@@ -31,7 +28,7 @@ import net.minecraftforge.items.SlotItemHandler;
 public class ContainerEmailSend extends Container {
 	public final PlayerEntity player;
 	private final ItemStackHandler handler = new ItemStackHandler(16);
-	
+
 	public ContainerEmailSend(int id, PlayerInventory inventory) {
 		super(GuiHandler.send_TYPE.get(), id);
 		this.player = inventory.player;
@@ -47,7 +44,7 @@ public class ContainerEmailSend extends Container {
 		}
 		MinecraftForge.EVENT_BUS.register(this);
 	}
-	
+
 	protected void addHandlerSlot(ItemStackHandler handler, int x, int y, int slotWidth, int slotHeight) {
 		int slotIndex = 0;
 		for(int slotY = 0; slotY < slotHeight; slotY++) {
@@ -55,10 +52,10 @@ public class ContainerEmailSend extends Container {
 				if(slotIndex >= handler.getSlots()) return;
 				this.addSlot(new SlotItemHandler(handler, slotIndex, x + 18 * slotX, y + (18 * slotY)));
 				slotIndex += 1;
-			}	
+			}
 		}
 	}
-	
+
 	protected void addPlayerInventorySlot(int x, int y) {
 		int slotIndex = 0;
 		for(int slotX = 0; slotX < 9; slotX++) {
@@ -72,7 +69,7 @@ public class ContainerEmailSend extends Container {
 			}
 		}
 	}
-	
+
 	@SubscribeEvent
 	public void cooling(SendEmailCoolingEvent event) {
 		if(this.player.getName().getString().equals(event.name)) {
@@ -82,18 +79,18 @@ public class ContainerEmailSend extends Container {
 			cooling = event.millis;
 		}
 	}
-	
+
 	private static long cooling = 0;
 	public boolean isCooling() {
 		return cooling > System.currentTimeMillis();
 	}
-	
+
 	public void setCooling(long millis) {
 		cooling = millis;
 	}
-	
+
 	public long getCoolingMillis() {return cooling;}
-	
+
 	boolean isLock = false;
 	public boolean isLock() {return isLock;}
 	public void setLock(boolean isSending) {
@@ -148,18 +145,18 @@ public class ContainerEmailSend extends Container {
 		if(!isMerged) {
 			return ItemStack.EMPTY;
 		}
-		
+
 		return oldStack;
 	}
  */
-	
+
 	public boolean isEmpty() {
 		for(int i = 0; i < this.handler.getSlots(); i++) {
 			if(!this.handler.getStackInSlot(i).isEmpty()) return false;
 		}
 		return true;
 	}
-	
+
 	/**
 	 * will clear slots to create a JsonObject
 	 */
@@ -173,7 +170,7 @@ public class ContainerEmailSend extends Container {
 		}
 		return JsonToStackUtil.toJsonObject(stacks, false);
 	}
-	
+
 	public List<ItemStack> toItemList(boolean copy) {
 		List<ItemStack> stacks = Lists.newArrayList();
 		for(int i = 0; i < this.handler.getSlots(); i++) {
@@ -184,18 +181,18 @@ public class ContainerEmailSend extends Container {
 		}
 		return stacks;
 	}
-	
+
 	public void putStack(List<ItemStack> items) {
 		for(int i = 0; i < this.handler.getSlots(); i++) {
 			ItemStack stack = i >= items.size() ? ItemStack.EMPTY : items.get(i);
 			this.getSlot(i).putStack(stack);
 		}
 	}
-	
+
 	public long renderTicks = 0;
 	public String renderText;
 	public Color renderColor;
-	
+
 	public void setRenderText(String text) {
 		this.setRenderText(text, Color.RED);
 	}

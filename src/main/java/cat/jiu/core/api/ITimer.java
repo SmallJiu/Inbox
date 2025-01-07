@@ -1,17 +1,17 @@
 package cat.jiu.core.api;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.StringJoiner;
-
-import com.google.gson.JsonObject;
-
 import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
 import cat.jiu.core.util.timer.MillisTimer;
 import cat.jiu.core.util.timer.Timer;
 import cat.jiu.sql.SQLValues;
-
+import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundNBT;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.StringJoiner;
 
 public interface ITimer extends ISerializable {
 	/**
@@ -138,7 +138,7 @@ public interface ITimer extends ISerializable {
 		return sj.toString();
 	}
 	
-	public static StringBuilder format(long num, long f) {
+	static StringBuilder format(long num, long f) {
 		StringBuilder s = new StringBuilder();
 		if(num < 10)
 			s.append("0");
@@ -147,6 +147,46 @@ public interface ITimer extends ISerializable {
 		}
 		s.append(num);
 		return s;
+	}
+
+	static String formatTimestamp(long time) {
+		return formatTimestamp(time, true, true, true, true, true);
+	}
+
+	static String formatTimestamp(long time, boolean formatDay, boolean formatHour, boolean formatMinute, boolean formatSecond, boolean formatTick) {
+		StringJoiner sj = new StringJoiner(":");
+		long t = 0;
+		long s = 0;
+		long m = 0;
+		long h = 0;
+		long d = 0;
+		if (formatTick) {
+			t = time / 50;
+			if (formatSecond){
+				s = t / 20;
+				t %= 20;
+				if (formatMinute) {
+					m = s / 60;
+					s %= 60;
+					if (formatHour) {
+						h = m / 60;
+						m %= 60;
+						if (formatDay) {
+							d = h / 24;
+							h %= 24;
+						}
+					}
+				}
+			}
+		}
+
+		if (formatDay && formatHour && formatMinute && formatSecond && formatTick) 		sj.add(format(d, 10));
+		if (formatHour && formatMinute && formatSecond && formatTick) 	sj.add(format(h, 10));
+		if (formatMinute && formatSecond && formatTick) 	sj.add(format(m, 10));
+		if (formatSecond && formatTick) 	sj.add(format(s, 10));
+		if (formatTick) 	sj.add(format(t, 10));
+
+		return sj.toString();
 	}
 
 	default long hash() {
@@ -172,7 +212,7 @@ public interface ITimer extends ISerializable {
 
 	default ITimer start() {
 		return this;
-	};
+	}
 
 	/**
 	 * like {@link net.minecraft.tileentity.TileEntity}
@@ -219,42 +259,42 @@ public interface ITimer extends ISerializable {
 	}
 
 	@Override
-	default void read(JsonObject json) {
-		this.format(json.get("ticks").getAsLong());
-		this.setAllTicks(json.get("allTicks").getAsLong());
+	default void read(JsonObject data) {
+		this.format(JsonUtils.get(data, "ticks", 0));
+		this.setAllTicks(JsonUtils.get(data, "allTicks", 0));
 	}
 
 	@Override
-	default void read(CompoundNBT nbt) {
-		this.format(nbt.getLong("ticks"));
-		this.setAllTicks(nbt.getLong("allTicks"));
+	default void read(CompoundNBT data) {
+		this.format(NBTUtils.get(data, "ticks", 0));
+		this.setAllTicks(NBTUtils.get(data, "allTicks", 0));
 	}
 
 	@Override
-	default void read(ResultSet result) throws SQLException {
-		this.format(result.getLong("ticks"));
-		this.setAllTicks(result.getLong("allTicks"));
+	default void read(ResultSet data) throws SQLException {
+		this.format(data.getLong("ticks"));
+		this.setAllTicks(data.getLong("allTicks"));
 	}
 
-	public static ITimer from(CompoundNBT nbt) {
+	static ITimer from(CompoundNBT data) {
 		ITimer time = null;
-		if(nbt.contains("isSys") && nbt.getBoolean("isSys")) {
+		if(NBTUtils.get(data, "isSys", false)) {
 			time = new MillisTimer();
 		}else {
 			time = new Timer();
 		}
-		time.readFrom(nbt);
+		time.readFrom(data);
 		return time;
 	}
 
-	public static ITimer from(JsonObject obj) {
+	static ITimer from(JsonObject data) {
 		ITimer time = null;
-		if(obj.has("isSys") && obj.get("isSys").getAsBoolean()) {
+		if(JsonUtils.get(data, "isSys", false)) {
 			time = new MillisTimer();
 		}else {
 			time = new Timer();
 		}
-		time.readFrom(obj);
+		time.readFrom(data);
 		return time;
 	}
 }

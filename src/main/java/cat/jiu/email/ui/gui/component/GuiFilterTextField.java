@@ -5,7 +5,6 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Predicate;
 
@@ -13,8 +12,8 @@ import java.util.function.Predicate;
 public class GuiFilterTextField extends TextFieldWidget {
     private Predicate<Character> typedCharFilter;
     private final String defaultText;
-    public GuiFilterTextField(String defaultText, FontRenderer fontrenderer, int x, int y, int par5Width, int par6Height) {
-        super(fontrenderer, x, y, par5Width, par6Height, ITextComponent.getTextComponentOrEmpty(null));
+    public GuiFilterTextField(String defaultText, FontRenderer font, int x, int y, int par5Width, int par6Height) {
+        super(font, x, y, par5Width, par6Height, ITextComponent.getTextComponentOrEmpty(null));
         this.setText(defaultText);
         this.defaultText = defaultText;
     }

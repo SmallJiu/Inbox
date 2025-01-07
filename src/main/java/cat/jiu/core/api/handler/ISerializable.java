@@ -1,12 +1,11 @@
 package cat.jiu.core.api.handler;
 
+import cat.jiu.sql.SQLValues;
+import com.google.gson.JsonObject;
+import net.minecraft.nbt.CompoundNBT;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import com.google.gson.JsonObject;
-
-import cat.jiu.sql.SQLValues;
-import net.minecraft.nbt.CompoundNBT;
 
 public interface ISerializable extends IJsonSerializable, INBTSerializable, ISQLSerializable {
 	@SuppressWarnings("unchecked")

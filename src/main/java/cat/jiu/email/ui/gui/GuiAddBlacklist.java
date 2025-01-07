@@ -73,6 +73,14 @@ public class GuiAddBlacklist extends Screen {
 		int x = this.guiLeft + this.xSize / 2;
 		this.font.drawTextWithShadow(matrix, text, x - this.font.getStringPropertyWidth(text)/2F, this.name.y - this.font.FONT_HEIGHT - 10, Color.WHITE.getRGB());
 	}
+	@Override
+	public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+		if (pKeyCode == Minecraft.getInstance().gameSettings.keyBindInventory.getKey().getKeyCode()) {
+			this.closeScreen();
+			return true;
+		}
+		return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+	}
 
 	@Override
 	public boolean isPauseScreen() {
