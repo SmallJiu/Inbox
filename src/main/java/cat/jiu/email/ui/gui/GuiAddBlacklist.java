@@ -44,19 +44,19 @@ public class GuiAddBlacklist extends Screen {
         this.name.setTextColorUneditable(-1);
         this.name.setMaxLength(100);
 
-		GuiButton btn = new GuiButton(this.leftPos, this.topPos+this.font.lineHeight+6, this.name.getWidth() - 20,this.font.lineHeight+6, Component.translatable("info.email.black.add"), b-> {
+		GuiButton btn = new GuiButton(this.leftPos, this.topPos+this.font.lineHeight+6, this.name.getWidth() - 20,this.font.lineHeight+6, Component.translatable("info.inbox.black.add"), b-> {
 			String name = this.name.getValue();
 			if(!name.isEmpty() && (blacklist == null || !blacklist.contains(name))) {
 				if(!EmailAPI.isInBlockReceiveWhitelist(name)) {
 					EmailMain.net.sendMessageToServer(new MsgBlacklist.Add(name));
 				}else {
-					Minecraft.getInstance().player.sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.YELLOW, "info.email.black.add.fail.whitelist"));
+					Minecraft.getInstance().player.sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.YELLOW, "info.inbox.black.add.fail.whitelist"));
 				}
 			}
 		});
 		btn.setX(btn.getX() - (btn.getWidth()/2));
 		this.addRenderableWidget(btn);
-		this.addRenderableWidget(new GuiButton(btn.getX(), btn.getY() + btn.getHeight()+2, btn.getWidth(), btn.getHeight(), Component.translatable("info.email.black.back"), b-> GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST)));
+		this.addRenderableWidget(new GuiButton(btn.getX(), btn.getY() + btn.getHeight()+2, btn.getWidth(), btn.getHeight(), Component.translatable("info.inbox.black.back"), b-> GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST)));
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class GuiAddBlacklist extends Screen {
 		});
 		this.name.renderWidget(graphics, mouseX, mouseY, partialTicks);
 
-		Component text = Component.nullToEmpty(I18n.get("info.email.black.info"));
+		Component text = Component.nullToEmpty(I18n.get("info.inbox.black.info"));
 		int x = this.leftPos + this.xSize / 2;
 		graphics.drawString(this.font, text, x - this.font.width(text)/2, this.name.getY() - this.font.lineHeight - 10, Color.WHITE.getRGB());
 	}

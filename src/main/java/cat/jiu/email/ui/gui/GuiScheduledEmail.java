@@ -14,7 +14,6 @@ import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.client.GuiDynamicImage;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -45,7 +44,7 @@ public class GuiScheduledEmail extends Screen {
     private ScheduledEmailList emailList;
     private ScheduledEmailInfo emailInfo;
     private Button deleteEmailBtn, addBtn, refreshBtn;
-    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
+//    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
     private final List<ScheduledEmail> emails = new ArrayList<>();
 
     public GuiScheduledEmail() {
@@ -57,7 +56,7 @@ public class GuiScheduledEmail extends Screen {
     protected void init() {
         super.init();
         Font font = RenderUtils.getFontRenderer();
-        int listWidth = font.width("24/13/32 25:61") + 20;
+        int listWidth = EmailConfigs.Layout.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
 
         this.emailList = this.addRenderableWidget(new ScheduledEmailList(this, listWidth, this.height - 35, x, y));
@@ -86,12 +85,12 @@ public class GuiScheduledEmail extends Screen {
 
     protected void initButtons(int x, int y) {
         this.refreshBtn = this.addRenderableWidget(new GuiImageButton(this, this.emailList.getLeft(), this.emailList.getBottom()+1, RenderUtils.getFontRenderer().lineHeight*2+1, RenderUtils.getFontRenderer().lineHeight*2+1, ()->
-                Component.translatable(refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling")
+                Component.translatable(refreshCoolingTicks <= 0 ? "info.inbox.refresh" : "info.inbox.refresh.cooling")
                 , 256, 256, 111, 169, 55, 55, btn->
                 this.refresh(()->{
                             this.setCurrentScheduledEmail(-1);
                             this.refreshBtn.visible = false;
-                            this.loadImage.visible = true;
+//                            this.loadImage.visible = true;
                             this.emails.clear();
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
@@ -100,13 +99,13 @@ public class GuiScheduledEmail extends Screen {
                                 this.refreshBtn.visible = true
                 )
         )).setBackground(()-> GuiInbox.BackGround);
-        this.loadImage.visible = false;
-        this.loadImage.width = this.refreshBtn.getWidth();
-        this.loadImage.height = this.refreshBtn.getHeight();
+//        this.loadImage.visible = false;
+//        this.loadImage.width = this.refreshBtn.getWidth();
+//        this.loadImage.height = this.refreshBtn.getHeight();
 
-        int width = RenderUtils.getFontRenderer().width(Component.translatable("info.email.black.back"));
+        int width = RenderUtils.getFontRenderer().width(Component.translatable("info.inbox.black.back"));
         Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
-                        Component.translatable("info.email.black.back"),
+                        Component.translatable("info.inbox.black.back"),
                         b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)
                 )
                 .pos(this.emailInfo.getRight() - width - 6, this.emailInfo.getBottom() + 2)
@@ -114,9 +113,9 @@ public class GuiScheduledEmail extends Screen {
                 .build());
 
         if (EmailUtils.isOP(Minecraft.getInstance().player)) {
-            width = this.font.width(Component.translatable("info.email.black.add"));
+            width = this.font.width(Component.translatable("info.inbox.black.add"));
             this.addBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
-                            Component.translatable("info.email.black.add"),
+                            Component.translatable("info.inbox.black.add"),
                             b->
                                     Minecraft.getInstance().setScreen(new GuiGenerateScheduledEmail(()->GuiHandler.openGui(GuiHandler.EMAIL_Scheduled)))
                     )
@@ -124,9 +123,9 @@ public class GuiScheduledEmail extends Screen {
                     .size(width + 6, this.font.lineHeight + 6)
                     .build());
 
-            width = this.font.width(Component.translatable("info.email.delete"));
+            width = this.font.width(Component.translatable("info.inbox.delete"));
             btn = this.deleteEmailBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
-                            Component.translatable("info.email.delete"),
+                            Component.translatable("info.inbox.delete"),
                             b-> {
                                 if (this.getCurrentScheduledEmail()!=null && EmailUtils.isOP(Minecraft.getInstance().player)) {
                                     EmailMain.net.sendMessageToServer(new MsgScheduledEmail.Remove(this.getCurrentScheduledEmail().getId()));
@@ -176,7 +175,7 @@ public class GuiScheduledEmail extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
-        RenderUtils.drawString(graphics, I18n.get("info.email.scheduled"), this.emailList.getLeft(), 4, Color.WHITE.getRGB(), true);
+        RenderUtils.drawString(graphics, I18n.get("info.inbox.scheduled"), this.emailList.getLeft(), 4, Color.WHITE.getRGB(), true);
         graphics.fill(this.emailInfo.getLeft(), this.emailInfo.getTop() - this.currentEmailTitle.getHeight()*2 - 5, this.emailInfo.getRight(), this.emailInfo.getTop(), 0xC0101010);
         EmailUtils.hLineGradient(graphics, false, this.currentEmailLastTime.getX(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 4, this.emailInfo.getRight(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 3, Color.YELLOW.getRGB(), 0);
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
@@ -197,20 +196,20 @@ public class GuiScheduledEmail extends Screen {
                 tip.add(entry.email.getAsEmail().getTitle().format());
                 tip.add("");
 
-                tip.add(I18n.get("info.email.scheduled.interval_time", this.getInterval(entry.email)));
-                tip.add(I18n.get("info.email.scheduled.last_time", this.getLastTime(entry.email)));
+                tip.add(I18n.get("info.inbox.scheduled.interval_time", this.getInterval(entry.email)));
+                tip.add(I18n.get("info.inbox.scheduled.last_time", this.getLastTime(entry.email)));
 
                 if (entry.email.getAsEmail().hasExpirationTime()) {
                     tip.add("");
-                    tip.add(I18n.get("info.email.scheduled.expiration_time", ITimer.formatTimestamp(entry.email.getAsEmail().getExpirationTime().millis)));
+                    tip.add(I18n.get("info.inbox.scheduled.expiration_time", ITimer.formatTimestamp(entry.email.getAsEmail().getExpirationTime().millis)));
                 }
 
                 if (entry.email.getAddressee().isCustomPlayers()) {
                     tip.add("");
                     if (EmailUtils.isOP(Minecraft.getInstance().player)) {
-                        tip.add(I18n.get("info.email.scheduled.custom.players", entry.email.getCustomAddressee()));
+                        tip.add(I18n.get("info.inbox.scheduled.custom.players", entry.email.getCustomAddressee()));
                     }else {
-                        tip.add(I18n.get("info.email.scheduled.custom"));
+                        tip.add(I18n.get("info.inbox.scheduled.custom"));
                     }
                 }
 
@@ -225,7 +224,7 @@ public class GuiScheduledEmail extends Screen {
 
     protected void renderLabels(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {
         if (this.getCurrentScheduledEmail()!=null) {
-            this.currentEmailLastTime.setValue(I18n.get("info.email.scheduled.last_time", this.getCurrentLastTime()));
+            this.currentEmailLastTime.setValue(I18n.get("info.inbox.scheduled.last_time", this.getCurrentLastTime()));
             if (this.getCurrentScheduledEmail().canSend()) {
                 this.getCurrentScheduledEmail().refreshNextExecuteTime();
             }
@@ -310,7 +309,7 @@ public class GuiScheduledEmail extends Screen {
                 Component component = message.toTextComponent();
 
                 List<FormattedCharSequence> texts;
-                if (EmailConfigs.Main.Enable_Vanilla_Wrap_Text.get()) {
+                if (EmailConfigs.Layout.Enable_Vanilla_Wrap_Text.get()) {
                     texts = Language.getInstance().getVisualOrder(font.getSplitter().splitLines(component, textMaxLength, Style.EMPTY));
                 }else {
                     texts = EmailUtils.splitString(message.format(), textMaxLength).stream().map(e->FormattedCharSequence.backward(e, Style.EMPTY)).collect(Collectors.toList());

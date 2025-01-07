@@ -33,7 +33,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	protected int[] nameIndex;
 	
 	public GuiBlacklist(ContainerInboxBlacklist container, Inventory inventory) {
-		super(container, inventory, Component.translatable("info.email.black.info"));
+		super(container, inventory, Component.translatable("info.inbox.black.info"));
 		this.imageWidth = 160;
 		this.imageHeight = 176;
 		this.goName(0);
@@ -44,8 +44,8 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 		super.init();
 		EmailMain.net.sendMessageToServer(new MsgRefreshBlacklist.Refresh());
 
-		this.addRenderableWidget(new GuiButton(this.leftPos + 6, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.email.black.back"), btn-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)));
-		this.addRenderableWidget(new GuiButton(this.leftPos + 6 + 75, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.email.black.add"), btn-> getMinecraft().setScreen(new GuiAddBlacklist(this.getMenu().getBlacklist()))));
+		this.addRenderableWidget(new GuiButton(this.leftPos + 6, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.back"), btn-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)));
+		this.addRenderableWidget(new GuiButton(this.leftPos + 6 + 75, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.add"), btn-> getMinecraft().setScreen(new GuiAddBlacklist(this.getMenu().getBlacklist()))));
 		this.addRenderableWidget(new GuiButton(this.leftPos + this.width - 12 - 2, this.topPos + 3,
 				11, this.font.lineHeight + 2, Component.nullToEmpty("R"), btn-> {
 			if(this.getMenu().getBlacklist()!=null) {
@@ -78,7 +78,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 		super.renderBackground(graphics);
 		graphics.blit(bg, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
 
-		graphics.drawString(this.font, I18n.get("info.email.black.title"),
+		graphics.drawString(this.font, I18n.get("info.inbox.black.title"),
 				this.leftPos + 5,
 				this.topPos + 4, Color.WHITE.getRGB());
 		super.renderTooltip(graphics, mouseX, mouseY);
@@ -125,7 +125,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 					remove = true;
 				}
 				if(EmailUtils.isInRange(mouseX, mouseY, this.leftPos + x, this.topPos + y - 2, 150, 12)) {
-					graphics.renderTooltip(this.font, Component.nullToEmpty(remove ? I18n.get("info.email.black.remove") : this.getMenu().getBlacklist().get(this.currentShowName[i])), mouseX - this.leftPos, mouseY - this.topPos);
+					graphics.renderTooltip(this.font, Component.nullToEmpty(remove ? I18n.get("info.inbox.black.remove") : this.getMenu().getBlacklist().get(this.currentShowName[i])), mouseX - this.leftPos, mouseY - this.topPos);
 					break;
 				}
 				y += this.font.lineHeight + 3;

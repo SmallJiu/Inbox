@@ -1,6 +1,7 @@
 package cat.jiu.email.element;
 
 import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.EmailUtils;
@@ -80,7 +81,7 @@ public class ScheduledEmail implements ISerializable {
     }
 
     public File getAsFile() {
-        return new File(EmailAPI.getTypePath() + this.getFilePath());
+        return new File(EmailAPI.getGlobalDataPath()+ "emails/" + this.getFilePath());
     }
 
     public Email getAsEmail() {
@@ -141,19 +142,14 @@ public class ScheduledEmail implements ISerializable {
     }
 
     @Override
-    public void read(JsonObject json) {
-        this.setFilePath(json.get("path").getAsString());
-        this.setInterval(new TimeMillis(json.get("interval").getAsLong()));
-
-        if (json.has("id")) {
-            this.id = json.get("id").getAsLong();
-        }
-        if (json.has("note")) {
-            this.setNote(json.get("note").getAsString());
-        }
-        this.setAddressee(Addressee.get(json.has("addressee") ? json.get("addressee").getAsString() : "online"));
-        if (json.has("custom_addressee") && this.getAddressee().isCustomPlayers()) {
-            json.getAsJsonArray("custom_addressee").forEach(e->this.addCustomAddressee(e.getAsString()));
+    public void read(JsonObject data) {
+        this.setFilePath(JsonUtils.get(data, "path", ""));
+        this.setInterval(new TimeMillis(JsonUtils.get(data, "interval", 0)));
+        this.id = JsonUtils.get(data, "id", 0);
+        this.setNote(JsonUtils.get(data, "note", ""));
+        this.setAddressee(Addressee.get(data.has("addressee") ? data.get("addressee").getAsString() : "online"));
+        if (data.has("custom_addressee") && this.getAddressee().isCustomPlayers()) {
+            data.getAsJsonArray("custom_addressee").forEach(e->this.addCustomAddressee(e.getAsString()));
         }
     }
 
@@ -249,7 +245,7 @@ public class ScheduledEmail implements ISerializable {
     }
     public static void updataScheduledEmail() {
         try {
-            File file = new File(EmailAPI.getExportPath() + "scheduled_emails.json");
+            File file = new File(EmailAPI.getGlobalDataPath() + "scheduled_emails.json");
             if (file.exists()) {
                 JsonParser.parse(file).getAsJsonArray().forEach(e->{
                     try {
@@ -279,7 +275,7 @@ public class ScheduledEmail implements ISerializable {
         for (ScheduledEmail email : scheduled_emails) {
             array.add(email.write(new JsonObject()));
         }
-        JsonParser.toJsonFile(EmailAPI.getExportPath() + "scheduled_emails.json", array, false);
+        JsonParser.toJsonFile(EmailAPI.getGlobalDataPath() + "scheduled_emails.json", array, false);
     }
 
     @SubscribeEvent

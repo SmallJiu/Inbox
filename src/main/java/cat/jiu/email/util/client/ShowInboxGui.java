@@ -26,14 +26,14 @@ public class ShowInboxGui {
 	@SubscribeEvent
 	public static void onInitGui(ScreenEvent.Init.Post event) {
 		Screen gui = event.getScreen();
-		if(gui instanceof ChatScreen && EmailConfigs.Main.Enable_Chat_Button.get()) {
-			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, gui.width - EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.Y.get(), I18n.get("info.email.name")));
-			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_SEND, gui.width - EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Main.Position.Inbox_Buttons.Chat_Gui_Button.Y.get()+23, I18n.get("info.email.dispatch")));
+		if(gui instanceof ChatScreen && EmailConfigs.Layout.Enable_Chat_Button.get()) {
+			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, gui.width - EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button.Y.get(), I18n.get("info.inbox.name")));
+			event.addListener(new ChatButton(gui, GuiHandler.EMAIL_SEND, gui.width - EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button.X.get(), EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button.Y.get()+23, I18n.get("info.inbox.dispatch")));
 		}else if(gui instanceof AbstractContainerScreen<?> con) {
 			if(con instanceof InventoryScreen) {
-				event.addListener(new InventoryButton(gui, GuiHandler.EMAIL_MAIN,con.getGuiLeft()+EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.X.get(), con.getGuiTop() + EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.Y.get(), I18n.get("info.email.name")));
+				event.addListener(new InventoryButton(gui, GuiHandler.EMAIL_MAIN,con.getGuiLeft()+EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button.X.get(), con.getGuiTop() + EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button.Y.get(), I18n.get("info.inbox.name")));
 			}else if(con instanceof CreativeModeInventoryScreen) {
-				event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, con.getGuiLeft() + EmailConfigs.Main.Position.Inbox_Buttons.Creative_Tab_Button.X.get(), con.getGuiTop() + EmailConfigs.Main.Position.Inbox_Buttons.Creative_Tab_Button.Y.get(), I18n.get("info.email.name")));
+				event.addListener(new ChatButton(gui, GuiHandler.EMAIL_MAIN, con.getGuiLeft() + EmailConfigs.Layout.Position.Inbox_Buttons.Creative_Tab_Button.X.get(), con.getGuiTop() + EmailConfigs.Layout.Position.Inbox_Buttons.Creative_Tab_Button.Y.get(), I18n.get("info.inbox.name")));
 			}
 		}
 	}
@@ -88,7 +88,7 @@ public class ShowInboxGui {
 			super.renderWidget(graphics, mouseX, mouseY, partialTick);
 			if(this.visible) {
 				if(this.gui instanceof InventoryScreen inv) {
-					this.setX(inv.getGuiLeft() + EmailConfigs.Main.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
+					this.setX(inv.getGuiLeft() + EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
 				}
 
 				if(EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {

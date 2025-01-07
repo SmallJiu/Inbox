@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
@@ -286,8 +287,8 @@ public class Email implements ISerializable {
 	public Email setNetworkOrLocalSound(AudioSystem.Audio external_sound) {
 		return this.setExternalSound(external_sound);
 	}
-	public Email setExternalSound(AudioSystem.Audio network_local_sound) {
-		this.external_sound = network_local_sound;
+	public Email setExternalSound(AudioSystem.Audio external_sound) {
+		this.external_sound = external_sound;
 		this.setIsExternalSound(true);
 		return this;
 	}
@@ -441,31 +442,31 @@ public class Email implements ISerializable {
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 添加物品到邮件
 	 */
 	public Email addItems(List<ItemStack> stacks) {
 		if(!this.hasAttachments(AttachmentItem.ID)) {
 			this.addAttachment(new AttachmentItem());
 		}
-		if (stacks!=null){
+		if (stacks!=null && !stacks.isEmpty()){
 			this.<AttachmentItem>getAttachment(AttachmentItem.ID).addStacks(stacks);
 		}
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 添加物品到邮件
 	 */
-	public Email addItem(ItemStack... stack) {
+	public Email addItem(ItemStack... stacks) {
 		if(!this.hasAttachments(AttachmentItem.ID)) {
 			this.addAttachment(new AttachmentItem());
 		}
-		if (stack!=null) {
-			this.<AttachmentItem>getAttachment(AttachmentItem.ID).addStack(stack);
+		if (stacks!=null && stacks.length > 0) {
+			this.<AttachmentItem>getAttachment(AttachmentItem.ID).addStack(stacks);
 		}
 		return this;
 	}
 	/**
-	 * 设置邮件的附加物品
+	 * 设置邮件的附加指令
 	 */
 	public ItemStack setItem(int slot, ItemStack newItem) {
 		if(this.hasAttachments(AttachmentItem.ID)) {
@@ -475,9 +476,9 @@ public class Email implements ISerializable {
 	}
 
 	/**
-	 * 移除附加物品
+	 * 移除附加指令
 	 * @param slot slot
-	 * @return 已被移除的物品
+	 * @return 已被移除指令
 	 */
 	public AttachmentCommand.Cmd removeCommand(int slot) {
 		if(this.hasAttachments(AttachmentCommand.ID)) {
@@ -486,7 +487,7 @@ public class Email implements ISerializable {
 		return null;
 	}
 	/**
-	 * 清空邮件附带的所有物品
+	 * 清空邮件附带的所有指令
 	 */
 	public Email clearAllCommands() {
 		if(this.hasAttachments(AttachmentCommand.ID)) {
@@ -495,7 +496,7 @@ public class Email implements ISerializable {
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 添加指令到邮件
 	 */
 	public Email addCommands(List<AttachmentCommand.Cmd> cmds) {
 		if(!this.hasAttachments(AttachmentCommand.ID)) {
@@ -507,7 +508,7 @@ public class Email implements ISerializable {
 		return this;
 	}
 	/**
-	 * 添加物品到邮件，注：邮件最多只能有16个物品
+	 * 添加指令到邮件
 	 */
 	public Email addCommands(AttachmentCommand.Cmd... cmds) {
 		if(!this.hasAttachments(AttachmentCommand.ID)) {
@@ -521,7 +522,7 @@ public class Email implements ISerializable {
 		return this;
 	}
 	/**
-	 * 设置邮件的附加物品
+	 * 设置邮件的附加指令
 	 */
 	public AttachmentCommand.Cmd setCommand(int slot, AttachmentCommand.Cmd newCmd) {
 		if(this.hasAttachments(AttachmentCommand.ID)) {
@@ -647,7 +648,7 @@ public class Email implements ISerializable {
 
 	public void receive(Player player) {
 		if (!this.isReceived() && this.attachments!=null) {
-			this.setAccept(true);
+			this.setReceive(true);
 			this.attachments.forEach((k,v) -> v.accept(player));
 		}
 	}
@@ -807,8 +808,8 @@ public class Email implements ISerializable {
 			}
 
 			if(json.has("sound")) {
-				if ((json.has("network_local_sound") && json.get("network_local_sound").getAsBoolean())
-				|| (json.has("external_sound") && json.get("external_sound").getAsBoolean())) {
+				if (JsonUtils.get(json, "network_local_sound", false)
+				 || JsonUtils.get(json, "external_sound", false)) {
 					JsonObject network_local = json.getAsJsonObject("sound");
 					this
 							.setExternalSound(new AudioSystem.Audio(

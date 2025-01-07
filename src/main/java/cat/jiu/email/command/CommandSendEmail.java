@@ -30,15 +30,17 @@ class CommandSendEmail extends BaseCommand.Base {
 
     @Override
     public LiteralArgumentBuilder<CommandSourceStack> apply(LiteralArgumentBuilder<CommandSourceStack> node) {
-        return node.then(Commands.argument("player", new GameProfileArgument())
+        return node
+                .then(Commands.argument("player", new GameProfileArgument())
                 .then(Commands.argument("email", new EmailFileType()).executes(this)));
     }
 
     @Override
     public int execute(MinecraftServer server, CommandSource sender, String[] args, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         for (GameProfile addressee : GameProfileArgument.getGameProfiles(ctx, "player")) {
-            String file = EmailAPI.getTypePath() + args[1];
-            JsonElement emailJson = JsonParser.parse(ctx.getArgument("email", File.class));
+            String file = EmailAPI.getGlobalDataPath()+ "emails/" + args[1];
+            File f = ctx.getArgument("email", File.class);
+            JsonElement emailJson = JsonParser.parse(f);
             if (emailJson == null || !emailJson.isJsonObject()) {
                 ctx.getSource().sendFailure(Component.translatable("file are not a json object."));
                 ctx.getSource().sendFailure(Component.translatable(String.format("%s: %s", file, emailJson)));
@@ -51,9 +53,9 @@ class CommandSendEmail extends BaseCommand.Base {
                             .setSender(new Text(sender instanceof Player ? ((Player)sender).getName().getString() : EmailMain.SYSTEM))
                             .setCreateTimeToNow()
             )){
-                ctx.getSource().sendSystemMessage(Component.translatable("info.email.send.success", addressee.getName()));
+                ctx.getSource().sendSystemMessage(Component.translatable("info.inbox.send.success", addressee.getName()));
             }else {
-                ctx.getSource().sendFailure(Component.translatable("info.email.send.fail"));
+                ctx.getSource().sendFailure(Component.translatable("info.inbox.send.fail"));
             }
         }
         return 1;

@@ -32,7 +32,7 @@ public class DynamicRegistry<K, V extends IJsonSerializable & INBTSerializable &
     protected final FailBack<K, JsonObject, V> jsonFailBack;
     protected final FailBack<K, CompoundTag, V> nbtFailBack;
     protected Function<CompoundTag, K> nbtKeyGetter;
-    protected Function<JsonObject, K> jsontKeyGetter;
+    protected Function<JsonObject, K> jsonKeyGetter;
 
     public DynamicRegistry(String modid, String typeName) {
         this(new ResourceLocation(modid, typeName));
@@ -56,9 +56,9 @@ public class DynamicRegistry<K, V extends IJsonSerializable & INBTSerializable &
         return this;
     }
 
-    public DynamicRegistry<K, V> setKeyGetter(Function<CompoundTag, K> nbtKeyGetter, Function<JsonObject, K> jsontKeyGetter) {
+    public DynamicRegistry<K, V> setKeyGetter(Function<CompoundTag, K> nbtKeyGetter, Function<JsonObject, K> jsonKeyGetter) {
         this.nbtKeyGetter = nbtKeyGetter;
-        this.jsontKeyGetter = jsontKeyGetter;
+        this.jsonKeyGetter = jsonKeyGetter;
         return this;
     }
 
@@ -124,8 +124,8 @@ public class DynamicRegistry<K, V extends IJsonSerializable & INBTSerializable &
         return null;
     }
     public V get(JsonObject data) {
-        if (this.jsontKeyGetter != null) {
-            return this.get(this.jsontKeyGetter.apply(data), data);
+        if (this.jsonKeyGetter != null) {
+            return this.get(this.jsonKeyGetter.apply(data), data);
         }
         return null;
     }

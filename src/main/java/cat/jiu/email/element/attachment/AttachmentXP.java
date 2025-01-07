@@ -134,17 +134,14 @@ public class AttachmentXP implements IAttachment {
             event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
 //            event.addY(event.font.lineHeight + 2);
 
-            Component info = Component.translatable("info.email.xp_save_to_email").append(" (").append(Component.translatable(event.email.isReceived() ? "info.email.filter.is_accept" : "info.email.filter.not_accept")).append(")").append(": ");
-            event.graphics.drawString(event.font, info, event.x, event.getY()+4, Color.WHITE.getRGB());
-
-            int cmd_x = event.x + event.font.width(info) + 2;
+            int cmd_x = event.x + event.font.width(event.renderSaveTo("info.inbox.xps")) + 2;
             event.graphics.renderFakeItem(EXPERIENCE_BOTTLE, cmd_x, event.getY());
             if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, cmd_x, event.getY(), 16, 16)) {
                 event.disableScissor();
 
                 event.graphics.renderComponentTooltip(event.font, List.of(
-                        Component.literal(I18n.get("info.email.xp_save_to_email.0", this.getLevels())),
-                        Component.literal(I18n.get("info.email.xp_save_to_email.1", this.getPoints()))
+                        Component.literal(I18n.get("info.inbox.xp_save_to_email.0", this.getLevels())),
+                        Component.literal(I18n.get("info.inbox.xp_save_to_email.1", this.getPoints()))
                 ), event.mouseX, event.mouseY);
 
                 event.enableScissor();

@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailAPI;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -26,18 +27,16 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
-import cat.jiu.email.element.EmailFunction;
 import cat.jiu.email.element.Inbox;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.network.FriendlyByteBuf;
@@ -47,7 +46,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.FastColor;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -56,8 +54,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.items.ItemStackHandler;
-import org.joml.Matrix4f;
-import org.joml.Vector3d;
 
 public class EmailUtils {
 	public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
@@ -82,9 +78,8 @@ public class EmailUtils {
 		return InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key);
 	}
 
-	public static String formatTimestamp(long time) {
-		StringJoiner sj = new StringJoiner(":");
-		long t = time / 50;
+	public static String formatTimestamp(long ms) {
+		long t = ms / 50;
 		long s = t / 20;
 		t %= 20;
 		long m = s / 60;
@@ -93,14 +88,30 @@ public class EmailUtils {
 		m %= 60;
 		long d = h / 24;
 		h %= 24;
-		
-		sj.add(ITimer.format(d, 10));
-		sj.add(ITimer.format(h, 10));
-		sj.add(ITimer.format(m, 10));
-		sj.add(ITimer.format(s, 10));
-		sj.add(ITimer.format(t, 10));
-		
-		return sj.toString();
+
+		if (d > 0) {
+			return d + " " + I18n.get("inbox.config.time.day");
+		}
+		if (h > 0) {
+			return h + " " + I18n.get("inbox.config.time.hour");
+		}
+		if (m > 0) {
+			return m + " " + I18n.get("inbox.config.time.minute");
+		}
+		if (s > 0) {
+			return s + " " + I18n.get("inbox.config.time.second");
+		}
+		if (t > 0) {
+			return t + " " + I18n.get("inbox.config.time.tick");
+		}
+		return "";
+	}
+
+	public static String getExpirationTime(Email email) {
+		if (!email.isExpiration()) {
+			return formatTimestamp(email.getExpirationTimeAsTimestamp() - System.currentTimeMillis());
+		}
+		return I18n.get("inbox.config.expiration.ed");
 	}
 	
 	public static boolean isOP(Player player) {
@@ -162,123 +173,6 @@ public class EmailUtils {
 				files.add(file);
 			}
 		}
-	}
-
-	@Deprecated
-	public static EmailFunction findFunction(String file) {
-		/*
-		File functionFile = findFunctionFile(new File(EmailAPI.getTypePath()), file);
-		if(functionFile != null) {
-			JsonElement e = JsonParser.parse(functionFile);
-			if(e != null && e.isJsonObject()) {
-				JsonObject function = e.getAsJsonObject();
-				List<IText> msgs = null;
-				if(function.has("msgs")) {
-					msgs = Lists.newArrayList();
-					JsonElement msgE = function.get("msgs");
-					if(msgE.isJsonPrimitive()) {
-						msgs.add(new Text(msgE.getAsString()));
-					}else if(msgE.isJsonArray()) {
-						JsonArray msgsArray = msgE.getAsJsonArray();
-						for(int i = 0; i < msgsArray.size(); i++) {
-							msgs.add(new Text(msgsArray.get(i).getAsString()));
-						}
-					}else if(msgE.isJsonObject()) {
-						for(Entry<String, JsonElement> msg : msgE.getAsJsonObject().entrySet()) {
-							JsonArray argJson = msg.getValue().getAsJsonArray();
-							Object[] arg = new Object[argJson.size()];
-							for(int i = 0; i < arg.length; i++) {
-								arg[i] = argJson.get(i).getAsString();
-							}
-							msgs.add(new Text(msg.getKey(), arg));
-						}
-					}
-				}
-				
-				List<ItemStack> items = null;
-				if(function.has("items")) {
-					JsonElement itemE = function.get("items");
-					if(itemE.isJsonPrimitive() && itemE.getAsJsonPrimitive().isString()) {
-						ItemStack stack = JsonToStackUtil.toStack(function.get("items"));
-						if(stack!=null) {
-							items = Lists.newArrayList(stack);
-						}else {
-							String path = function.get("items").getAsString();
-							JsonElement itemsE = JsonParser.parse(EmailAPI.getExportPath() + path);
-							if(itemsE!=null) {
-								items = JsonToStackUtil.toStacks(itemsE);
-							}
-						}
-					}else if(itemE.isJsonObject()) {
-						items = Lists.newArrayList();
-						for(Entry<String, JsonElement> item : itemE.getAsJsonObject().entrySet()) {
-							if(item.getValue().isJsonPrimitive()) {
-								ItemStack stack = JsonToStackUtil.toStack(item.getValue());
-								if(stack!=null) {
-									items.add(stack);
-								}else {
-									JsonElement itemsE = JsonParser.parse(EmailAPI.getExportPath() + item.getValue().getAsJsonPrimitive().getAsString());
-									if(itemsE!=null) {
-										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
-											if(stack0!=null) {
-												items.add(stack0);
-											}
-										}
-									}
-								}
-							}else {
-								items.add(JsonToStackUtil.toStack(item.getValue()));
-							}
-						}
-					}else if(itemE.isJsonArray()) {
-						items = Lists.newArrayList();
-						for(int i = 0; i < itemE.getAsJsonArray().size(); i++) {
-							JsonElement item = itemE.getAsJsonArray().get(i);
-							if(item.isJsonPrimitive()) {
-								ItemStack stack = JsonToStackUtil.toStack(item);
-								if(stack!=null) {
-									items.add(stack);
-								}else {
-									JsonElement itemsE = JsonParser.parse(EmailAPI.getExportPath() + item.getAsJsonPrimitive().getAsString());
-									if(itemsE!=null) {
-										for(ItemStack stack0 : JsonToStackUtil.toStacks(itemsE)) {
-											if(stack0!=null) {
-												items.add(stack0);
-											}
-										}
-									}
-								}
-							}else {
-								ItemStack stack = JsonToStackUtil.toStack(item);
-								if(stack!=null) {
-									items.add(stack);
-								}
-							}
-						}
-					}
-				}
-				
-				Sound sound = null;
-				if(function.has("sound")) {
-					JsonObject jsonSound = function.getAsJsonObject("sound");
-					sound = new Sound(
-								new Timer(jsonSound.get("millis").getAsLong()), 
-								Registry.SOUND_EVENT.get(new ResourceLocation(jsonSound.get("name").getAsString())),
-								jsonSound.get("volume").getAsFloat(),
-								jsonSound.get("pitch").getAsFloat(), SoundCategory.PLAYERS
-							);
-				}
-				
-				return new EmailFunction(
-						new Text(function.getAsJsonObject("sender")),
-						function.get("addresser").getAsString(),
-						new Text(function.getAsJsonObject("title")),
-						items, msgs, sound);
-			}
-		}
-		 */
-		
-		return null;
 	}
 	
 	private static File findFunctionFile(File dir, String name) {
@@ -366,92 +260,19 @@ public class EmailUtils {
 		});
 		return size.get();
 	}
-	
-	public static boolean saveInboxToDB(Inbox inbox) {
-		/*
-		if(EmailMain.SQLite_INIT) {
-			SQLDatabase db = null;
-			try {
-				synchronized(Inbox.class) {
-					db = new SQLDatabase(org.sqlite.JDBC.PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db");
-					db.prepared.createTable("inboxs", new SQLTableKey()
-							.put("uuid", db.createKey(JDBCType.VARCHAR)
-									.setNotNull(true)
-									.setPrimaryKey(true))
-							.put("inbox", db.createKey(JDBCType.VARCHAR)
-									.setNotNull(true)));
-					
-					db.prepared.delete("inboxs", new SQLSelect(SQLSelectType.WHERE, "'" + inbox.getOwner() + "'")
-							.add(new Where("uuid", SQLOperator.EQUAL, "?", null)));
-					
-					db.prepared.insert("inboxs", inbox.writeTo(SQLValues.class));
-					try {
-						db.close();
-					}catch(SQLException e) {}
-				}
-				return true;
-			}catch(Exception e) {
-				EmailMain.log.error("{}", e.getMessage());
-				return false;
-			}finally {
-				if(db!=null) {
-					try {
-						db.close();
-					}catch(SQLException e1) {}
-				}
-			}
-		}
-		 */
-		return false;
-	}
-	
+
 	public static JsonObject getInboxJson(String uid) {
-		/*
-		if(EmailConfigs.Save_Inbox_To_SQL && EmailMain.SQLite_INIT) {
-			SQLDatabase db = null;
-			try {
-				synchronized(Email.class) {
-					db = new SQLDatabase(org.sqlite.JDBC.PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db"); 
-					ResultSet rs = db.prepared.select("inboxs", new SQLSelect(SQLSelectType.WHERE, uid)
-							.add(new Where("uuid", SQLOperator.EQUAL, "?", null)));
-					JsonObject json = null;
-					
-					while(rs.next()) {
-						String str = rs.getString("inbox");
-						if(str.isEmpty()) {
-							json = new JsonObject();
-						}else {
-							json = JsonUtil.parser.parse(str).getAsJsonObject();
-						}
-						break;
-					}
-					try {
-						rs.close();
-						db.close();
-					}catch(SQLException e) {}
-					return json;
-				}
-			}catch(Exception e) {
-				EmailMain.log.warn("found inbox data has error: {}", e.getLocalizedMessage());
-			}finally {
-				if(db!=null) {
-					try {
-						db.close();
-					}catch(SQLException e1) {}
-				}
-			}
-		}else { */
+		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
+			return DBParser.getInboxJson(DBParser.DB_URL, uid);
+		}else {
 			File email = new File(EmailAPI.getSaveInboxPath() + uid + ".json");
 			if(email.exists()) {
 				JsonElement file = JsonParser.parse(email);
 				if(file != null && file.isJsonObject()) {
 					return file.getAsJsonObject();
-				}else {
-					return new JsonObject();
 				}
 			}
-//		}
-
+		}
 		return new JsonObject();
 	}
 	
@@ -681,31 +502,9 @@ public class EmailUtils {
         graphics.drawString(fr, text, x - fr.width(text), y, color, drawShadow);
     }
 
+	@Deprecated
 	public static void hLineGradient(GuiGraphics graphics, boolean anti, int pX1, int pY1, int pX2, int pY2, int pColorFrom, int pColorTo) {
-		VertexConsumer pConsumer = graphics.bufferSource().getBuffer(RenderType.gui());
-
-		float fromAlpha = (float) FastColor.ARGB32.alpha(pColorFrom) / 255.0F;
-		float fromRed = (float)FastColor.ARGB32.red(pColorFrom) / 255.0F;
-		float fromGreen = (float)FastColor.ARGB32.green(pColorFrom) / 255.0F;
-		float fromBlue = (float)FastColor.ARGB32.blue(pColorFrom) / 255.0F;
-		float toAlpha = (float)FastColor.ARGB32.alpha(pColorTo) / 255.0F;
-		float toRed = (float)FastColor.ARGB32.red(pColorTo) / 255.0F;
-		float toGreen = (float)FastColor.ARGB32.green(pColorTo) / 255.0F;
-		float toBlue = (float)FastColor.ARGB32.blue(pColorTo) / 255.0F;
-		Matrix4f matrix4f = graphics.pose().last().pose();
-		// toRed, toGreen, toBlue, toAlpha
-		// fromRed, fromGreen, fromBlue, fromAlpha
-		if (anti) {
-			pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
-		}else {
-			pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
-			pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
-		}
+		RenderUtils.hLineGradient(graphics, anti, pX1, pY1, pX2, pY2, pColorFrom, pColorTo);
 	}
 
 	static Map<String, SoundSource> SOUND_CATEGORIES;

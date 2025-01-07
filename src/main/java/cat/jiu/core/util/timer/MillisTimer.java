@@ -145,10 +145,10 @@ public class MillisTimer implements ITimer {
 	}
 	
 	@Override
-	public void read(CompoundTag nbt) {
-		this.millis = nbt.getLong("ms");
-		this.sysMillis = nbt.getLong("sysMillis");
-		this.currentMillis = nbt.getLong("current");
+	public void read(CompoundTag data) {
+		this.millis = data.getLong("ms");
+		this.sysMillis = data.getLong("sysMillis");
+		this.currentMillis = data.getLong("current");
 	}
 	
 	@Override
@@ -161,10 +161,10 @@ public class MillisTimer implements ITimer {
 		return json;
 	}
 	@Override
-	public void read(JsonObject json) {
-		this.millis = json.get("ms").getAsLong();
-		this.sysMillis = json.get("sysMillis").getAsLong();
-		this.currentMillis = json.get("current").getAsLong();
+	public void read(JsonObject data) {
+		this.millis = data.get("ms").getAsLong();
+		this.sysMillis = data.get("sysMillis").getAsLong();
+		this.currentMillis = data.get("current").getAsLong();
 	}
 	
 	@Override
@@ -179,11 +179,11 @@ public class MillisTimer implements ITimer {
 		return value;
 	}
 	@Override
-	public void read(ResultSet result) throws SQLException {
-		if(result.next()) {
-			this.millis = result.getLong("ms");
-			this.sysMillis = result.getLong("sysMillis");
-			this.currentMillis = result.getLong("current");
+	public void read(ResultSet data) throws SQLException {
+		if(data.next()) {
+			this.millis = data.getLong("ms");
+			this.sysMillis = data.getLong("sysMillis");
+			this.currentMillis = data.getLong("current");
 		}
 	}
 	

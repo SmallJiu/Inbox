@@ -39,8 +39,7 @@ import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGenerate> {
-	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_generate.png");
-	public static final ResourceLocation EXPIRATION = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_expiration.png");
+	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_generate.png");
     private EditBox titleField, localSound;
     private final EditBox[] textFields = new EditBox[5];
     private final GuiTime expiration = new GuiTime(this, false);
@@ -75,15 +74,15 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 
         this.initText();
 
-		this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("email.config.expiration"), 256, 256, 256, 256, btn->
+		this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("inbox.config.expiration"), 256, 256, 256, 256, btn->
 			expiration.setEnable(!expiration.isEnable())
-        )).setBackground(()->EXPIRATION);
+        )).setBackground(()->GuiEmailSend.EXPIRATION);
 
-		GuiImageButton btn = this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+4, this.titleField.getY() -2, 22, this.titleField.getHeight()+2, I18n.get("info.email.generate"), 256, 256, 176, 9, 59, 50, b->
+		GuiImageButton btn = this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+4, this.titleField.getY() -2, 22, this.titleField.getHeight()+2, I18n.get("info.inbox.generate"), 256, 256, 176, 9, 59, 50, b->
 			this.generate()
         )).setBackground(()->BackGround);
 
-		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+4, this.titleField.getY() -2+btn.getHeight()+2, 22, this.localSound.getHeight()+2, I18n.get("info.email.name"), 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
+		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+4, this.titleField.getY() -2+btn.getHeight()+2, 22, this.localSound.getHeight()+2, I18n.get("info.inbox.name"), 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
 				.setBackground(()->ShowInboxGui.inbox);
 
 		this.mcSounds.scroll.collection.clear();
@@ -102,7 +101,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 		this.mcSoundBtn.visible = false;
 		this.mcSounds.setCreatePoint(this.mcSoundBtn.getX(), this.mcSoundBtn.getY() +this.mcSoundBtn.getHeight());
 
-		this.useMCSound = this.addRenderableWidget(new GuiCheckbox(this.localSound.getX() + this.localSound.getWidth() + 2, this.localSound.getY(), 12, 11, Component.translatable("info.email.generate.sound.use_mc_sound"), false, false, ()->{
+		this.useMCSound = this.addRenderableWidget(new GuiCheckbox(this.localSound.getX() + this.localSound.getWidth() + 2, this.localSound.getY(), 12, 11, Component.translatable("info.inbox.generate.sound.use_mc_sound"), false, false, ()->{
 			this.mcSoundBtn.visible = this.useMCSound.selected();
 			this.localSound.setVisible(!this.useMCSound.selected());
 			if (!this.mcSoundBtn.visible) {
@@ -123,11 +122,11 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 		if(!this.getMenu().isLock()) {
 			String title = titleField.getValue();
 			if(StringUtils.isEmpty(title)) {
-				title = "info.email.default_title";
+				title = "info.inbox.default_title";
 			}
 
 			if(this.textsIsEmpty() && this.getMenu().isEmpty()) {
-				this.setRenderText(I18n.get("info.email.error.empty_msgs_item"), Color.RED);
+				this.setRenderText(I18n.get("info.inbox.error.empty_msgs_item"), Color.RED);
 				return;
 			}
 
@@ -142,7 +141,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 					}
 				}
 			}else {
-				msgs.add(new Text("info.email.default_msg"));
+				msgs.add(new Text("info.inbox.default_msg"));
 			}
 			Email email = new Email(new Text(title), new Text(Minecraft.getInstance().player.getName())).addMessages(msgs);
 
@@ -169,7 +168,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				SizeReport report = EmailUtils.checkEmailSize(email_t);
 				if(!SizeReport.SUCCESS.equals(report)) {
 					if (this.getMenu().isLock()) this.getMenu().setLock(false);
-					this.setRenderText(new Text("info.email.error.send.to_big", report.slot(), report.size()).format(), Color.RED);
+					this.setRenderText(new Text("info.inbox.error.send.to_big", report.slot(), report.size()).format(), Color.RED);
 					return;
 				}
 			}
@@ -189,7 +188,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				object.add("attachments", new JsonArray());
 				object.add("AllAttachmentID", array);
 			}
-			File file = new File(EmailAPI.getTypePath(), filename);
+			File file = new File(EmailAPI.getGlobalDataPath(), "emails/"+filename);
 			JsonParser.toJsonFile(file, object, true);
 
 			this.getMenu().setLock(false);
@@ -336,7 +335,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 	protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
 		graphics.fill(162, 100, 162 + 9, 100 + 9, this.getMenu().isLock() ? Color.RED.getRGB() : Color.GREEN.getRGB());
 
-		EmailUtils.drawAlignRightString(graphics, this.font, I18n.get("info.email.title") + ":", this.titleField.getX() -2-this.leftPos,  this.titleField.getY() -2-this.topPos, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
-		EmailUtils.drawAlignRightString(graphics, this.font, I18n.get("info.email.generate.sound") + ":", this.localSound.getX() -2-this.leftPos,  this.localSound.getY() -2-this.topPos, (this.localSound.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(graphics, this.font, I18n.get("info.inbox.title") + ":", this.titleField.getX() -2-this.leftPos,  this.titleField.getY() -2-this.topPos, (this.titleField.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
+		EmailUtils.drawAlignRightString(graphics, this.font, I18n.get("info.inbox.generate.sound") + ":", this.localSound.getX() -2-this.leftPos,  this.localSound.getY() -2-this.topPos, (this.localSound.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.BLACK).getRGB(), false);
 	}
 }

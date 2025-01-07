@@ -9,11 +9,13 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.util.FormattedCharSequence;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
@@ -476,6 +478,33 @@ public class RenderUtils {
 
         vLine(graphics, x + width, y, height, borderColor); // 右
         vLine(graphics, x + width + 1, y, height, bgColor);
+    }
+
+    public static void hLineGradient(GuiGraphics graphics, boolean anti, int pX1, int pY1, int pX2, int pY2, int pColorFrom, int pColorTo) {
+        VertexConsumer pConsumer = graphics.bufferSource().getBuffer(RenderType.gui());
+
+        float fromAlpha = (float) FastColor.ARGB32.alpha(pColorFrom) / 255.0F;
+        float fromRed = (float)FastColor.ARGB32.red(pColorFrom) / 255.0F;
+        float fromGreen = (float)FastColor.ARGB32.green(pColorFrom) / 255.0F;
+        float fromBlue = (float)FastColor.ARGB32.blue(pColorFrom) / 255.0F;
+        float toAlpha = (float)FastColor.ARGB32.alpha(pColorTo) / 255.0F;
+        float toRed = (float)FastColor.ARGB32.red(pColorTo) / 255.0F;
+        float toGreen = (float)FastColor.ARGB32.green(pColorTo) / 255.0F;
+        float toBlue = (float)FastColor.ARGB32.blue(pColorTo) / 255.0F;
+        Matrix4f matrix4f = graphics.pose().last().pose();
+        // toRed, toGreen, toBlue, toAlpha
+        // fromRed, fromGreen, fromBlue, fromAlpha
+        if (anti) {
+            pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+        }else {
+            pConsumer.vertex(matrix4f, (float)pX1, (float)pY1, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX1, (float)pY2, (float)0).color(fromRed, fromGreen, fromBlue, fromAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX2, (float)pY2, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+            pConsumer.vertex(matrix4f, (float)pX2, (float)pY1, (float)0).color(toRed, toGreen, toBlue, toAlpha).endVertex();
+        }
     }
 
     public static void tooltipBackground(final GuiGraphics graphics, final int x, final int y, final int width, final int height, final boolean centerWidth, final boolean centerHeight) {

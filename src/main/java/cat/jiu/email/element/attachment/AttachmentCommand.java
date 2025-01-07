@@ -150,7 +150,7 @@ public class AttachmentCommand implements IAttachment {
                     JsonObject object = element.getAsJsonObject();
                     this.addCommand(object.get("cmd").getAsString(),
                             JsonUtils.get(object, "serverCmd", false) || allServerCmd,
-                            JsonUtils.get(json, "hide", false));
+                            JsonUtils.get(object, "hide", false));
                 }else if (element.isJsonPrimitive()) {
                     this.addCommand(element.getAsString(), allServerCmd);
                 }
@@ -204,10 +204,7 @@ public class AttachmentCommand implements IAttachment {
 
             event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
 
-            Component info = Component.translatable("info.email.command_save_to_email").append(" (").append(Component.translatable(event.email.isReceived() ? "info.email.filter.is_accept" : "info.email.filter.not_accept")).append(")").append(": ");
-            event.graphics.drawString(event.font, info, event.x, event.getY()+4, Color.WHITE.getRGB());
-
-            int cmd_x = event.x + event.font.width(info) + 2;
+            int cmd_x = event.x + event.font.width(event.renderSaveTo("info.inbox.commands")) + 2;
             event.graphics.renderFakeItem(COMMAND_BLOCK, cmd_x, event.getY());
             if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, cmd_x, event.getY(), 16, 16)) {
                 event.disableScissor();
@@ -226,7 +223,18 @@ public class AttachmentCommand implements IAttachment {
                     cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.RED : ChatFormatting.GREEN) + c));
                 }
                 if (hideCount > 0) {
-                    cmdTooltip.add(Component.translatable("info.email.command_save_to_email.hide", hideCount));
+                    cmdTooltip.add(Component.translatable("info.inbox.command_save_to_email.hide", hideCount));
+                    if (EmailUtils.isOP(Minecraft.getInstance().player)) {
+                        for (Cmd cmd : this.getCommands()) {
+                            if (cmd.isHideInTooltip()) {
+                                String c = cmd.cmd();
+                                for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
+                                    c = entry.getValue().parser(entry.getKey(), c, Minecraft.getInstance().player);
+                                }
+                                cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.DARK_RED : ChatFormatting.DARK_GREEN) + c));
+                            }
+                        }
+                    }
                 }
                 event.graphics.renderComponentTooltip(event.font, cmdTooltip, event.mouseX, event.mouseY);
 

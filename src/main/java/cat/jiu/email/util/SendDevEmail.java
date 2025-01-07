@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.AttachmentCommand;
 import cat.jiu.email.net.msg.MsgToast;
 import cat.jiu.email.net.msg.MsgUnaccepted;
@@ -43,16 +44,17 @@ public class SendDevEmail {
 	static {
 		List<IText> msgs = Lists.newArrayList();
 		for(int i = 0; i < 14; i++) {
-			msgs.add(new Text("email.dev_message."+i));
+			msgs.add(new Text("inbox.dev_message."+i));
 		}
-		devEmail = new Email(new Text("email.dev_message.title"), EmailAPI.SYSTEM)
+		devEmail = new Email(new Text("inbox.dev_message.title"), EmailAPI.SYSTEM)
 //				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
 				.addMessages(msgs)
 				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
 				.addCommands(
-						new AttachmentCommand.Cmd("/say this command is ' server ' command, user ' server console permission ' to execute.", true),
-						new AttachmentCommand.Cmd("/me this command is ' player ' command, user ' player permission ' to execute.", false),
-						new AttachmentCommand.Cmd("/me this command is hide in tooltip, you cant seed this command.", false).setHideInTooltip(true)
+						new AttachmentCommand.Cmd("/say 'this command is ' server ' command, use ' server console permission ' to execute.'", true),
+						new AttachmentCommand.Cmd("/me 'this command is ' player ' command, use ' player permission ' to execute.'", false),
+						new AttachmentCommand.Cmd("/say 'this command is hide in tooltip, you cant seed this command.'", true).setHideInTooltip(true),
+						new AttachmentCommand.Cmd("/me 'this command is hide in tooltip, you cant seed this command.'", false).setHideInTooltip(true)
 				)
 				.setExperience(9980, 9980)
 				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
@@ -78,12 +80,12 @@ public class SendDevEmail {
 			EmailMain.net.sendMessageToPlayer(new MsgPlayerPermissionLevel(level), player);
 			
 			if(!inbox.isSendDevMsg()) {
-				inbox.addEmail(devEmail.copy().setCreateTimeToNow());
 				inbox.setSendDevMsg(true);
+				inbox.addEmail(devEmail.copy().setCreateTimeToNow(), true);
 				
 //				EmailExecuteEvent.initDefaultCustomValue(inbox);
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(player, inbox));
-				EmailUtils.saveInboxToDisk(inbox);
+				EventEmail.sendEventEmails(EventEmail.Logged, player.getStringUUID());
 			}
 		}
 	}
@@ -128,8 +130,8 @@ public class SendDevEmail {
 				if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
 					Minecraft.getInstance().getToasts().addToast(new SystemToast(
 							SystemToast.SystemToastIds.PACK_COPY_FAILURE,
-							Component.translatable("info.email.has_unread", EmailMain.getUnread()),
-							Component.translatable("info.email.has_unreceive", EmailMain.getUnaccepted())
+							Component.translatable("info.inbox.has_unread", EmailMain.getUnread()),
+							Component.translatable("info.inbox.has_unreceive", EmailMain.getUnaccepted())
 					));
 				}
 				showToast = 0;

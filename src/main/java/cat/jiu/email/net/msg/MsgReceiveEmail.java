@@ -40,7 +40,7 @@ public class MsgReceiveEmail  {
 						email = pre.getEmail();
 						inbox.setEmail(msgID, email);
 
-						if(!email.isReceived() && email.hasItems()) {
+						if(!email.isReceived()) {
 							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
 								return;
 							}
@@ -75,7 +75,7 @@ public class MsgReceiveEmail  {
 						email = pre.getEmail();
 						inbox.setEmail(i, email);
 
-						if(!email.isReceived() && email.hasItems()) {
+						if(!email.isReceived()) {
 							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
 								return;
 							}

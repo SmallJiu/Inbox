@@ -7,10 +7,13 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
+
+import java.awt.*;
 
 public class AttachmentEvent extends Event {
     public final Email email;
@@ -25,6 +28,7 @@ public class AttachmentEvent extends Event {
     public static class Render extends AttachmentEvent {
         public final GuiGraphics graphics;
         public final Font font;
+        /**              X轴， 初始Y轴，  鼠标X，  鼠标Y，   可视宽，     可视高，   顶，   底，    左，   右  */
         public final int x, originalY, mouseX, mouseY, viewWidth, viewHeight, top, bottom, left, right;
         @Deprecated
         public final int guiWidth, guiHeight;
@@ -45,7 +49,6 @@ public class AttachmentEvent extends Event {
             this.bottom = bottom;
             this.left = left;
             this.right = right;
-
 
             this.guiWidth = this.viewWidth;
             this.guiHeight = this.viewHeight;
@@ -79,6 +82,15 @@ public class AttachmentEvent extends Event {
 
         public boolean canSee() {
             return EmailUtils.isInRange(this.mouseX, this.mouseY, this.left, this.top, this.viewWidth, this.viewHeight);
+        }
+
+        public Component renderSaveTo(String name, Object... args) {
+            return this.renderSaveTo(Component.translatable(name, args));
+        }
+        public Component renderSaveTo(Component name) {
+            Component info = Component.translatable("info.inbox.save_to_email", name).append(" (").append(Component.translatable(this.email.isReceived() ? "info.inbox.filter.is_accept" : "info.inbox.filter.not_accept")).append(")").append(": ");
+            this.graphics.drawString(this.font, info, this.x, this.getY()+4, Color.WHITE.getRGB());
+            return info;
         }
 
         @Cancelable

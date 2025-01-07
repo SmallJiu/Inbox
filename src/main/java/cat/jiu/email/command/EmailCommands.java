@@ -11,5 +11,6 @@ public class EmailCommands extends BaseCommand.BaseTree {
         this.addSubCommand(new CommandOpenInbox());
         this.addSubCommand(new CommandSendEmail());
         this.addSubCommand(new CommandScheduledEmail());
+        this.addSubCommand(new CommandEventEmail());
     }
 }

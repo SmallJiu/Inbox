@@ -62,7 +62,7 @@ public class GuiHandler {
 		MenuScreens.<ContainerEmailGenerate, GuiEmailGenerate>register(GuiHandler.generate_TYPE.get(), (container, inventory, title) -> new GuiEmailGenerate(container, inventory));
 
 		ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class, ()->new ConfigScreenHandler.ConfigScreenFactory((mc, parent)->
-				new cat.jiu.core.util.client.config.GuiConfig("/config/jiu/email.toml", parent, EmailConfigs.CONFIG_MAIN)
+				new cat.jiu.core.util.client.config.GuiConfig("/config/jiu/inbox/configs.toml", parent, EmailConfigs.CONFIG_MAIN)
 		));
 	}
 

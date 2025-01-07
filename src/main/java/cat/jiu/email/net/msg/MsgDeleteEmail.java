@@ -31,6 +31,9 @@ public class MsgDeleteEmail {
 
 					if(inbox.hasEmail(this.msgID)) {
 						if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, this.msgID, false, false))) {
+							if (!inbox.getEmail(this.msgID).isReceived()) {
+								inbox.getEmail(this.msgID).receive(player);
+							}
 							inbox.deleteEmail(msgID);
 						}
 					}
@@ -56,7 +59,7 @@ public class MsgDeleteEmail {
 					boolean changed = false;
 					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
-						if(email.isRead() && !email.hasItems()) {
+						if(email.isRead() && !email.hasAttachment()) {
 							if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, true, false))) {
 								inbox.deleteEmail(i);
 								changed = true;
@@ -87,7 +90,10 @@ public class MsgDeleteEmail {
 					boolean changed = false;
 					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
-						if(email.isReceived() && email.isRead() && !MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
+						if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, false, true))) {
+							if (!email.isReceived()) {
+								email.receive(player);
+							}
 							inbox.deleteEmail(i);
 							changed = true;
 						}

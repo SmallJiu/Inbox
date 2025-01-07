@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.util.DBParser;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.JsonParser;
 import com.google.common.collect.Lists;
@@ -298,8 +299,8 @@ public final class Inbox implements ISerializable {
 		if(this.isEmptyInbox()){
 			EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", this);
 		}
-		if(EmailConfigs.Save_Inbox_To_SQL.get()) {
-			return EmailUtils.saveInboxToDB(this);
+		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
+			return DBParser.saveInboxToDB(DBParser.DB_URL, this);
 		}else {
 			return JsonParser.toJsonFile(EmailAPI.getSaveInboxPath() + owner + ".json", this.writeTo(JsonObject.class), false);
 		}

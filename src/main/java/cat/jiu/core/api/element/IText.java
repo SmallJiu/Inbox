@@ -1,6 +1,8 @@
 package cat.jiu.core.api.element;
 
 import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonArray;
@@ -79,17 +81,13 @@ public interface IText extends ISerializable {
 	}
 
 	@Override
-	default void read(JsonObject json) {
-		if(json.has("text")) {
-			this.setText(json.get("text").getAsString());
-		}else if(json.has("key")) {
-			this.setText(json.get("key").getAsString());
-		}
-		
-		if(json.has("isVanillaWrap")) this.setUseVanillaWrap(json.get("isVanillaWrap").getAsBoolean());
-		if(json.has("isCenter")) this.setCenter(json.get("isCenter").getAsBoolean());
-		if(json.has("parameters") || json.has("args")) {
-			JsonArray parametersArray = json.getAsJsonArray(json.has("parameters") ? "parameters" : "args");
+	default void read(JsonObject data) {
+		this.setText(JsonUtils.get(data, "text", JsonUtils.get(data, "key", "empty")));
+		this.setUseVanillaWrap(JsonUtils.get(data, "isVanillaWrap", false));
+		this.setCenter(JsonUtils.get(data, "isCenter", false));
+
+		if(data.has("parameters") || data.has("args")) {
+			JsonArray parametersArray = data.getAsJsonArray(data.has("parameters") ? "parameters" : "args");
 			Object[] parameters = new Object[parametersArray.size()];
 			for(int i = 0; i < parameters.length; i++) {
 				JsonElement e = parametersArray.get(i);
@@ -104,13 +102,14 @@ public interface IText extends ISerializable {
 	}
 
 	@Override
-	default JsonObject write(JsonObject json) {
-		if(json == null)
-			json = new JsonObject();
+	default JsonObject write(JsonObject data) {
+		if(data == null)
+			data = new JsonObject();
 		
-		json.addProperty("text", this.getText());
-		if(this.isCenter()) json.addProperty("isCenter", this.isCenter());
-		if(this.isVanillaWrap()) json.addProperty("isVanillaWrap", this.isVanillaWrap());
+		data.addProperty("text", this.getText());
+		data.addProperty("isCenter", this.isCenter());
+		data.addProperty("isVanillaWrap", this.isVanillaWrap());
+
 		if(this.getParameters()!=null && this.getParameters().length > 0) {
 			JsonArray parametersArray = new JsonArray();
 			for(int i = 0; i < this.getParameters().length; i++) {
@@ -121,19 +120,20 @@ public interface IText extends ISerializable {
 					parametersArray.add(String.valueOf(o));
 				}
 			}
-			json.add("parameters", parametersArray);
+			data.add("parameters", parametersArray);
 		}
 		
-		return json;
+		return data;
 	}
 
 	@Override
-	default void read(CompoundTag nbt) {
-		this.setText(nbt.getString("text"));
-		if(nbt.contains("isVanillaWrap")) this.setUseVanillaWrap(nbt.getBoolean("isVanillaWrap"));
-		if(nbt.contains("isCenter")) this.setCenter(nbt.getBoolean("isCenter"));
-		if(nbt.contains("parameters")) {
-			CompoundTag parametersArray = nbt.getCompound("parameters");
+	default void read(CompoundTag data) {
+		this.setText(NBTUtils.get(data, "text", NBTUtils.get(data, "key", "empty")));
+		this.setUseVanillaWrap(NBTUtils.get(data, "isVanillaWrap", false));
+		this.setCenter(NBTUtils.get(data, "isCenter", false));
+
+		if(data.contains("parameters")) {
+			CompoundTag parametersArray = data.getCompound("parameters");
 			Object[] parameters = new Object[parametersArray.size()];
 			List<String> keys = parametersArray.getAllKeys().stream().sorted(Comparator.comparingLong(Long::valueOf)).toList();
 

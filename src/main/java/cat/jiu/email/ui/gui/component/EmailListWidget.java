@@ -9,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.NotNull;
@@ -18,10 +19,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetScreen.EmailEntry> {
+public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEntry> {
     final GuiInbox parent;
 
-    public EmailListWidgetScreen(GuiInbox parent, int width, int height, int x, int y) {
+    public EmailListWidget(GuiInbox parent, int width, int height, int x, int y) {
         super(Minecraft.getInstance(), width, height, y, y+height, parent.getFont().lineHeight * 2 + 8);
         this.parent = parent;
         this.setLeftPos(x);
@@ -40,7 +41,7 @@ public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetSc
     @Override
     protected void renderSelection(GuiGraphics graphics, int y, int width, int height, int pOuterColor, int pInnerColor) {
         int x = this.x0 + (this.width - width) / 2;
-        width -= 9;
+        width -= EmailListWidget.this.getMaxScroll() > 0 ? 9 : 3;
 
         RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 7, 5, 168, 200); // 左上
         RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height - 3, 5, 7, 168, 225); //左下
@@ -67,7 +68,7 @@ public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetSc
 
     @Override
     protected void renderBackground(GuiGraphics pGuiGraphics) {
-        this.parent.renderBackground(pGuiGraphics);
+//        this.parent.renderBackground(pGuiGraphics);
         pGuiGraphics.fill(this.getLeft(), this.getTop(), this.getRight(), this.getBottom(), 0xC0101010);
     }
 
@@ -108,39 +109,67 @@ public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetSc
         final long id;
         final int width;
         final Email email;
-        Component sender, time, state;
-        boolean updataExpiration;
+        Component title, sender;
 
         public EmailEntry(GuiInbox parent, long id, Email email, int width) {
             this.parent = parent;
             this.id = id;
             this.email = email;
             this.width = width;
-            this.updata();
-            this.updataExpiration = this.email.hasExpirationTime();
+            Component title = email.getTitle().toTextComponent();
+            if (email.getTitle().getStringWidth(this.parent.getFont()) >= this.width - this.parent.getFont().width("...")) {
+                title = Component.literal(parent.getFont().plainSubstrByWidth(email.getTitle().format(), this.width - 3 - 9 - this.parent.getFont().width("..."))).append("...");
+            }
+            this.title = title;
+
+            String sender = ChatFormatting.GRAY + I18n.get("info.inbox.main.from", this.email.getSender().format());
+            if (RenderUtils.width(sender) >= this.width - this.parent.getFont().width("...")) {
+                sender = parent.getFont().plainSubstrByWidth(sender, this.width - 3 - 9 - this.parent.getFont().width("...")) + "...";
+            }
+            this.sender = Component.literal(sender);
         }
 
         @Override
         public @NotNull Component getNarration() {
-            return this.sender;
+            return this.title;
         }
 
         @Override
         public void render(@NotNull GuiGraphics graphics, int index, int pTop, int pLeft, int pWidth, int pHeight, int pMouseX, int pMouseY, boolean pHovering, float pPartialTick) {
-            graphics.drawString(this.parent.getFont(), this.sender, pLeft + 2, pTop + 4, Color.WHITE.getRGB());
-            graphics.drawString(this.parent.getFont(), this.time, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB());
-            EmailUtils.drawAlignRightString(graphics, this.parent.getFont(), this.state, pLeft + pWidth - 9 - 3, pTop + 4, 0, true);
-            if (this.updataExpiration && this.email.isExpiration()) {
-                this.updata();
-                this.updataExpiration = false;
+            graphics.drawString(this.parent.getFont(), this.title, pLeft + 2, pTop + 4, Color.WHITE.getRGB());
+//            graphics.drawString(this.parent.getFont(), this.time, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB());
+//            EmailUtils.drawAlignRightString(graphics, this.parent.getFont(), this.state, pLeft + pWidth - 9 - 3, pTop + 4, 0, true);
+
+            boolean showSender = true;
+            if (this.email.hasExpirationTime()) {
+                RenderUtils.draw(graphics, GuiInbox.ICON, pLeft + 2, pTop + RenderUtils.getFontHeight() + 2 + 2, RenderUtils.getFontHeight(), RenderUtils.getFontHeight(), 176 + (this.email.isExpiration() ? 40 : 0), 0, 40, 40, 256, 256);
+                RenderUtils.drawString(graphics, EmailUtils.getExpirationTime(this.email), pLeft + 3 + RenderUtils.getFontHeight(), pTop + RenderUtils.getFontHeight() + 2 + 3, (this.email.isExpiration() ? Color.RED : Color.WHITE).getRGB(), true);
+                showSender = false;
+            }
+            int x = pLeft + pWidth - (EmailListWidget.this.getMaxScroll() > 0 ? 9 : 3) - 2;
+            int y = pTop + RenderUtils.getFontHeight() + 2 + 2;
+            if (!this.email.isRead()) {
+                x -= 4;
+                RenderUtils.draw(graphics, GuiInbox.ICON, x, y, 3, RenderUtils.getFontHeight(), 189, 122, 14, 38, 256, 256);
+                x -= 1;
+            }
+            if (this.email.hasAttachment()) {
+                x -= RenderUtils.getFontHeight();
+                RenderUtils.draw(graphics, GuiInbox.ICON, x, y, RenderUtils.getFontHeight(), RenderUtils.getFontHeight(), 176 + (!this.email.isReceived() ? 40 : 0), 41, 40, 40, 256, 256);
+                x -= 1;
+            }
+
+            if (showSender) {
+                graphics.drawString(this.parent.getFont(), this.sender, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB());
             }
         }
 
         @Override
         public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
             if (pButton == 0) {
-                EmailListWidgetScreen.this.setSelected(this);
+                EmailListWidget.this.setSelected(this);
                 this.parent.setCurrentEmail(this.id);
+                this.email.setRead(true);
             }
             return false;
         }
@@ -148,7 +177,7 @@ public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetSc
         @Override
         public void renderBack(GuiGraphics graphics, int index, int y, int x, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             x -= 2;
-            width -= 9;
+            width -= EmailListWidget.this.getMaxScroll() > 0 ? 9 : 3;
             RenderUtils.draw(graphics, GuiInbox.BackGround, x, y, 3, 3, 168, 168); // 左上
             RenderUtils.draw(graphics, GuiInbox.BackGround, x, y + height + 1, 3, 3, 168, 197); //左下
 
@@ -170,28 +199,6 @@ public class EmailListWidgetScreen extends ObjectSelectionList<EmailListWidgetSc
 
         public Email getEmail() {
             return email;
-        }
-
-        public void updata() {
-            MutableComponent state = Component.empty();
-            if (!email.isRead()) {
-                state = state.append(EmailUtils.createTextComponent(ChatFormatting.RED, "*"));
-            }
-            if (this.email.hasAttachment()) {
-                state = state.append(EmailUtils.createTextComponent(this.email.isReceived() ? ChatFormatting.GREEN : ChatFormatting.RED, "$"));
-            }
-            if (this.email.hasExpirationTime()) {
-                state = state.append(EmailUtils.createTextComponent(this.email.isExpiration() ? ChatFormatting.RED : ChatFormatting.GREEN , "#"));
-            }
-            this.state = state;
-
-            MutableComponent sender = Component.literal(email.getSender().format());
-            if (email.getSender().getStringWidth(this.parent.getFont()) > this.width - this.parent.getFont().width(state) - this.parent.getFont().width("...")) {
-                sender = Component.literal(parent.getFont().plainSubstrByWidth(email.getSender().format(), this.width - 3 - 9 - this.parent.getFont().width(state) - this.parent.getFont().width("..."))).append("...");
-            }
-            this.sender = sender;
-
-            this.time = Component.nullToEmpty(parent.getFont().plainSubstrByWidth(email.getCreateTimeAsString(EmailUtils.dateFormat_1).substring(2), this.width));
         }
 
         @Override

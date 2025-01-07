@@ -77,7 +77,7 @@ public class Cooling {
 			 String m = t_m < 10 ? "0" + t_m : Long.toString(t_m);
 			 String s = t_s < 10 ? "0" + t_s : Long.toString(t_s);
 			 String t = t_t < 10 ? "0" + t_t : Long.toString(t_t);
-			 return new Text("info.email.cooling", d, h, m, s, t);
+			 return new Text("info.inbox.cooling", d, h, m, s, t);
 		}
 		return Text.empty;
 	}

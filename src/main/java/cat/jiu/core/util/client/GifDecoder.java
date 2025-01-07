@@ -8,6 +8,9 @@ import com.mojang.blaze3d.vertex.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.Dumpable;
@@ -190,11 +193,17 @@ public class GifDecoder {
 	/**
 	 * @author small_jiu
 	 */
-	public static interface IGifTexture {
+	public static interface IGifTexture extends Renderable, LayoutElement {
 		@OnlyIn(Dist.CLIENT)
 		default void render(GuiGraphics graphics) {
 			this.render(graphics, -1, true);
 		}
+
+		@Override
+		default void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+			this.render(graphics);
+		}
+
 		@OnlyIn(Dist.CLIENT)
 		void render(GuiGraphics graphics, long delay, boolean addCurrentIndex);
 		void nextFrame(long delay, boolean addCurrentIndex);
@@ -202,6 +211,38 @@ public class GifDecoder {
 		IGifTexture setRenderInfo(int x, int y, int width, int height);
 		int getImageWidth();
 		int getImageHeight();
+
+		@Override
+		default void setX(int x) {
+			this.setRenderInfo(x, this.getY(), this.getWidth(), this.getHeight());
+		}
+
+		@Override
+		default void setY(int y) {
+			this.setRenderInfo(this.getX(), y, this.getWidth(), this.getHeight());
+		}
+
+		@Override
+		int getX();
+
+		@Override
+		int getY();
+
+		@Override
+		default int getWidth() {
+			return this.getImageWidth();
+		}
+
+		@Override
+		default int getHeight() {
+			return this.getImageHeight();
+		}
+
+		@Override
+		default void visitWidgets(Consumer<AbstractWidget> pConsumer) {
+
+		}
+
 		BufferedImage getImage(int index);
 		IGifTexture setCurrentIndex(int currentIndex);
 		int getCurrentIndex();
@@ -212,6 +253,28 @@ public class GifDecoder {
 		int getCurrentTextureID();
 		@OnlyIn(Dist.CLIENT)
 		ResourceLocation registerToMinecraft(ResourceLocation id) throws IOException;
+		ResourceLocation getMcPath();
+
+		default boolean writeToFile(File file) {
+			BufferedImage image = new BufferedImage(this.getImageWidth(), this.getImageHeight() * this.getAllTextureCount(), BufferedImage.TYPE_INT_ARGB);
+			for (int i = 0; i < this.getAllTextureCount(); i++) {
+				BufferedImage image1 = this.getImage(i);
+				for (int y = 0; y < image1.getHeight(); y++) {
+					for (int x = 0; x < image1.getWidth(); x++) {
+						image.setRGB(x, y + (i * image1.getHeight()), image1.getRGB(x, y));
+					}
+				}
+			}
+			boolean res = false;
+			try {
+				if (file.exists()) file.deleteOnExit();
+				res = ImageIO.write(image, "png", file);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+//			EmailMain.log.info("{} write full png image to '{}'",  res ? "Success" : "Fail",file);
+			return res;
+		}
 	}
 
 	/**
@@ -289,6 +352,23 @@ public class GifDecoder {
 		public void setImage(BufferedImage image, boolean useCalloc) {
 			this.image = image;
 			this.setPixels(new NativeImage(image.getWidth(), image.getHeight(), useCalloc));
+
+			for (int y = 0; y < image.getHeight(); y++) {
+				for (int x = 0; x < image.getWidth(); x++) {
+					int abgr = image.getRGB(x, y);
+					this.getPixels().setPixelRGBA(x, y, (abgr & 0xFF00FF00) | ((abgr & 0xFF) << 16) | ((abgr >> 16) & 0xFF));
+				}
+			}
+
+			if (!RenderSystem.isOnRenderThread()) {
+				RenderSystem.recordRenderCall(() -> {
+					TextureUtil.prepareImage(this.getId(), this.pixels.getWidth(), this.pixels.getHeight());
+					this.upload();
+				});
+			} else {
+				TextureUtil.prepareImage(this.getId(), this.pixels.getWidth(), this.pixels.getHeight());
+				this.upload();
+			}
 		}
 		public void setPixels(NativeImage pPixels) {
 			if (this.pixels != null) {
@@ -372,9 +452,17 @@ public class GifDecoder {
 		}
 
 		@OnlyIn(Dist.CLIENT)
-		public ResourceLocation registerToMinecraft(ResourceLocation id) throws IOException {
-			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+		public ResourceLocation registerToMinecraft(ResourceLocation id) {
+			if (this.mcPath == null) {
+				this.mcPath = id;
+				Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			}
 			return id;
+		}
+
+		private ResourceLocation mcPath;
+		public ResourceLocation getMcPath() {
+			return mcPath;
 		}
 
 		@OnlyIn(Dist.CLIENT)
@@ -414,6 +502,26 @@ public class GifDecoder {
 			this.width = width;
 			this.height = height;
 			return this;
+		}
+
+		@Override
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		@Override
+		public void setY(int y) {
+			this.y = y;
+		}
+
+		@Override
+		public int getX() {
+			return this.x;
+		}
+
+		@Override
+		public int getY() {
+			return this.y;
 		}
 
 		@Override
@@ -462,7 +570,7 @@ public class GifDecoder {
 	 */
 	public static class GifTexture implements IGifTexture {
 		public final GifDecoder gif;
-		public final Dimension imageSize;
+		public final Dimension imageSize, fullImageSize;
 		protected int currentIndex = 0, glID;
 		protected boolean enableAutoNextFrame = true, useCustomFrameOrder;
 		protected int
@@ -480,17 +588,27 @@ public class GifDecoder {
 		public GifTexture(GifDecoder gif, int glID, boolean uploadTexture) {
 			this.gif = gif;
 			this.imageSize = this.gif.getFrameSize();
+			this.fullImageSize = new Dimension((int) this.imageSize.getWidth(), (int) (this.imageSize.getHeight() * gif.getFrameCount()));
 			this.setImageInfo(0, 0).setRenderSize(1.0f, true);
 
 			this.glID = glID != -1 ? glID : TextureUtil.generateTextureId();
 			if (uploadTexture){
 				this.uploadTexture();
 			}
+			this.setImageInfo(0, 0, this.getImageWidth(), this.getImageHeight());
+//			this.registerToMinecraft(new ResourceLocation("inbox", "test.gif"));
 		}
 		@OnlyIn(Dist.CLIENT)
 		public ResourceLocation registerToMinecraft(ResourceLocation id) {
-			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
-			return id;
+			if (this.mcPath == null) {
+				Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+				this.mcPath = id;
+			}
+			return this.mcPath;
+		}
+		private ResourceLocation mcPath;
+		public ResourceLocation getMcPath() {
+			return this.mcPath;
 		}
 
 		@Override
@@ -502,9 +620,9 @@ public class GifDecoder {
 			BufferedImage image = new BufferedImage(this.getImageWidth(), this.getImageHeight() * this.getAllTextureCount(), BufferedImage.TYPE_INT_ARGB);
 			for (int i = 0; i < this.gif.getFrameCount(); i++) {
 				BufferedImage image1 = this.getImage(i);
-				for (int y = i * this.getImageHeight(); y < image1.getHeight(); y++) {
+				for (int y = 0; y < image1.getHeight(); y++) {
 					for (int x = 0; x < image1.getWidth(); x++) {
-						image.setRGB(x, y, image1.getRGB(x, y));
+						image.setRGB(x, y + (i * image1.getHeight()), image1.getRGB(x, y));
 					}
 				}
 			}
@@ -622,13 +740,33 @@ public class GifDecoder {
 		}
 
 		@Override
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		@Override
+		public void setY(int y) {
+			this.y = y;
+		}
+
+		@Override
+		public int getX() {
+			return this.x;
+		}
+
+		@Override
+		public int getY() {
+			return this.y;
+		}
+
+		@Override
 		public int getImageWidth() {
-			return this.gif.width;
+			return (int) this.imageSize.getWidth();
 		}
 
 		@Override
 		public int getImageHeight() {
-			return this.gif.height;
+			return (int) this.imageSize.getHeight();
 		}
 
 		/**
@@ -667,8 +805,8 @@ public class GifDecoder {
 			this.nextFrame(delay, addCurrentIndex);
 			draw(graphics, this.glID,
 					this.x, this.y, this.width, this.height,
-					this.u, this.getCurrentRenderIndex() * this.getImageHeight(), this.uWidth, this.vHeight,
-					(float) this.imageSize.getWidth(), (float) this.imageSize.getHeight()
+					(float) this.u, (float) (this.v + this.getCurrentRenderIndex() * this.getImageHeight()), this.uWidth, this.vHeight,
+					(int) this.imageSize.getWidth(), (int) this.fullImageSize.getHeight()
 			);
 //			graphics.drawString(Minecraft.getInstance().font, String.valueOf(this.getCurrentRenderIndex()), this.x, this.y - 20, Color.RED.getRGB(), true);
 		}
@@ -726,6 +864,7 @@ public class GifDecoder {
 		}
 
 		public static void draw(GuiGraphics graphics, int texture, int x, int y, int width, int height, float u, float v, int uWidth, int vHeight, float textureWidth, float textureHeight) {
+
 			int
 					x2 = x + width,
 					y2 = y + height;
@@ -741,10 +880,10 @@ public class GifDecoder {
 			Matrix4f matrix4f = graphics.pose().last().pose();
 			BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
 			bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-			bufferbuilder.vertex(matrix4f, (float) x, (float) y, (float)blitOffset).uv(minU, minV).endVertex();
-			bufferbuilder.vertex(matrix4f, (float) x, (float)y2, (float)blitOffset).uv(minU, maxV).endVertex();
+			bufferbuilder.vertex(matrix4f, (float)x, (float)y, (float)blitOffset).uv(minU, minV).endVertex();
+			bufferbuilder.vertex(matrix4f, (float)x, (float)y2, (float)blitOffset).uv(minU, maxV).endVertex();
 			bufferbuilder.vertex(matrix4f, (float)x2, (float)y2, (float)blitOffset).uv(maxU, maxV).endVertex();
-			bufferbuilder.vertex(matrix4f, (float)x2, (float) y, (float)blitOffset).uv(maxU, minV).endVertex();
+			bufferbuilder.vertex(matrix4f, (float)x2, (float)y, (float)blitOffset).uv(maxU, minV).endVertex();
 			BufferUploader.drawWithShader(bufferbuilder.end());
 		}
 		public interface Function2 <T1, T2, R> {
@@ -769,8 +908,27 @@ public class GifDecoder {
 
 		@OnlyIn(Dist.CLIENT)
 		public ResourceLocation registerToMinecraft(ResourceLocation id) {
-			Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			if (this.mcPath == null) {
+				this.mcPath = id;
+				Minecraft.getInstance().getTextureManager().register(id, new MCGifTexture(this));
+			}
 			return id;
+		}
+
+		private ResourceLocation mcPath;
+		public ResourceLocation getMcPath() {
+			return mcPath;
+		}
+
+		@Override
+		public boolean writeToFile(File file) {
+			for (int i = 0; i < this.getAllTextureCount(); i++) {
+				File f1 = new File(file.getParentFile(), file.getName()+"_"+i+".png");
+				if (!this.getTexture(i).writeToFile(f1)) {
+//					EmailMain.log.fatal("Write full png image is fail, index: '{}', path: {}", i, f1);
+				}
+			}
+			return true;
 		}
 
 		public GifTextures addTexture(IGifTexture... texture) {
@@ -856,6 +1014,26 @@ public class GifDecoder {
 			this.width = width;
 			this.height = height;
 			return this;
+		}
+
+		@Override
+		public void setX(int x) {
+			this.x = x;
+		}
+
+		@Override
+		public void setY(int y) {
+			this.y = y;
+		}
+
+		@Override
+		public int getX() {
+			return this.x;
+		}
+
+		@Override
+		public int getY() {
+			return this.y;
 		}
 
 		@Override

@@ -57,12 +57,12 @@ public class GuiTime implements GuiEventListener, NarratableEntry {
 	public void render(GuiGraphics graphics, int x, int y, float p_230430_4_) {
 		if(!this.isEnable) return;
 		final String[] times = {
-				I18n.get("email.config.time.day"),
-				I18n.get("email.config.time.hour"),
-				I18n.get("email.config.time.minute"),
-				I18n.get("email.config.time.second"),
-				I18n.get("email.config.time.tick"),
-				I18n.get("email.config.time.millis")
+				I18n.get("inbox.config.time.day"),
+				I18n.get("inbox.config.time.hour"),
+				I18n.get("inbox.config.time.minute"),
+				I18n.get("inbox.config.time.second"),
+				I18n.get("inbox.config.time.tick"),
+				I18n.get("inbox.config.time.millis")
 		};
 
 		int width = 0;

@@ -2,8 +2,10 @@ package cat.jiu.email;
 
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.command.EmailCommands;
+import cat.jiu.email.command.EmailEventType;
 import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.element.Cooling;
+import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.element.attachment.*;
@@ -43,8 +45,17 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.2-a1";
+                                VERSION = "1.20.1-1.1.2-a2";
     public static final String SYSTEM = "?????";
+    public static final boolean SQLite_INIT;
+    static {
+        boolean init = false;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            init = true;
+        }catch(Exception ignored) {}
+        SQLite_INIT = init;
+    }
     public static EmailNetworkHandler net;
     public static MinecraftServer server;
     private static final long initTime = System.currentTimeMillis();
@@ -60,7 +71,7 @@ public class EmailMain {
         bus.addListener(this::onConfigLoading);
 
         GuiHandler.MENU_TYPE_REGISTER.register(bus);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/email.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/inbox/configs.toml");
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -87,6 +98,7 @@ public class EmailMain {
 
     private void setup(final FMLCommonSetupEvent event){
         ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
+        ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
         event.enqueueWork(()-> net = new EmailNetworkHandler());
 
         IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
@@ -108,6 +120,7 @@ public class EmailMain {
         EmailUtils.initNameAndUUID(event.getServer());
         proxy.isServerClosed = false;
         Cooling.load();
+        EventEmail.load();
         ScheduledEmail.initScheduledEmail();
     }
     @SubscribeEvent
@@ -117,6 +130,7 @@ public class EmailMain {
         Inbox.clearCache();
         ScheduledEmail.saveScheduledEmail();
         EmailAPI.setRootPath();
+        EventEmail.save();
     }
 
     private static final List<Runnable> TASK = new ArrayList<>();

@@ -15,7 +15,6 @@ import cat.jiu.email.ui.gui.component.GuiTime;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.TimeMillis;
-import cat.jiu.email.util.client.GuiDynamicImage;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -51,7 +50,7 @@ public class GuiGenerateScheduledEmail extends Screen {
     private ScheduledEmailInfo emailInfo;
     private EditBox currentEmailTitle;
     private Button refreshBtn, confirmBtn;
-    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
+//    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
 
     public GuiGenerateScheduledEmail(Runnable parent) {
         super(Component.nullToEmpty(null));
@@ -64,10 +63,10 @@ public class GuiGenerateScheduledEmail extends Screen {
         super.init();
         this.lastPath = null;
         Font font = RenderUtils.getFontRenderer();
-        int listWidth = font.width("24/13/32 25:61") + 20;
+        int listWidth = EmailConfigs.Layout.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
 
-        this.emailList = this.addRenderableWidget(new GuiGenerateScheduledEmail.EmailPathList(this, 80, this.height - 35, x, y));
+        this.emailList = this.addRenderableWidget(new GuiGenerateScheduledEmail.EmailPathList(this, listWidth, this.height - 35, x, y));
         x += this.emailList.getWidth() + 8;
 
         this.currentEmailTitle = this.addRenderableOnly(new EditBox(font, x+5, y+5, this.width - this.emailList.getWidth() - 20, font.lineHeight + 6, Component.literal("this is a title")));
@@ -85,37 +84,37 @@ public class GuiGenerateScheduledEmail extends Screen {
 
     protected void initButtons(int x, int y) {
         this.refreshBtn = this.addRenderableWidget(new GuiImageButton(this, this.emailList.getLeft(), this.emailList.getBottom()+1, RenderUtils.getFontRenderer().lineHeight*2+1, RenderUtils.getFontRenderer().lineHeight*2+1, ()->
-                Component.translatable(refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling")
+                Component.translatable(refreshCoolingTicks <= 0 ? "info.inbox.refresh" : "info.inbox.refresh.cooling")
                 , 256, 256, 111, 169, 55, 55, btn->
                 this.refresh(()->{
                             this.setCurrentPath(null);
                             this.refreshBtn.visible = false;
-                            this.loadImage.visible = true;
+//                            this.loadImage.visible = true;
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
                             EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
                         }, ()-> {
                             this.refreshBtn.visible = true;
-                            this.loadImage.visible = false;
+//                            this.loadImage.visible = false;
                         }
                 )
         )).setBackground(()-> GuiInbox.BackGround);
-        this.loadImage.visible = false;
-        this.loadImage.width = this.refreshBtn.getWidth();
-        this.loadImage.height = this.refreshBtn.getHeight();
+//        this.loadImage.visible = false;
+//        this.loadImage.width = this.refreshBtn.getWidth();
+//        this.loadImage.height = this.refreshBtn.getHeight();
 
-        int width = RenderUtils.getFontRenderer().width(Component.translatable("info.email.black.back"));
+        int width = RenderUtils.getFontRenderer().width(Component.translatable("info.inbox.black.back"));
         Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
-                        Component.translatable("info.email.black.back"),
+                        Component.translatable("info.inbox.black.back"),
                         b-> this.parent.run()
                 )
                 .pos(this.emailInfo.getRight() - width - 6, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
                 .build());
 
-        width = this.font.width(Component.translatable("info.email.scheduled.gen"));
+        width = this.font.width(Component.translatable("info.inbox.scheduled.gen"));
         this.confirmBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
-                        Component.translatable("info.email.scheduled.gen"),
+                        Component.translatable("info.inbox.scheduled.gen"),
                         b-> Minecraft.getInstance().setScreen(new ConfirmPanel(()->Minecraft.getInstance().setScreen(this)))
                 )
                 .pos(btn.getX() - width - 8, this.emailInfo.getBottom() + 2)
@@ -127,7 +126,7 @@ public class GuiGenerateScheduledEmail extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
-        RenderUtils.drawString(graphics, I18n.get("info.email.scheduled.gen"), this.emailList.getLeft(), 4, Color.WHITE.getRGB(), true);
+        RenderUtils.drawString(graphics, I18n.get("info.inbox.scheduled.gen"), this.emailList.getLeft(), 4, Color.WHITE.getRGB(), true);
         graphics.fill(this.emailInfo.getLeft(), this.emailList.getTop(), this.emailInfo.getRight(), this.emailInfo.getTop(), 0xC0101010);
         int i = 1;
         EmailUtils.hLineGradient(graphics, false, this.currentEmailTitle.getX(), this.currentEmailTitle.getY() + this.currentEmailTitle.getHeight() - i - 1, this.emailInfo.getRight(), this.currentEmailTitle.getY() + this.currentEmailTitle.getHeight() - i, Color.YELLOW.getRGB(), 0);
@@ -149,11 +148,11 @@ public class GuiGenerateScheduledEmail extends Screen {
 
                 if (entry.email.hasExpirationTime()) {
                     tip.add("");
-                    tip.add(I18n.get("info.email.scheduled.expiration_time", ITimer.formatTimestamp(entry.email.getExpirationTime().millis)));
+                    tip.add(I18n.get("info.inbox.scheduled.expiration_time", ITimer.formatTimestamp(entry.email.getExpirationTime().millis)));
                 }
 
                 tip.add("");
-                tip.add(I18n.get("info.email.scheduled.gen.path") + entry.path+".json");
+                tip.add(I18n.get("info.inbox.scheduled.gen.path") + entry.path+".json");
 
                 graphics.renderComponentTooltip(RenderUtils.getFontRenderer(), tip.stream().map(Component::literal).collect(Collectors.toList()), pX, pY);
                 break;
@@ -207,7 +206,7 @@ public class GuiGenerateScheduledEmail extends Screen {
                 Component component = message.toTextComponent();
 
                 List<FormattedCharSequence> texts;
-                if (EmailConfigs.Main.Enable_Vanilla_Wrap_Text.get()) {
+                if (EmailConfigs.Layout.Enable_Vanilla_Wrap_Text.get()) {
                     texts = Language.getInstance().getVisualOrder(font.getSplitter().splitLines(component, textMaxLength, Style.EMPTY));
                 }else {
                     texts = EmailUtils.splitString(message.format(), textMaxLength).stream().map(e->FormattedCharSequence.backward(e, Style.EMPTY)).collect(Collectors.toList());
@@ -523,19 +522,19 @@ public class GuiGenerateScheduledEmail extends Screen {
                     x = this.leftPos + 29,
                     y = this.topPos + 20 + RenderUtils.getFontRenderer().lineHeight + 2;
 
-            int width = RenderUtils.width(Component.translatable("info.email.scheduled.gen.interval.change")) + 4;
-            this.timeBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.email.scheduled.gen.interval.change"), btn->this.time.setEnable(!this.time.isEnable()))
+            int width = RenderUtils.width(Component.translatable("info.inbox.scheduled.gen.interval.change")) + 4;
+            this.timeBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.inbox.scheduled.gen.interval.change"), btn->this.time.setEnable(!this.time.isEnable()))
                     .bounds(x, y, width, RenderUtils.getFontRenderer().lineHeight + 2)
                     .build());
             this.addWidget(this.time);
 
-            width = RenderUtils.width(Component.translatable("info.email.scheduled.gen.addressee.0")) + 4;
-            this.addresseeBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.email.scheduled.gen.addressee.0"), btn->{
+            width = RenderUtils.width(Component.translatable("info.inbox.scheduled.gen.addressee.0")) + 4;
+            this.addresseeBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.inbox.scheduled.gen.addressee.0"), btn->{
                         this.currentAddressee++;
                         if (this.currentAddressee>=3) {
                             this.currentAddressee = 0;
                         }
-                        this.addresseeBtn.setMessage(Component.translatable("info.email.scheduled.gen.addressee."+this.currentAddressee));
+                        this.addresseeBtn.setMessage(Component.translatable("info.inbox.scheduled.gen.addressee."+this.currentAddressee));
                         this.custom_addressee.visible = this.currentAddressee==2;
                     })
                     .bounds(x, y += this.timeBtn.getHeight() + 4, width, RenderUtils.getFontRenderer().lineHeight + 2)
@@ -552,7 +551,7 @@ public class GuiGenerateScheduledEmail extends Screen {
             this.custom_addressee.setBordered(false);
             this.custom_addressee.visible = false;
 
-            this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.email.confirm"), btn->this.gen())
+            this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.inbox.confirm"), btn->this.gen())
                             .bounds(this.leftPos + 8, this.topPos + 166 - 20, 160, RenderUtils.getFontRenderer().lineHeight + 2)
                     .build());
         }
@@ -583,21 +582,21 @@ public class GuiGenerateScheduledEmail extends Screen {
 
             RenderUtils.draw(graphics, GuiInbox.BackGround, this.leftPos, this.topPos, 176, 166, 0, 0);
 
-            RenderUtils.drawCenteredString(graphics, I18n.get("info.email.scheduled.gen"), this.leftPos + (176/2), this.topPos + 5, Color.WHITE.getRGB(), true);
+            RenderUtils.drawCenteredString(graphics, I18n.get("info.inbox.scheduled.gen"), this.leftPos + (176/2), this.topPos + 5, Color.WHITE.getRGB(), true);
             int
                     x = this.leftPos + 29,
                     y = this.topPos + 20;
-            RenderUtils.drawRightString(graphics, I18n.get("info.email.scheduled.gen.path"), x, y, Color.WHITE.getRGB(), true);
+            RenderUtils.drawRightString(graphics, I18n.get("info.inbox.scheduled.gen.path"), x, y, Color.WHITE.getRGB(), true);
             RenderUtils.drawString(graphics, ChatFormatting.YELLOW + this.path, x, y, Color.WHITE.getRGB(), true);
 
-            RenderUtils.drawRightString(graphics, I18n.get("info.email.scheduled.gen.interval"), x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
-            String time = this.time.getTimeOfMillis() <= 0 ? I18n.get("info.email.scheduled.gen.interval.change.un") : ITimer.formatTimestamp(this.time.getTimeOfMillis(), false, true, true, true, true);
+            RenderUtils.drawRightString(graphics, I18n.get("info.inbox.scheduled.gen.interval"), x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
+            String time = this.time.getTimeOfMillis() <= 0 ? I18n.get("info.inbox.scheduled.gen.interval.change.un") : ITimer.formatTimestamp(this.time.getTimeOfMillis(), false, true, true, true, true);
             RenderUtils.drawString(graphics, time, this.timeBtn.getX() + this.timeBtn.getWidth() + 3, this.timeBtn.getY() + 2, Color.WHITE.getRGB(), true);
 
-            RenderUtils.drawRightString(graphics, I18n.get("info.email.addressee") + ": ", x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
-            RenderUtils.drawString(graphics, I18n.get("info.email.scheduled.gen.addressee."+this.currentAddressee + ".info"), this.addresseeBtn.getX() + this.addresseeBtn.getWidth() + 3, this.addresseeBtn.getY() + 2, Color.WHITE.getRGB(), true);
+            RenderUtils.drawRightString(graphics, I18n.get("info.inbox.addressee") + ": ", x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
+            RenderUtils.drawString(graphics, I18n.get("info.inbox.scheduled.gen.addressee."+this.currentAddressee + ".info"), this.addresseeBtn.getX() + this.addresseeBtn.getWidth() + 3, this.addresseeBtn.getY() + 2, Color.WHITE.getRGB(), true);
 
-            RenderUtils.drawRightString(graphics, I18n.get("info.email.scheduled.gen.note"), x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
+            RenderUtils.drawRightString(graphics, I18n.get("info.inbox.scheduled.gen.note"), x, y += RenderUtils.getFontRenderer().lineHeight + 4, Color.WHITE.getRGB(), true);
 
             super.render(graphics, pMouseX, pMouseY, pPartialTick);
 
@@ -605,7 +604,7 @@ public class GuiGenerateScheduledEmail extends Screen {
             graphics.hLine(this.note.getX(), this.note.getX() + this.note.getWidth(), this.note.getY() + this.note.getHeight() - 2, Color.LIGHT_GRAY.getRGB());
 
             if (this.currentAddressee == 2) {
-                RenderUtils.drawString(graphics, I18n.get("info.email.scheduled.gen.addressee.2.custom"), this.custom_addressee.getX(), this.custom_addressee.getY() - RenderUtils.getFontRenderer().lineHeight - 3, Color.WHITE.getRGB(), true);
+                RenderUtils.drawString(graphics, I18n.get("info.inbox.scheduled.gen.addressee.2.custom"), this.custom_addressee.getX(), this.custom_addressee.getY() - RenderUtils.getFontRenderer().lineHeight - 3, Color.WHITE.getRGB(), true);
                 graphics.hLine(this.custom_addressee.getX(), this.custom_addressee.getX() + this.custom_addressee.getWidth(), this.custom_addressee.getY() + this.custom_addressee.getHeight() - 2, Color.LIGHT_GRAY.getRGB());
             }
         }

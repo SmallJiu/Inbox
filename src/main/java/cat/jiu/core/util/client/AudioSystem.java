@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
 import jmp123.PlayBack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
@@ -15,8 +16,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -63,17 +66,19 @@ public class AudioSystem {
         jmp123.output.Audio jmp_audio = new jmp123.output.Audio();
         PlayBack player = new PlayBack(jmp_audio);
         Thread thread = new Thread(()->{
+            int retry = 0;
                 do {
                     try {
                         play(audio, id, jmp_audio, player);
                         audio.addLoopCount();
                     }catch (Exception e){
-                        LOGGER.error("Unable to play audio. file: ' {} ', loop: {}, uid: {}, info: {}", audio.getFile(), audio.getLoopCount(), id, e);
+                        LOGGER.error("Unable to play audio. file: ' {} ', loop: {}, uid: {}, retry: {}, info: {}", audio.getFile(), audio.getLoopCount(), retry, id, e);
+                        retry++;
                     }
                     try {
                         Thread.sleep(audio.getLoopDelay());
                     } catch (Exception ignored) {}
-                }while (!audio.isClose() && audio.isCanLopping());
+                }while (!audio.isClose() && audio.isCanLopping() && retry < audio.getMaxRetryCount());
                 stop(id);
         });
         MAP.put(id, new Sound(audio, jmp_audio, player, thread));
@@ -96,6 +101,7 @@ public class AudioSystem {
         }
         level = event.getVolume();
         setVolume(id, level);
+        MAP.get(id).oriVol = level;
 
         player.start(false);
     }
@@ -248,7 +254,20 @@ public class AudioSystem {
     public static void onGuiClose(ScreenEvent.Closing event){
         if (event.getScreen().isPauseScreen()) {
             AudioSystem.startAll();
-//            MAP.forEach((key, value) -> setVolume(key, getMinecraftVolume(value.audio.getSoundChannel())));
+            MAP.forEach((key, value) -> setVolume(key, getMinecraftVolume(value.audio.getSoundChannel())));
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+//    @SubscribeEvent
+    public static void onPlayerTicked(TickEvent.PlayerTickEvent event){
+        if (event.phase == TickEvent.Phase.END && !MAP.isEmpty()) {
+            MAP.forEach((key, value) -> {
+                if (value.audio.getPosition() != null) {
+                    double dist = value.audio.getPlayPositionDist(event.player.getOnPos());
+                    setVolume(key, (float) (dist / value.oriVol));
+                }
+            });
         }
     }
 
@@ -263,6 +282,7 @@ public class AudioSystem {
         final jmp123.output.Audio jmpAudio;
         final PlayBack player;
         final Thread thread;
+        float oriVol;
         boolean close = false;
         public Sound(Audio audio, jmp123.output.Audio jmpAudio, PlayBack player, Thread thread) {
             this.audio = audio;
@@ -277,8 +297,12 @@ public class AudioSystem {
         private String file;
         private SoundSource soundChannel;
         private boolean canLopping = false, infiniteLopping = false;
-        private int maxLoopCount = 5, loopCount = 0;
+        private int maxLoopCount = 5, loopCount = 0, maxRetry = 5;
         private long loopDelay = 500;
+        /**
+         * 如果需要定点播放，此对象不为null
+         */
+        private BlockPos pos;
 
         public Audio(File file, SoundSource soundChannel) {
             this(file.getPath(), soundChannel);
@@ -293,7 +317,7 @@ public class AudioSystem {
         }
 
         /**
-         * @return stared will set to actual id, stopped will set to null.
+         * @return played will set to actual id, stopped will set to null.
          */
         public UUID getUUID() {
             return uid;
@@ -348,6 +372,31 @@ public class AudioSystem {
             }
 
             return file;
+        }
+
+        public int getMaxRetryCount() {
+            return this.maxRetry;
+        }
+
+        public Audio setMaxRetry(int maxRetry) {
+            this.maxRetry = maxRetry;
+            return this;
+        }
+
+        public BlockPos getPosition() {
+            return pos;
+        }
+
+        public Audio setPlayPosition(int x, int y, int z) {
+            return this.setPlayPosition(new BlockPos(x, y ,z));
+        }
+        public Audio setPlayPosition(BlockPos pos) {
+            this.pos = pos;
+            return this;
+        }
+
+        public double getPlayPositionDist(BlockPos checkPos) {
+            return this.pos != null ? this.pos.distToLowCornerSqr(checkPos.getX(), checkPos.getY(), checkPos.getZ()) : 0;
         }
 
         public String getFile() {
@@ -433,6 +482,9 @@ public class AudioSystem {
         public CompoundTag write(CompoundTag data) {
             data.putString("file", this.getFile());
             data.putString("channel", this.getSoundChannel().getName());
+            if (this.getMaxRetryCount() != 5) {
+                data.putInt("maxRetry", this.getMaxRetryCount());
+            }
             if (this.isCanLopping()) {
                 data.putBoolean("canLoop", this.isCanLopping());
                 data.putLong("loopDelay", this.getLoopDelay());
@@ -443,6 +495,7 @@ public class AudioSystem {
                     data.putInt("maxLoopCount", this.getMaxLoopCount());
                 }
             }
+            NBTUtils.pos(data, this.getPosition());
             return data;
         }
         public void read(CompoundTag data) {
@@ -452,10 +505,15 @@ public class AudioSystem {
             this.setLoopDelay(NBTUtils.get(data, "loopDelay", 0L));
             this.setInfiniteLopping(NBTUtils.get(data, "infiniteLoop", false));
             this.setMaxLoopCount(NBTUtils.get(data, "maxLoopCount", 0));
+            this.setMaxRetry(NBTUtils.get(data, "maxRetry", 5));
+            this.setPlayPosition(NBTUtils.pos(data));
         }
         public JsonObject write(JsonObject data) {
             data.addProperty("file", this.getFile());
             data.addProperty("channel", this.getSoundChannel().getName());
+            if (this.getMaxRetryCount() != 5) {
+                data.addProperty("maxRetry", this.getMaxRetryCount());
+            }
             if (this.isCanLopping()) {
                 data.addProperty("canLoop", this.isCanLopping());
                 data.addProperty("loopDelay", this.getLoopDelay());
@@ -466,6 +524,7 @@ public class AudioSystem {
                     data.addProperty("maxLoopCount", this.getMaxLoopCount());
                 }
             }
+            JsonUtils.pos(data, this.getPosition());
             return data;
         }
         public void read(JsonObject data) {
@@ -475,6 +534,8 @@ public class AudioSystem {
             this.setLoopDelay(JsonUtils.get(data, "loopDelay", 0L)); // 循环一次的间隙
             this.setInfiniteLopping(JsonUtils.get(data, "infiniteLoop", false)); // 是否可以无限循环
             this.setMaxLoopCount(JsonUtils.get(data, "maxLoopCount", 0)); // 最大循环次数
+            this.setMaxRetry(JsonUtils.get(data, "maxRetry", 5));
+            this.setPlayPosition(JsonUtils.pos(data));
         }
 
         public static Audio create(CompoundTag data) {

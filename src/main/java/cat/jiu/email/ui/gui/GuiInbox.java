@@ -3,25 +3,27 @@ package cat.jiu.email.ui.gui;
 import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.client.GifDecoder;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.AttachmentEvent;
+import cat.jiu.email.event.InboxFilterEvent;
 import cat.jiu.email.event.InboxPlaySoundEvent;
 import cat.jiu.email.net.msg.MsgDeleteEmail;
+import cat.jiu.email.net.msg.MsgDisplayInbox;
 import cat.jiu.email.net.msg.MsgReadEmail;
 import cat.jiu.email.net.msg.MsgReceiveEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshInbox;
 import cat.jiu.email.ui.GuiHandler;
-import cat.jiu.email.ui.gui.component.EmailListWidgetScreen;
+import cat.jiu.email.ui.gui.component.EmailListWidget;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 import cat.jiu.email.ui.gui.component.GuiPopupMenu;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.client.EmailSenderSndSound;
-import cat.jiu.email.util.client.GuiDynamicImage;
 import cat.jiu.core.util.client.AudioSystem;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -58,16 +60,18 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("all")
 public class GuiInbox extends Screen {
-    public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/email_main.png");
+    public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_bg.png");
+    public static final ResourceLocation ICON = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_icon.png");
+    @Deprecated
     public static final ResourceLocation load = new ResourceLocation(EmailMain.MODID, "textures/gui/load.png");
-    private EmailListWidgetScreen emailList;
+    public static final GifDecoder.GifTexture LOADING_GIF = GifDecoder.getTexture(EmailMain.class.getResourceAsStream("/assets/email/textures/gui/loading.gif"), -1);
+    private EmailListWidget emailList;
     private EmailInfo emailInfo;
     private EditBox currentEmailTitle, currentEmailCreateTime;
     private Button deleteEmailBtn, acceptEmailBtn, filterEmailBtn, functionMenuBtn;
     private GuiImageButton playSoundBtn, refreshBtn;
-    private final GuiDynamicImage loadImage = new GuiDynamicImage(load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
     private final GuiPopupMenu filterMenu = new GuiPopupMenu(), functionMenu = new GuiPopupMenu();
-    private final Inbox inbox = Inbox.get(Minecraft.getInstance().player);
+    private final Inbox inbox = Inbox.getEmpty("");
     private long inboxSize = -1, currentEmailID = -1;
 
     public GuiInbox() {
@@ -76,11 +80,13 @@ public class GuiInbox extends Screen {
 //        this.imageHeight = EmailConfigs.Main.Size.Height.get();
         this.filterMenu.setResetButtonSize(true, false);
         this.functionMenu.setResetButtonSize(true, false);
-//
+//        GuiInbox.loading.writeToFile(new File("C:/test.png"));
+        ;
     }
 
     public static void display() {
         Minecraft.getInstance().setScreen(new GuiInbox());
+        EmailMain.net.sendMessageToServer(new MsgDisplayInbox(true));
         refresh();
     }
 
@@ -92,12 +98,11 @@ public class GuiInbox extends Screen {
 
     @Override
     protected void init() {
-        super.init();
         Font font = this.getFont();
-        int listWidth = font.width("88/88/88 88:88") + 20;
+        int listWidth = EmailConfigs.Layout.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
 
-        this.emailList = this.addRenderableWidget(new EmailListWidgetScreen(this, listWidth, this.height - 35, x, y));
+        this.emailList = this.addRenderableWidget(new EmailListWidget(this, listWidth, this.height - 35, x, y));
         x += this.emailList.getWidth() + 8;
 
         this.currentEmailTitle = this.addRenderableOnly(new EditBox(font, x+5, y+5, this.width - this.emailList.getWidth() - 20, font.lineHeight + 6, Component.nullToEmpty("this is a title")));
@@ -121,11 +126,11 @@ public class GuiInbox extends Screen {
     protected void initButtons(int x, int y) {
         this.playSoundBtn = this.addRenderableWidget(new GuiImageButton(this, this.currentEmailTitle.getX() + this.currentEmailTitle.getWidth() - this.currentEmailTitle.getHeight()*2 - 5, this.currentEmailTitle.getY(), this.currentEmailTitle.getHeight()*2 - 6, this.currentEmailTitle.getHeight()*2 - 6, ()->null, 256, 256, 0, 169, 56, 56, btn->
                 this.playSound()
-        )).setBackground(()->BackGround);
+        )).setBackground(()->ICON);
         this.playSoundBtn.visible = false;
 
-        int width = this.font.width(Component.translatable("info.email.filter.default"));
-        this.filterEmailBtn = this.addRenderableWidget(GuiButton.builder(Component.translatable("info.email.filter.default"), b-> {
+        int width = this.font.width(Component.translatable("info.inbox.filter.default"));
+        this.filterEmailBtn = this.addRenderableWidget(GuiButton.builder(Component.translatable("info.inbox.filter.default"), b-> {
                     this.filterMenu.setVisible(!this.filterMenu.isVisible());
                     this.renderEmptyTitle = !this.renderEmptyTitle;
                     this.currentEmailTitle.setValue("");
@@ -142,38 +147,34 @@ public class GuiInbox extends Screen {
         this.initFilterMenu();
 
         this.refreshBtn = this.addRenderableWidget(new GuiImageButton(this, this.emailList.getLeft(), this.emailList.getBottom()+1, this.getFont().lineHeight*2+1, this.getFont().lineHeight*2+1, ()->
-                Component.translatable(refreshCoolingTicks <= 0 ? "info.email.refresh" : "info.email.refresh.cooling")
+                Component.translatable(refreshCoolingTicks <= 0 ? "info.inbox.refresh" : "info.inbox.refresh.cooling")
                 , 256, 256, 111, 169, 55, 55, btn->
                 this.refresh(()->{
                             this.stopSound();
                             this.setCurrentEmail(-1);
                             this.refreshBtn.visible = false;
-                            this.loadImage.visible = true;
                             this.renderEmptyTitle = true;
                             this.inbox.deleteAllEmail();
                             this.updataInboxSize();
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
                             EmailMain.net.sendMessageToServer(new MsgRefreshInbox());
-                        }, ()->
-                                this.refreshBtn.visible = true
+                        }, ()-> this.refreshBtn.visible = true
                 )
-        )).setBackground(()->BackGround);
-        this.loadImage.visible = false;
-        this.loadImage.width = this.refreshBtn.getWidth();
-        this.loadImage.height = this.refreshBtn.getHeight();
+        )).setBackground(()->ICON);
+        this.refreshBtn.visible = refreshCoolingTicks <= 0;
 
         Button btn = this.addRenderableWidget(GuiButton.builder(
-                        Component.translatable("info.email.black.close"),
+                        Component.translatable("info.inbox.black.close"),
                         b-> this.getMinecraft().setScreen(null)
                 )
                 .pos(this.emailInfo.getRight() - width - 6, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
                 .build());
 
-        width = this.font.width(Component.translatable("info.email.menu"));
+        width = this.font.width(Component.translatable("info.inbox.menu"));
         this.functionMenuBtn = btn = this.addRenderableWidget(GuiButton.builder(
-                        Component.translatable("info.email.menu"),
+                        Component.translatable("info.inbox.menu"),
                         b-> {
                             this.functionMenu.setPosition((this.functionMenuBtn.getX() + this.functionMenuBtn.getWidth()/2) - this.functionMenu.getWidth()/2, this.functionMenuBtn.getY() - this.functionMenu.getHeight() - 5);
                             this.functionMenu.setVisible(!this.functionMenu.isVisible());
@@ -185,9 +186,9 @@ public class GuiInbox extends Screen {
         this.addRenderableWidget(this.functionMenu);
         this.initFunctionMenu();
 
-        width = this.font.width(Component.translatable("info.email.delete"));
+        width = this.font.width(Component.translatable("info.inbox.delete"));
         btn = this.deleteEmailBtn = this.addRenderableWidget(GuiButton.builder(
-                        Component.translatable("info.email.delete"),
+                        Component.translatable("info.inbox.delete"),
                         b-> {
                             EmailMain.net.sendMessageToServer(new MsgDeleteEmail.Delete(this.getCurrentEmailID()));
                             for (int i = 0; i < this.emailList.children().size(); i++) {
@@ -207,15 +208,14 @@ public class GuiInbox extends Screen {
                 .build());
         this.deleteEmailBtn.visible = false;
 
-        width = this.font.width(Component.translatable("info.email.accept"));
+        width = this.font.width(Component.translatable("info.inbox.accept"));
         btn = this.acceptEmailBtn = this.addRenderableWidget(GuiButton.builder(
-                        Component.translatable("info.email.accept"),
+                        Component.translatable("info.inbox.accept"),
                         b-> {
                             EmailMain.net.sendMessageToServer(new MsgReceiveEmail.Receive(this.getCurrentEmailID()));
                             if (this.emailList.getSelected()!=null) {
                                 this.acceptEmailBtn.visible = false;
-                                this.emailList.getSelected().getEmail().setAccept(true);
-                                this.emailList.getSelected().updata();
+                                this.emailList.getSelected().getEmail().receive(getMinecraft().player);
                                 this.updataInboxSize();
                             }
                         }
@@ -228,44 +228,45 @@ public class GuiInbox extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
+        this.renderBackground(graphics);
         graphics.fillGradient(this.emailInfo.getLeft(), this.emailInfo.getTop() - this.currentEmailTitle.getHeight()*2 - 5, this.emailInfo.getRight(), this.emailInfo.getTop(), 0xC0101010, 0xC0101010);
         EmailUtils.hLineGradient(graphics, false, this.currentEmailCreateTime.getX(), this.currentEmailCreateTime.getY() + this.currentEmailCreateTime.getHeight() - 4, this.emailInfo.getRight(), this.currentEmailCreateTime.getY() + this.currentEmailCreateTime.getHeight() - 3, Color.YELLOW.getRGB(), 0);
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
 
-        graphics.drawString(this.getFont(), this.getInboxSize() +" Bytes", this.refreshBtn.getX() + (this.refreshBtn.visible ? this.refreshBtn.getWidth() + 4 : 0), this.refreshBtn.getY() + this.refreshBtn.getHeight()/2 - this.getFont().lineHeight/2, Color.WHITE.getRGB());
-        this.loadImage.draw(graphics, this.refreshBtn.getX(), this.refreshBtn.getY());
+        graphics.drawString(this.getFont(), this.getInboxSize() +" Bytes", this.refreshBtn.getX() + this.refreshBtn.getWidth() + 4, this.refreshBtn.getY() + this.refreshBtn.getHeight()/2 - this.getFont().lineHeight/2, Color.WHITE.getRGB());
+//        this.loadImage.draw(graphics, this.refreshBtn.getX(), this.refreshBtn.getY());
+        if (!this.refreshBtn.visible) GuiInbox.LOADING_GIF
+                .setRenderPos(this.refreshBtn.getX(), this.refreshBtn.getY() - 5)
+                .setRenderSize(this.refreshBtn.getWidth(), this.refreshBtn.getHeight())
+                .render(graphics);
         this.renderTooltip(graphics, pMouseX, pMouseY);
         this.updataData();
     }
 
     protected void renderTooltip(GuiGraphics graphics, int pX, int pY) {
         for (int i = 0; i < this.emailList.children().size(); i++) {
-            EmailListWidgetScreen.EmailEntry entry = null;
+            EmailListWidget.EmailEntry entry = null;
             try {
                 entry = this.emailList.children().get(i);
             }catch (Throwable ignored){}
             if (entry!=null && EmailUtils.isInRange(pX, pY, this.emailList.getLeft(), this.emailList.getTop(), this.emailList.getWidth(), this.emailList.getHeight()) && entry.isMouseOver(pX, pY)) {
-                if (entry.getEmail().isExpiration()) {
-                    entry.updata();
-                }
                 List<String> tip = Lists.newArrayList();
 
                 tip.add(entry.getEmail().getTitle().format());
                 tip.add("");
 
                 tip.add(ChatFormatting.GRAY + entry.getEmail().getCreateTimeAsString());
-                tip.add(I18n.get("info.email.main.from", entry.getEmail().getSender().format()));
+                tip.add(I18n.get("info.inbox.main.from", entry.getEmail().getSender().format()));
 
                 tip.add("");
 
-                tip.add(I18n.get("info.email.email_size", entry.getEmail().getEmailNetworkSize()));
+                tip.add(I18n.get("info.inbox.email_size", entry.getEmail().getEmailNetworkSize()));
                 if (entry.getEmail().getExpirationTime() != null) {
                     tip.add("");
-                    long time = entry.getEmail().getExpirationTimeAsTimestamp();
-                    if (System.currentTimeMillis() >= time) {
-                        tip.add(String.format("%s: %s", I18n.get("email.config.expiration"), ChatFormatting.RED + I18n.get("email.config.expiration.ed")));
+                    if (entry.getEmail().isExpiration()) {
+                        tip.add(String.format("%s: %s", I18n.get("inbox.config.expiration"), ChatFormatting.RED + I18n.get("inbox.config.expiration.ed")));
                     } else {
-                        tip.add(I18n.get("info.email.remain_expiration_time", EmailUtils.formatTimestamp(time - System.currentTimeMillis())));
+                        tip.add(I18n.get("info.inbox.remain_expiration_time", EmailUtils.getExpirationTime(entry.getEmail())));
                     }
                 }
                 tip.add(String.format("ID: %s", entry.getEmailId()));
@@ -287,7 +288,7 @@ public class GuiInbox extends Screen {
 
                 if(this.playSoundBtn.isMouseOver(pX, pY)) {
                     List<Component> hover = Lists.newArrayList();
-                    hover.add(Component.translatable("info.email.play_sound" + (this.isPlayingSound() ? ".stop" : "")));
+                    hover.add(Component.translatable("info.inbox.play_sound" + (this.isPlayingSound() ? ".stop" : "")));
                     if(this.isPlayingSound()) {
                         if (this.currentAudioUUID != null) {
                             if (this.currentAudioDuration == null) {
@@ -302,7 +303,7 @@ public class GuiInbox extends Screen {
                             hover.add(Component.literal(String.format("%s / %s", event.getElapse(), event.getDuration())));
                         }
                     }else {
-                        hover.add(Component.translatable("info.email.play_sound.category", Component.translatable("soundCategory."+ (email.isExternalSound() ? email.getExternalSound().getCategory().getName() : email.getSound().getSoundChannel().getName()).toLowerCase())));
+                        hover.add(Component.translatable("info.inbox.play_sound.category", Component.translatable("soundCategory."+ (email.isExternalSound() ? email.getExternalSound().getCategory().getName() : email.getSound().getSoundChannel().getName()).toLowerCase())));
                     }
                     graphics.renderComponentTooltip(this.font, hover, pX, pY);
                 }
@@ -317,7 +318,7 @@ public class GuiInbox extends Screen {
             this.functionMenu.setVisible(false);
             this.filterMenu.setVisible(false);
             if (pButton == 1) {
-                for (EmailListWidgetScreen.EmailEntry entry : this.emailList.children()) {
+                for (EmailListWidget.EmailEntry entry : this.emailList.children()) {
                     if (EmailUtils.isInRange(pMouseX, pMouseY, this.emailList.getLeft(), this.emailList.getTop(), this.emailList.getWidth(), this.emailList.getHeight()) && entry.isMouseOver(pMouseX, pMouseY)) {
 
                         return true;
@@ -336,33 +337,32 @@ public class GuiInbox extends Screen {
 
     private void initFunctionMenu() {
         this.functionMenu.clearPopupButtons();
-        this.addFunctionButton(I18n.get("info.email.dispatch"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_SEND));
-        this.addFunctionButton(I18n.get("info.email.delete_read"), ()-> {
+        this.addFunctionButton(I18n.get("info.inbox.dispatch"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_SEND));
+        this.addFunctionButton(I18n.get("info.inbox.delete_read"), ()-> {
             EmailMain.net.sendMessageToServer(new MsgDeleteEmail.AllRead());
             for (int i = 0; i < this.emailList.children().size(); i++) {
-                EmailListWidgetScreen.EmailEntry entry = this.emailList.children().get(i);
+                EmailListWidget.EmailEntry entry = this.emailList.children().get(i);
                 if(entry.getEmail().isRead() && !entry.getEmail().hasItems()) {
                     this.inbox.deleteEmail(entry.getEmailId());
                 }
             }
             this.emailList.refreshList();
         });
-        this.addFunctionButton(I18n.get("info.email.accept_all"), ()-> {
+        this.addFunctionButton(I18n.get("info.inbox.accept_all"), ()-> {
             EmailMain.net.sendMessageToServer(new MsgReceiveEmail.All());
             for (int i = 0; i < this.emailList.children().size(); i++) {
-                EmailListWidgetScreen.EmailEntry entry = this.emailList.children().get(i);
+                EmailListWidget.EmailEntry entry = this.emailList.children().get(i);
                 if(entry.getEmail().hasAttachment() && !entry.getEmail().isReceived()) {
-                    entry.getEmail().setAccept(true);
-                    entry.updata();
+                    entry.getEmail().receive(getMinecraft().player);
                 }
             }
         });
 
-        this.addFunctionButton(I18n.get("info.email.black"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST));
-        this.addFunctionButton(I18n.get("info.email.scheduled"), () -> Minecraft.getInstance().setScreen(new GuiScheduledEmail()));
+        this.addFunctionButton(I18n.get("info.inbox.black"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST));
+        this.addFunctionButton(I18n.get("info.inbox.scheduled"), () -> Minecraft.getInstance().setScreen(new GuiScheduledEmail()));
 
         if (EmailUtils.isOP(Minecraft.getInstance().player)) {
-            this.addFunctionButton(I18n.get("info.email.generate"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_Generate));
+            this.addFunctionButton(I18n.get("info.inbox.generate"), ()-> GuiHandler.openGui(GuiHandler.EMAIL_Generate));
         }
     }
 
@@ -373,24 +373,24 @@ public class GuiInbox extends Screen {
     private void initFilterMenu() {
         this.filterMenu.clearPopupButtons();
         this.addFilter();
-//		MinecraftForge.EVENT_BUS.post(new InboxFilterEvent(this));
+		MinecraftForge.EVENT_BUS.post(new InboxFilterEvent(this));
     }
 
     private void addFilter() {
-        this.addFilter(I18n.get("info.email.filter.default"), email -> true);
+        this.addFilter(I18n.get("info.inbox.filter.default"), email -> true);
 
-        this.addFilter(I18n.get("info.email.filter.is_read"), Email::isRead);
-        this.addFilter(I18n.get("info.email.filter.not_read"), email -> !email.isRead());
+        this.addFilter(I18n.get("info.inbox.filter.is_read"), Email::isRead);
+        this.addFilter(I18n.get("info.inbox.filter.not_read"), email -> !email.isRead());
 
-        this.addFilter(I18n.get("info.email.filter.has_sound"), Email::hasSound);
+        this.addFilter(I18n.get("info.inbox.filter.has_sound"), Email::hasSound);
 
-        this.addFilter(I18n.get("info.email.filter.has_item"), Email::hasItems);
-        this.addFilter(I18n.get("info.email.filter.is_accept"), email -> email.hasItems() && email.isReceived());
-        this.addFilter(I18n.get("info.email.filter.not_accept"), email -> email.hasItems() && !email.isReceived());
+        this.addFilter(I18n.get("info.inbox.filter.has_item"), Email::hasItems);
+        this.addFilter(I18n.get("info.inbox.filter.is_accept"), email -> email.hasItems() && email.isReceived());
+        this.addFilter(I18n.get("info.inbox.filter.not_accept"), email -> email.hasItems() && !email.isReceived());
 
-        this.addFilter(I18n.get("info.email.filter.has_expiration"), Email::hasExpirationTime);
-        this.addFilter(I18n.get("info.email.filter.is_expiration"), email -> email.hasExpirationTime() && email.isExpiration());
-        this.addFilter(I18n.get("info.email.filter.not_expiration"), email -> email.hasExpirationTime() && !email.isExpiration());
+        this.addFilter(I18n.get("info.inbox.filter.has_expiration"), Email::hasExpirationTime);
+        this.addFilter(I18n.get("info.inbox.filter.is_expiration"), email -> email.hasExpirationTime() && email.isExpiration());
+        this.addFilter(I18n.get("info.inbox.filter.not_expiration"), email -> email.hasExpirationTime() && !email.isExpiration());
     }
 
     boolean renderEmptyTitle = true;
@@ -431,7 +431,6 @@ public class GuiInbox extends Screen {
             if(!email.isRead()) {
                 EmailMain.net.sendMessageToServer(new MsgReadEmail(id));
                 email.setRead(true);
-                this.emailList.getSelected().updata();
                 this.updataInboxSize();
             }
 
@@ -440,7 +439,7 @@ public class GuiInbox extends Screen {
                 Component component = message.toTextComponent();
 
                 List<FormattedCharSequence> texts;
-                if (EmailConfigs.Main.Enable_Vanilla_Wrap_Text.get()) {
+                if (EmailConfigs.Layout.Enable_Vanilla_Wrap_Text.get()) {
                     texts = Language.getInstance().getVisualOrder(font.getSplitter().splitLines(component, textMaxLength, Style.EMPTY));
                 }else {
                     texts = EmailUtils.splitString(message.format(), textMaxLength).stream().map(e->FormattedCharSequence.backward(e, Style.EMPTY)).collect(Collectors.toList());
@@ -506,7 +505,7 @@ public class GuiInbox extends Screen {
                     String file = this.getCurrentEmail().getExternalSound().getFile();
                     if (!(file.startsWith("http://") || file.startsWith("https://"))) {
                         if (!file.endsWith(".mp3") || !new File(file).exists()) {
-//                            this.setRenderText(Timer.parseTick(10, 0), true, I18n.get("info.email.file_not_found", file), Color.RED);
+//                            this.setRenderText(Timer.parseTick(10, 0), true, I18n.get("info.inbox.file_not_found", file), Color.RED);
                             check = false;
                         }
                     }
@@ -554,10 +553,26 @@ public class GuiInbox extends Screen {
     }
 
     public void addEmail(long id, Email emai) {
-        this.loadImage.visible = false;
         this.inbox.setEmail(id, emai);
         this.updataInboxSize();
+        long selected = -1;
+        if (this.emailList.getSelected() != null) {
+            selected = this.emailList.getSelected().getEmailId();
+        }
         this.emailList.refreshList();
+        this.setSelectEmail(selected, false);
+    }
+
+    public void setSelectEmail(long id, boolean updataInfo) {
+        for (EmailListWidget.EmailEntry child : this.emailList.children()) {
+            if (child.getEmailId() == id) {
+                this.emailList.setSelected(child);
+                break;
+            }
+        }
+        if (updataInfo) {
+            this.setCurrentEmail(id);
+        }
     }
 
     private static int refreshCoolingTicks = 0;
@@ -590,13 +605,7 @@ public class GuiInbox extends Screen {
 
         this.emailList.setScrollAmount(listScroll);
         this.setCurrentEmail(-1);
-        for (EmailListWidgetScreen.EmailEntry child : this.emailList.children()) {
-            if (child.getEmailId() == currentEmail) {
-                this.emailList.setSelected(child);
-                break;
-            }
-        }
-        this.setCurrentEmail(currentEmail);
+        this.setSelectEmail(currentEmail, false);
         this.emailInfo.setScrollDistance(infoScroll);
         this.filterMenu.setVisible(this.filterMenu.isVisible());
         this.functionMenu.setVisible(this.functionMenu.isVisible());
@@ -606,6 +615,7 @@ public class GuiInbox extends Screen {
     public void onClose() {
         super.onClose();
         this.stopSound();
+        EmailMain.net.sendMessageToServer(new MsgDisplayInbox(false));
     }
 
     @Override
@@ -627,8 +637,8 @@ public class GuiInbox extends Screen {
             long last = System.currentTimeMillis();
             if (last - this.now.getTime() >= 1000) {
                 this.now.setTime(last);
-                this.currentEmailTitle.setValue(I18n.get("info.email.no_select_title"));
-                this.currentEmailCreateTime.setValue(I18n.get("info.email.no_select_time", EmailUtils.dateFormat.format(this.now)));
+                this.currentEmailTitle.setValue(I18n.get("info.inbox.no_select_title"));
+                this.currentEmailCreateTime.setValue(I18n.get("info.inbox.no_select_time", EmailUtils.dateFormat.format(this.now)));
             }
         }
         // TODO 检查播放的音效是否已停止

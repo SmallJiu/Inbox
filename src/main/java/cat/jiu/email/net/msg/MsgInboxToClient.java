@@ -90,8 +90,8 @@ public class MsgInboxToClient /* extends BaseMessage */ {
 			if(con instanceof ContainerEmailMain) {
 				if(!SizeReport.SUCCESS.equals(this.report)) {
 					player.sendSystemMessage(Component.nullToEmpty(ChatFormatting.GRAY + "---------------------------------------------"));
-					player.sendSystemMessage(Component.translatable("info.email.error.to_big.0"));
-					player.sendSystemMessage(Component.translatable("info.email.error.to_big.1", this.report.id(), this.report.slot(), this.report.size()));
+					player.sendSystemMessage(Component.translatable("info.inbox.error.to_big.0"));
+					player.sendSystemMessage(Component.translatable("info.inbox.error.to_big.1", this.report.id(), this.report.slot(), this.report.size()));
 					player.closeContainer();
 				}else {
 					if(Minecraft.getInstance().screen instanceof GuiEmailMain gui){

@@ -69,20 +69,4 @@ class CommandEmailDelete extends BaseCommand.Base {
         }
         return 1;
     }
-
-    static class InboxArgumentType implements ArgumentType<String> {
-
-        @Override
-        public String parse(StringReader reader) throws CommandSyntaxException {
-            int start = reader.getCursor();
-
-            reader.setCursor(start);
-            return null;
-        }
-
-        @Override
-        public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-            return ArgumentType.super.listSuggestions(context, builder);
-        }
-    }
 }

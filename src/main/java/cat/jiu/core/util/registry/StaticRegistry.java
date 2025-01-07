@@ -1,5 +1,7 @@
 package cat.jiu.core.util.registry;
 
+import com.google.gson.JsonObject;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 
@@ -20,6 +22,8 @@ public class StaticRegistry<K, V extends Supplier<K>> {
 
     protected final ConcurrentHashMap<K, V> registry = new ConcurrentHashMap<>();
     protected final Function<K, V> failBack;
+    protected Function<CompoundTag, K> nbtKeyGetter;
+    protected Function<JsonObject, K> jsonKeyGetter;
 
     public StaticRegistry(ResourceLocation id) {
         this(failBack(id));
@@ -33,6 +37,11 @@ public class StaticRegistry<K, V extends Supplier<K>> {
     }
 
     public void init(){}
+    public StaticRegistry<K, V> setKeyGetter(Function<CompoundTag, K> nbtKeyGetter, Function<JsonObject, K> jsonKeyGetter) {
+        this.nbtKeyGetter = nbtKeyGetter;
+        this.jsonKeyGetter = jsonKeyGetter;
+        return this;
+    }
 
     public StaticRegistry<K, V> register(Consumer<StaticRegistry<K, V>> register) {
         register.accept(this);
@@ -55,12 +64,27 @@ public class StaticRegistry<K, V extends Supplier<K>> {
     public V unregister(K id) {
         return this.registry.remove(id);
     }
+    public void unregisterAll() {
+        this.registry.clear();
+    }
 
     public V get(K id) {
         if (this.registry.containsKey(id)) {
             return this.registry.get(id);
         }
         return this.failBack.apply(id);
+    }
+    public V get(CompoundTag data) {
+        if (this.nbtKeyGetter != null) {
+            return this.get(this.nbtKeyGetter.apply(data));
+        }
+        return null;
+    }
+    public V get(JsonObject data) {
+        if (this.jsonKeyGetter != null) {
+            return this.get(this.jsonKeyGetter.apply(data));
+        }
+        return null;
     }
 
     public Set<K> getIDs() {

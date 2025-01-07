@@ -144,7 +144,7 @@ public class AttachmentItem implements IAttachment {
     @Override
     public void render(AttachmentEvent.Render event) {
         if (!this.isEmpty()) {
-            event.graphics.drawString(event.font, Component.translatable("info.email.item_save_to_email").append(" (").append(Component.translatable(event.email.isReceived() ? "info.email.filter.is_accept" : "info.email.filter.not_accept")).append(")"), event.x, event.getY(), Color.WHITE.getRGB());
+            event.renderSaveTo("info.inbox.items");
             event.addY(event.font.lineHeight + 2);
 
             int itemX = event.x;

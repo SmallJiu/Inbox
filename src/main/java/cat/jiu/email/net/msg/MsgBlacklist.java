@@ -47,7 +47,7 @@ public abstract class MsgBlacklist extends BaseMessage {
 					if(!inbox.isInSenderBlacklist(this.name)) {
 						inbox.addSenderBlacklist(this.name);
 						inbox.saveToDisk();
-						ctx.get().getSender().sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.GREEN, "info.email.black.add.success", name));
+						ctx.get().getSender().sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.GREEN, "info.inbox.black.add.success", name));
 						GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST, ctx.get().getSender());
 					}
 				});
@@ -70,7 +70,7 @@ public abstract class MsgBlacklist extends BaseMessage {
 					inbox.removeSenderBlacklist(this.name);
 					inbox.saveToDisk();
 					EmailMain.net.sendMessageToPlayer(new MsgRefreshBlacklist(inbox.getSenderBlacklist()), ctx.get().getSender());
-					ctx.get().getSender().sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.GREEN, "info.email.black.remove.success", this.name));
+					ctx.get().getSender().sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.GREEN, "info.inbox.black.remove.success", this.name));
 				});
 			}
 			return true;

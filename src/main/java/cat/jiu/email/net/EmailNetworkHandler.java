@@ -62,6 +62,7 @@ public class EmailNetworkHandler {
 				.register(MsgRefreshOther.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgRefreshBlacklist.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgRefreshBlacklist.Refresh.class, NetworkDirection.PLAY_TO_SERVER)
+				.register(MsgDisplayInbox.class, NetworkDirection.PLAY_TO_SERVER)
 
 				.register(MsgScheduledEmail.Add.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgScheduledEmail.Remove.class, NetworkDirection.PLAY_TO_SERVER)

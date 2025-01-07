@@ -1,29 +1,21 @@
-package cat.jiu.email.util;
-
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.Map.Entry;
+package cat.jiu.core.util;
 
 import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-
+import com.google.gson.*;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.StringUtil;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.StringJoiner;
+
 /**
  * if you don't want to required JiuCore, but want to use json to itemstack function, copy this class to you mod project<p>
  * on you copied, you must keep this notes and keep class final, but you can rename this class name or method name
- * @see cat.jiu.core.util.helpers.ItemUtils#toStack(JsonElement)
- * @see cat.jiu.core.util.helpers.ItemUtils#toStacks(JsonElement)
  * @author small_jiu
  */
 @SuppressWarnings("all")
