@@ -1,10 +1,8 @@
 package cat.jiu.email.command;
 
 import cat.jiu.core.util.base.BaseCommand;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.EventEmail;
-import cat.jiu.email.element.ScheduledEmail;
-import cat.jiu.email.util.JsonParser;
-import com.google.gson.JsonElement;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -28,7 +26,7 @@ public class CommandEventEmail extends BaseCommand.BaseTree {
 
     static class Load extends BaseCommand.Base {
         public Load() {
-            super("load", 4);
+            super("load", 2);
         }
 
         @Override
@@ -48,14 +46,14 @@ public class CommandEventEmail extends BaseCommand.BaseTree {
 
     static class Add extends BaseCommand.Base {
         public Add() {
-            super("add", 4);
+            super("add", 2);
         }
 
         @Override
         public LiteralArgumentBuilder<CommandSourceStack> apply(LiteralArgumentBuilder<CommandSourceStack> node) {
             return node
                     .then(Commands.argument("event", new EmailEventType())
-                    .then(Commands.argument("email", new EmailFileType()).executes(this)));
+                    .then(Commands.argument("email", new EmailFileType(EmailAPI.getGlobalDataPath() + "emails/")).executes(this)));
         }
 
         @Override

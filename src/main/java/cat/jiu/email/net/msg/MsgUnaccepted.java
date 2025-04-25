@@ -1,6 +1,7 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailMain;
 
 import net.minecraft.network.FriendlyByteBuf;
@@ -26,7 +27,7 @@ public class MsgUnaccepted extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
+		if(SideProxy.isClient()) {
 			EmailMain.setAccept(this.unread, this.unreceive);
 		}
 		return true;

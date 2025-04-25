@@ -5,12 +5,12 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.ui.gui.GuiInbox;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 
 import net.minecraft.client.Minecraft;
@@ -131,7 +131,7 @@ public class MsgInboxToClient /* extends BaseMessage */ {
 
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> context) {
-			if(EmailMain.proxy.isClient()) {
+			if(SideProxy.isClient()) {
 				if(Minecraft.getInstance().screen instanceof GuiInbox gui){
 					gui.addEmail(this.id, this.email);
 				}
@@ -181,7 +181,7 @@ public class MsgInboxToClient /* extends BaseMessage */ {
 
 		@Override
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-			if(EmailMain.proxy.isClient()) {
+			if(SideProxy.isClient()) {
 				Screen gui = Minecraft.getInstance().screen;
 
 				if(gui instanceof GuiInbox && ((GuiInbox) gui).getInbox() != null) {

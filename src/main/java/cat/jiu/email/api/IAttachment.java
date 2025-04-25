@@ -1,13 +1,13 @@
 package cat.jiu.email.api;
 
-import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.api.serializable.ISerializable;
 
 import cat.jiu.core.util.registry.DynamicRegistry;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.event.AttachmentEvent;
-import cat.jiu.email.util.JsonParser;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -20,7 +20,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<ResourceLocation> {
@@ -83,7 +82,7 @@ public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<R
     }
     @Override
     default void read(ResultSet result) throws SQLException {
-        this.readFrom(JsonParser.parser.parse(result.getString("data")));
+        this.readFrom(JsonParser.parseString(result.getString("data")));
     }
 
     static <T extends SerializableAttachment> void register(ResourceLocation id, Class<T> clazz) {

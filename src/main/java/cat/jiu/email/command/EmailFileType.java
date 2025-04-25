@@ -1,8 +1,5 @@
 package cat.jiu.email.command;
 
-import cat.jiu.email.EmailAPI;
-import cat.jiu.email.element.Email;
-import cat.jiu.email.util.JsonParser;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -17,6 +14,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class EmailFileType implements ArgumentType<File> {
+    public final File dir;
+
+    public EmailFileType(String dir) {
+        this.dir = new File(dir);
+    }
+
     @Override
     public File parse(StringReader reader) throws CommandSyntaxException {
         int i = reader.getCursor();
@@ -24,13 +27,13 @@ public class EmailFileType implements ArgumentType<File> {
             reader.skip();
         }
         String s = reader.getString().substring(i, reader.getCursor());
-        return new File(EmailAPI.getGlobalDataPath()+"emails/", s);
+        return new File(this.dir, s);
     }
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
         List<String> files = new ArrayList<>();
-        File[] listFiles = new File(EmailAPI.getGlobalDataPath()+"emails/").listFiles();
+        File[] listFiles = this.dir.listFiles();
         if (listFiles!=null) {
             for (File file : listFiles) {
                 files.add(file.getName());

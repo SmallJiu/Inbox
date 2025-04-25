@@ -14,11 +14,13 @@ import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -27,7 +29,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.fml.loading.FMLLoader;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,7 +47,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.2-a2";
+                                VERSION = "1.20.1-1.1.3";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -69,7 +71,7 @@ public class EmailMain {
         bus.addListener(this::setup);
         bus.addListener(this::onClientSetup);
         bus.addListener(this::onConfigLoading);
-
+        bus.addListener(this::onRegisterBindings);
         GuiHandler.MENU_TYPE_REGISTER.register(bus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/inbox/configs.toml");
         MinecraftForge.EVENT_BUS.register(this);
@@ -97,7 +99,7 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
-        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
+        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(() -> new EmailFileType(EmailAPI.getGlobalDataPath() + "emails/")));
         ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
         event.enqueueWork(()-> net = new EmailNetworkHandler());
 
@@ -110,22 +112,25 @@ public class EmailMain {
         AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }
 
-    private void onClientSetup(final FMLClientSetupEvent event) {
+    void onClientSetup(final FMLClientSetupEvent event) {
         GuiHandler.registerScreen();
     }
-
+    @OnlyIn(Dist.CLIENT)
+    void onRegisterBindings(RegisterKeyMappingsEvent event) {
+        GuiHandler.KEY_DELETE_EMAIL.register(event);
+        GuiHandler.KEY_ACCEPT_EMAIL.register(event);
+        GuiHandler.KEY_BUTTON_DRAGGING.register(event);
+    }
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {
         server = event.getServer();
         EmailUtils.initNameAndUUID(event.getServer());
-        proxy.isServerClosed = false;
         Cooling.load();
         EventEmail.load();
         ScheduledEmail.initScheduledEmail();
     }
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
-        proxy.isServerClosed = true;
         server = null;
         Inbox.clearCache();
         ScheduledEmail.saveScheduledEmail();
@@ -159,19 +164,5 @@ public class EmailMain {
             try {Thread.sleep(delay);}catch(InterruptedException e) { e.printStackTrace();}
             function.run();
         }).start();
-    }
-
-    public static class proxy {
-        static boolean isServerClosed = true;
-
-        public static Dist getSide() {
-            return FMLLoader.getDist();
-        }
-        public static boolean isClient() {
-            return getSide().isClient();
-        }
-        public static boolean isServerClosed() {
-            return isServerClosed;
-        }
     }
 }

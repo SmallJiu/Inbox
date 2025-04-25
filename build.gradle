@@ -13,6 +13,19 @@ base {
     archivesName = mod_name
 }
 
+reobf {
+    jarJar { }
+}
+reobfJarJar {
+    jarJar { }
+}
+
+jar.finalizedBy('reobfJarJar')
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
@@ -29,6 +42,7 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+jarJar.enable()
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
@@ -59,6 +73,8 @@ minecraft {
             workingDirectory project.file(workingDirectory)
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
 
             mods {
                 "${mod_id}" {
@@ -70,18 +86,24 @@ minecraft {
         client {
             workingDirectory project.file(client_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
-            args '-username', run_user
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+            args '--username', run_user
         }
 
         server {
             workingDirectory project.file(server_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             args '--nogui'
         }
 
         gameTestServer {
             workingDirectory project.file(gameTestServer_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
         }
 
         data {
@@ -90,30 +112,21 @@ minecraft {
         }
     }
 }
-
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     maven { url = 'https://maven.parchmentmc.org' }
+    flatDir {
+        dir 'libs'
+    }
 }
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-}
 
-
-tasks.named('jar', Jar).configure {
-    manifest {
-        attributes([
-                'Specification-Title'     : mod_name,
-                'Specification-Vendor'    : mod_authors,
-                'Specification-Version'   : 1,
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
+    implementation fg.deobf("local.libs:JiuCore-1.20.1:0.0.1-dev")
+    jarJar("local.libs:JiuCore-1.20.1:[0.0.1-all,)") {
+        jarJar.pin(it, "0.0.1-all")
     }
-    finalizedBy 'reobfJar'
 }
 
 publishing {
@@ -132,3 +145,80 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+import org.apache.commons.io.FileUtils
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
+File archiveFile1
+tasks.named('jar', Jar).configure {
+    Date date = new Date()
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_name,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : 1,
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': date.format("yyyy/MM/dd_HH:mm:ss")
+        ])
+    }
+    finalizedBy 'reobfJar'
+
+    String date1 = "_" + date.format("HH.mm.ss")
+    String name = mod_id + "-" + mod_version + date1
+
+    archiveFileName.set(name + ".jar")
+
+    doLast {
+        archiveFile1 = archiveFile.get().getAsFile()
+    }
+}
+
+build {
+    doLast {
+        File root = archiveFile1.getParentFile().getParentFile().getParentFile()
+        File tempDir = new File(root, "build/tmp/source/")
+        String name = archiveFile1.getName().substring(0, archiveFile1.getName().lastIndexOf('.'))
+        File sourceJar = new File(archiveFile1.getParent(), name + "-source.jar")
+        println()
+        println("file name: " + archiveFile1.getName())
+        println("source name: " + name + "-source.jar")
+        if (tempDir.exists()) {
+            tempDir.delete()
+        }
+        copy(new File(root, "build/resources/main"), tempDir)
+        FileUtils.copyFile(new File(root, "build/tmp/jar/MANIFEST.MF"), new File(tempDir, "META-INF/MANIFEST.MF"))
+        copy(new File(root, "src/main/java"), tempDir)
+
+        try(ZipOutputStream os = new ZipOutputStream(new FileOutputStream(sourceJar))) {
+            for (File f : tempDir.listFiles()) {
+                zip(os, f)
+            }
+        }
+    }
+}
+
+static void copy(File src, File to) {
+    for (File c : src.listFiles()) {
+        if (c.isFile()) {
+            FileUtils.copyFile(c, new File(to, c.getName()))
+        }else {
+            copy(c, new File(to, c.getName()))
+        }
+    }
+}
+static void zip(ZipOutputStream os, File f) {
+    if (f.isFile()) {
+        String s = f.toString().replace('\\', '/')
+        os.putNextEntry(new ZipEntry(s.substring(s.indexOf("/build/tmp/source/") + "/build/tmp/source/".length())))
+        os.write(f.bytes)
+        os.closeEntry()
+    }else {
+        for (File f1 : f.listFiles()) {
+            zip(os, f1)
+        }
+    }
+}
+

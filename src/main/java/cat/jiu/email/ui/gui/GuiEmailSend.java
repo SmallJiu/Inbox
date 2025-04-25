@@ -1,18 +1,17 @@
 package cat.jiu.email.ui.gui;
 
 import java.awt.Color;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-import cat.jiu.core.api.element.ISound;
-import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.ui.gui.component.GuiButtonPopupMenu;
 import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
-import cat.jiu.email.util.client.ShowInboxGui;
+import cat.jiu.email.ui.InboxButton;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailAPI;
@@ -26,18 +25,19 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringUtil;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.ChatFormatting;
 
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -48,15 +48,18 @@ import org.lwjgl.glfw.GLFW;
 public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_send.png");
 	public static final ResourceLocation EXPIRATION = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_expiration.png");
-	private EditBox nameField;
-    private EditBox titleField;
+	private EditBox nameField, titleField;
     private final EditBox[] textFields = new EditBox[5];
+	private LockIconButton lockBtn;
     private final GuiTime expiration = new GuiTime(this, false);
 	private final GuiButtonPopupMenu addresseeHistory = new GuiButtonPopupMenu();
 	private GuiImageButton addresseeHistoryBtn;
+	private final Inventory playerInventory;
+	private List<ItemStack> stacks;
     
 	public GuiEmailSend(ContainerEmailSend container, Inventory inventory) {
 		super(container, inventory, Component.nullToEmpty(null));
+		this.playerInventory = inventory;
 		this.imageWidth = 176;
 		this.imageHeight = 233;
 		this.addresseeHistory.scroll.setShowCount(5);
@@ -95,72 +98,65 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			}
 		}
 
-		this.addresseeHistoryBtn = this.addRenderableWidget(new GuiImageButton(this, this.nameField.getX() + this.nameField.getWidth() + 3, this.nameField.getY(), 9, 9, I18n.get("info.inbox.history"), 256, 256, 194, 0, 9, 9, b-> addresseeHistory.setVisible(!addresseeHistory.isVisible()))).setBackground(()->BackGround);
+		this.addresseeHistoryBtn = this.addRenderableWidget(new GuiImageButton(this, this.nameField.getX() + this.nameField.getWidth() + 3, this.nameField.getY(), 9, 9, (String)null, 256, 256, 194, 0, 9, 9, b-> addresseeHistory.setVisible(!addresseeHistory.isVisible())))
+				.setBackground(()->BackGround);
+		this.addresseeHistoryBtn.setTooltip(Tooltip.create(Component.translatable("info.inbox.history")));
 
-		this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("inbox.config.expiration"), 256, 256, 256, 256, btn->
+		Button expirationBtn = this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos - 5, 20, 20, (String) null, 256, 256, 256, 256, btn->
 			expiration.setEnable(!expiration.isEnable())
-        )).setBackground(()->EXPIRATION).visible = EmailUtils.isOP(Minecraft.getInstance().player);
-        
-        this.addRenderableWidget(new GuiImageButton(this, this.addresseeHistoryBtn.getX()+this.addresseeHistoryBtn.getWidth()+4, this.nameField.getY() -2, 22, this.nameField.getHeight()+2, I18n.get("info.inbox.dispatch"), 256, 256, 176, 9, 59, 50, btn-> {
-			if(!this.getMenu().isCooling() && !this.getMenu().isLock()) {
-				String name = nameField.getValue();
-				if(StringUtils.isEmpty(name)) {
-					this.setRenderText(I18n.get("info.inbox.error.empty_name"), Color.RED);
-					return;
-				}
-				String title = titleField.getValue();
-				if(StringUtils.isEmpty(title)) {
-					title = "info.inbox.default_title";
-				}
+        )).setBackground(()->EXPIRATION);
+		expirationBtn.setTooltip(Tooltip.create(Component.translatable("inbox.config.expiration")));
+        expirationBtn.visible = EmailUtils.isOP(Minecraft.getInstance().player);
 
-				if(this.textsIsEmpty() && this.getMenu().isEmpty()) {
-					this.setRenderText(I18n.get("info.inbox.error.empty_msgs_item"), Color.RED);
-					return;
-				}
+        Button send_btn = this.addRenderableWidget(new GuiImageButton(this, this.addresseeHistoryBtn.getX()+this.addresseeHistoryBtn.getWidth()+4, this.nameField.getY() -2, 22, this.nameField.getHeight()+2, (String) null, 256, 256, 176, 9, 59, 50, btn-> this.send())).setBackground(()->BackGround);
+		send_btn.setTooltip(Tooltip.create(Component.translatable("info.inbox.dispatch")));
 
-				List<IText> msgs = Lists.newArrayList();
-				if(!textsIsEmpty()) {
-					for (EditBox textField : textFields) {
-						String msg = textField.getValue();
-						if (msg.isEmpty()) {
-							msgs.add(Text.empty);
-						}else {
-							msgs.add(new Text(msg));
+		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+1, this.titleField.getY() -2, 22, this.nameField.getHeight()+2, (String) null, 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
+				.setBackground(()-> InboxButton.inbox).setTooltip(Tooltip.create(Component.translatable("info.inbox.name")));
+
+		if (EmailUtils.isOP(Minecraft.getInstance().player)) {
+			this.lockBtn = this.addRenderableWidget(new LockIconButton(expirationBtn.getX(), expirationBtn.getY() + expirationBtn.getHeight() + 1, btn->
+				this.lockBtn.setLocked(!this.lockBtn.isLocked())
+			));
+			this.lockBtn.setTooltip(Tooltip.create(Component.translatable("info.inbox.send.lock")));
+			this.lockBtn.setMessage(Component.translatable("info.inbox.send.lock"));
+
+			MutableComponent info = Component.translatable("info.inbox.memorize_items.0").append("\n").append(Component.translatable("info.inbox.memorize_items.1"));
+			Button saveItemsBtn = this.addRenderableWidget(new ImageButton(
+					expirationBtn.getX() + expirationBtn.getWidth() + 2, expirationBtn.getY() + 3,
+					15, 12, 182, 24, 0, AbstractWidget.WIDGETS_LOCATION,
+					btn->{
+						if (Screen.hasShiftDown()) {
+							if (this.stacks!=null) this.stacks.clear();
+							btn.setTooltip(Tooltip.create(info));
+							return;
 						}
+						if (this.stacks==null) {
+							this.stacks = new ArrayList<>();
+						}
+						this.stacks.clear();
+						for (ItemStack stack : this.playerInventory.items) {
+							if (!stack.isEmpty()) {
+								this.stacks.add(stack);
+							}
+						}
+						btn.setTooltip(Tooltip.create(
+								info.copy().append("\n\n").append(Component.translatable("info.inbox.memorize_items.2")).append("\n\n")
+										.append(String.format("Count: %s items\n", this.stacks.size()))
+										.append(String.format(" Time: %s", EmailUtils.dateFormat.format(new Date())))
+						));
 					}
-				}else {
-					msgs.add(new Text("info.inbox.default_msg"));
-				}
-				Email email = new Email(new Text(title), new Text(Minecraft.getInstance().player.getName())).addMessages(msgs);
-
-				long expiration = GuiEmailSend.this.expiration.getTimeOfMillis();
-				if(expiration>0) {
-					email.setExpirationTime(new TimeMillis(expiration));
-				}
-
-				Email email_t = email.copy();
-				if(!this.getMenu().isEmpty()) {
-					this.getMenu().toItemList(true).forEach(email_t::addItem);
-				}
-				if(!EmailConfigs.isInfiniteSize()){
-					SizeReport report = EmailUtils.checkEmailSize(email_t);
-					if(!SizeReport.SUCCESS.equals(report)) {
-						if (this.getMenu().isLock()) this.getMenu().setLock(false);
-						this.setRenderText(new Text("info.inbox.error.send.to_big", report.slot(), report.size()).format(), Color.RED);
-						return;
-					}
-				}
-//				if(!this.getMenu().isEmpty()) {
-//					this.getMenu().toItemList(true).forEach(email::addItem);
-//				}
-				EmailAPI.sendPlayerEmail(getMinecraft().player, name, email);
-				this.addAddresseeHistory(name, true);
-				clearRenderText();
+			));
+			if (this.stacks==null || this.stacks.isEmpty()) {
+				saveItemsBtn.setTooltip(Tooltip.create(info));
+			}else {
+				saveItemsBtn.setTooltip(Tooltip.create(
+						info.copy().append("\n\n").append(Component.translatable("info.inbox.memorize_items.2")).append("\n\n")
+								.append(String.format("Count: %s items\n", this.stacks.size()))
+								.append(String.format(" Time: %s", EmailUtils.dateFormat.format(new Date())))
+				));
 			}
-        })).setBackground(()->BackGround);
-
-		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+1, this.titleField.getY() -2, 22, this.nameField.getHeight()+2, I18n.get("info.inbox.name"), 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
-				.setBackground(()->ShowInboxGui.inbox);
+		}
 	}
 
 	public void addAddresseeHistory(String name, boolean writeToFile) {
@@ -207,6 +203,67 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			if (!StringUtils.isEmpty(tf.getValue())) return false;
 		}
 		return true;
+	}
+
+	public void send() {
+		if(!this.getMenu().isCooling() && !this.getMenu().isLock()) {
+			String name = nameField.getValue();
+			if(StringUtils.isEmpty(name)) {
+				this.setRenderText(I18n.get("info.inbox.error.empty_name"), Color.RED);
+				return;
+			}
+			String title = titleField.getValue();
+			if(StringUtils.isEmpty(title)) {
+				title = "info.inbox.default_title";
+			}
+
+			if(this.textsIsEmpty() && this.getMenu().isEmpty() && (this.stacks==null || this.stacks.isEmpty())) {
+				this.setRenderText(I18n.get("info.inbox.error.empty_msgs_item"), Color.RED);
+				return;
+			}
+
+			List<IText> msgs = Lists.newArrayList();
+			if(!textsIsEmpty()) {
+				for (EditBox textField : textFields) {
+					String msg = textField.getValue();
+					if (msg.isEmpty()) {
+						msgs.add(Text.empty);
+					}else {
+						msgs.add(new Text(msg));
+					}
+				}
+			}else {
+				msgs.add(new Text("info.inbox.default_msg"));
+			}
+			Email email = new Email(new Text(title), new Text(Minecraft.getInstance().player.getName())).addMessages(msgs);
+
+			long expiration = GuiEmailSend.this.expiration.getTimeOfMillis();
+			if(expiration>0) {
+				email.setExpirationTime(new TimeMillis(expiration));
+			}
+
+			if(!this.getMenu().isEmpty()) {
+				this.getMenu().toItemList(true).forEach(email::addItem);
+			}
+			if (this.stacks != null && !this.stacks.isEmpty()) {
+				email.addItems(this.stacks);
+				this.stacks.clear();
+			}
+			if(!EmailConfigs.isInfiniteSize()){
+				SizeReport report = EmailUtils.checkEmailSize(email);
+				if(!SizeReport.SUCCESS.equals(report)) {
+					if (this.getMenu().isLock()) this.getMenu().setLock(false);
+					this.setRenderText(I18n.get("info.inbox.error.send.to_big", report.slot(), report.size()), Color.RED);
+					return;
+				}
+			}
+			if (this.lockBtn != null) {
+				email.setDeletable(!this.lockBtn.isLocked());
+			}
+			EmailAPI.sendPlayerEmail(getMinecraft().player, name, email);
+			this.addAddresseeHistory(name, true);
+			clearRenderText();
+		}
 	}
 
 	private long renderTicks = 0;

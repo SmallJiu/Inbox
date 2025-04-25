@@ -5,30 +5,39 @@ import cat.jiu.email.element.Inbox;
 import cat.jiu.sql.*;
 import cat.jiu.sql.select.Where;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.File;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class DBParser {
     public static final String
             DB_PREFIX = "jdbc:sqlite:",
-            DB_URL = DBParser.DB_PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db",
             DB_TABLE = "inboxes",
             DB_TABLE_KEY_UUID = "uuid",
             DB_TABLE_KEY_INBOX = "inbox"
      ;
 
-    public static boolean saveInboxToDB(String dbURL, Inbox inbox) {
-        try(SQLDatabase db = new SQLDatabase(dbURL)) {
-            db.prepared.createTable(DBParser.DB_TABLE, new SQLTableKey()
-                    .put(DBParser.DB_TABLE_KEY_UUID, db.createKey(JDBCType.VARCHAR)
-                            .setNotNull(true)
-                            .setPrimaryKey(true))
-                    .put(DBParser.DB_TABLE_KEY_INBOX, db.createKey(JDBCType.VARCHAR)
-                            .setNotNull(true))
-            );
+    public static String getDBUrl() {
+        return DBParser.DB_PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db";
+    }
 
+    public static SQLDatabase getDatabase(String url) throws SQLException {
+        SQLDatabase db = new SQLDatabase(url);
+        db.prepared.createTable(DBParser.DB_TABLE, new SQLTableKey()
+                .put(DBParser.DB_TABLE_KEY_UUID, db.createKey(JDBCType.VARCHAR)
+                        .setNotNull(true)
+                        .setPrimaryKey(true))
+                .put(DBParser.DB_TABLE_KEY_INBOX, db.createKey(JDBCType.VARCHAR)
+                        .setNotNull(true))
+        );
+        return db;
+    }
+
+    public static boolean write(String dbURL, Inbox inbox) {
+        try(SQLDatabase db = getDatabase(dbURL)) {
             db.prepared.delete(DBParser.DB_TABLE, new SQLSelect(SQLSelectType.WHERE, "'" + inbox.getOwner() + "'")
                     .add(new Where(DBParser.DB_TABLE_KEY_UUID, SQLOperator.EQUAL, "?", null)));
 
@@ -40,21 +49,15 @@ public class DBParser {
         return false;
     }
 
-    public static JsonObject getInboxJson(String dbURL, String uid) {
-        try(SQLDatabase db = new SQLDatabase(dbURL)) {
-            db.prepared.createTable(DBParser.DB_TABLE, new SQLTableKey()
-                    .put(DBParser.DB_TABLE_KEY_UUID, db.createKey(JDBCType.VARCHAR)
-                            .setNotNull(true)
-                            .setPrimaryKey(true))
-                    .put(DBParser.DB_TABLE_KEY_INBOX, db.createKey(JDBCType.VARCHAR)
-                            .setNotNull(true))
-            );
-            ResultSet rs = db.prepared.select(DBParser.DB_TABLE, new SQLSelect(SQLSelectType.WHERE, uid)
-                    .add(new Where(DBParser.DB_TABLE_KEY_UUID, SQLOperator.EQUAL, "?", null)));
-            if(rs.next()) {
-                String str = rs.getString(DBParser.DB_TABLE_KEY_INBOX);
-                if(!str.isEmpty()) {
-                    return JsonParser.parser.parse(str).getAsJsonObject();
+    public static JsonObject read(String dbURL, String uid) {
+        try(SQLDatabase db = getDatabase(dbURL)) {
+            try(ResultSet rs = db.prepared.select(DBParser.DB_TABLE, new SQLSelect(SQLSelectType.WHERE, uid)
+                    .add(new Where(DBParser.DB_TABLE_KEY_UUID, SQLOperator.EQUAL, "?", null)))) {
+                if(rs.next()) {
+                    String str = rs.getString(DBParser.DB_TABLE_KEY_INBOX);
+                    if(!str.isEmpty()) {
+                        return JsonParser.parseString(str).getAsJsonObject();
+                    }
                 }
             }
         }catch(Exception e) {

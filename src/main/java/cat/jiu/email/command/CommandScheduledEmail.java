@@ -20,7 +20,7 @@ public class CommandScheduledEmail extends BaseCommand.BaseTree {
 
     static class Load extends BaseCommand.Base {
         public Load() {
-            super("load", 4);
+            super("load", 2);
         }
 
         @Override
@@ -40,7 +40,7 @@ public class CommandScheduledEmail extends BaseCommand.BaseTree {
 
     static class Reload extends BaseCommand.Base {
         public Reload() {
-            super("reload", 4);
+            super("reload", 2);
         }
 
         @Override

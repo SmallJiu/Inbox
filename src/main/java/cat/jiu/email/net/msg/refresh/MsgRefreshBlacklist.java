@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.gui.GuiBlacklist;
 import com.google.common.collect.Lists;
@@ -45,7 +46,7 @@ public class MsgRefreshBlacklist extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
+		if(SideProxy.isClient()) {
 			AbstractContainerMenu con = Minecraft.getInstance().player.containerMenu;
 			if(con instanceof ContainerInboxBlacklist) {
 				((ContainerInboxBlacklist) con).setBlacklist(this.senderBlacklist);

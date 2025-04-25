@@ -5,8 +5,8 @@ import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailUtils;
 
@@ -53,7 +53,7 @@ public class MsgSendRenderText extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
+		if(SideProxy.isClient()) {
 			if(Minecraft.getInstance().player.containerMenu instanceof ContainerEmailSend container){
 				container.setRenderText(this.text.format(), this.color, this.renderTicks);
 			}

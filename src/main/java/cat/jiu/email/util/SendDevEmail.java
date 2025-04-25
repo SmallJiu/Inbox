@@ -51,10 +51,10 @@ public class SendDevEmail {
 				.addMessages(msgs)
 				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
 				.addCommands(
-						new AttachmentCommand.Cmd("/say 'this command is ' server ' command, use ' server console permission ' to execute.'", true),
-						new AttachmentCommand.Cmd("/me 'this command is ' player ' command, use ' player permission ' to execute.'", false),
-						new AttachmentCommand.Cmd("/say 'this command is hide in tooltip, you cant seed this command.'", true).setHideInTooltip(true),
-						new AttachmentCommand.Cmd("/me 'this command is hide in tooltip, you cant seed this command.'", false).setHideInTooltip(true)
+						new AttachmentCommand.Cmd("/say this command is ' server ' command, use ' server console permission ' to execute.", true),
+						new AttachmentCommand.Cmd("/me this command is ' player ' command, use ' player permission ' to execute.", false),
+						new AttachmentCommand.Cmd("/say this command is hide in tooltip, you cant see this command.", true).setHideInTooltip(true),
+						new AttachmentCommand.Cmd("/me this command is hide in tooltip, you cant see this command.", false).setHideInTooltip(true)
 				)
 				.setExperience(9980, 9980)
 				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
@@ -93,6 +93,7 @@ public class SendDevEmail {
 	@SubscribeEvent
 	public static void onJoinWorld(EntityJoinLevelEvent event) {
 		if(event.getEntity() instanceof ServerPlayer player) {
+			reminds.remove(player.getName().getString());
 			Un un = Un.getInstance(player);
 			if(un.unread > 0 || un.unReceived > 0) {
 				EmailMain.net.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), player);
@@ -107,7 +108,7 @@ public class SendDevEmail {
 			String name = player.getName().getString();
 			if(!reminds.containsKey(name)) reminds.put(name, new Delay());
 			Delay delay = reminds.get(name);
-			if(delay.net >= 10){
+			if(delay.net >= 20){
 				Un un = Un.getInstance(player);
 				if(un.unread != delay.unread || un.unReceived != delay.unReceived) {
 					delay.unread = un.unread;
@@ -126,7 +127,7 @@ public class SendDevEmail {
 	@SubscribeEvent
 	public static void onClientTick(TickEvent.ClientTickEvent event){
 		if (event.phase == TickEvent.Phase.END) {
-			if (showToast >= 10 * 20) {
+			if (showToast >= EmailConfigs.Layout.Prompt_Email.getTicks()) {
 				if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
 					Minecraft.getInstance().getToasts().addToast(new SystemToast(
 							SystemToast.SystemToastIds.PACK_COPY_FAILURE,

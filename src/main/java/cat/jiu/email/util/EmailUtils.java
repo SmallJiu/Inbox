@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailAPI;
 import com.google.common.collect.Lists;
@@ -22,7 +23,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;
@@ -116,7 +116,7 @@ public class EmailUtils {
 	
 	public static boolean isOP(Player player) {
 		boolean isOP;
-		if(!EmailMain.proxy.isClient()) {
+		if(!SideProxy.isClient()) {
 			isOP = player.getServer().getPlayerList().getOps().get(player.getGameProfile()) != null;
 		}else {
 			if (Minecraft.getInstance().isLocalServer()) {
@@ -150,7 +150,7 @@ public class EmailUtils {
 		return saveInboxToDisk(inbox, 10);
 	}
 	public static boolean saveInboxToDisk(Inbox inbox, int maxRetryCount) {
-		if(EmailMain.proxy.isClient()
+		if(SideProxy.isClient()
 		&& !Minecraft.getInstance().isLocalServer()) {
 			EmailMain.log.error("Client can not save inbox to Server!");
 			return false;
@@ -263,7 +263,7 @@ public class EmailUtils {
 
 	public static JsonObject getInboxJson(String uid) {
 		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
-			return DBParser.getInboxJson(DBParser.DB_URL, uid);
+			return DBParser.read(DBParser.getDBUrl(), uid);
 		}else {
 			File email = new File(EmailAPI.getSaveInboxPath() + uid + ".json");
 			if(email.exists()) {
@@ -281,7 +281,7 @@ public class EmailUtils {
 	public static final File USERID_CACHE_FILE = new File("./", Services.USERID_CACHE_FILE);
 
 	public static void initNameAndUUID(@Nullable MinecraftServer server) {
-		if(EmailMain.proxy.isClient()
+		if(SideProxy.isClient()
 		&& !Minecraft.getInstance().isLocalServer()) {
 			return;
 		}
@@ -430,14 +430,17 @@ public class EmailUtils {
 		if(!stack.isEmpty()){
 			ItemEntity item = new ItemEntity(world, pos.x+0.5F, pos.y+0.5F, pos.z+0.5F, stack.copy());
 			item.setNoPickUpDelay();
-			item.setUnlimitedLifetime();
 			world.addFreshEntity(item);
 		}
 	}
-	
+
+	@Deprecated
 	public static long getCoolingMillis() {
-		EmailConfigs.Send.Cooling cooling = EmailConfigs.Send.cooling;
-		return parseTick(cooling.Day.get(), cooling.Hour.get(), cooling.Minute.get(), cooling.Second.get(), cooling.Tick.get()) * 50 + cooling.Millis.get();
+		return EmailConfigs.Send.cooling.getTicks();
+	}
+	@Deprecated
+	public static long getPromptTicks() {
+		return EmailConfigs.Layout.Prompt_Email.getTicks();
 	}
 	
 	public static long parseTick(long day, long h, long m, long s, long tick) {

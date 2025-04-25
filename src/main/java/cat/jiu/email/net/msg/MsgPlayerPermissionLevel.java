@@ -1,7 +1,7 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
-import cat.jiu.email.EmailMain;
+import cat.jiu.core.util.SideProxy;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
@@ -27,7 +27,7 @@ public class MsgPlayerPermissionLevel extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> context) {
-		if(EmailMain.proxy.isClient()) {
+		if(SideProxy.isClient()) {
 			if(Minecraft.getInstance().player!=null) Minecraft.getInstance().player.setPermissionLevel(this.level);
 		}
 		return true;

@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -135,9 +136,11 @@ public class GuiImageButton extends Button {
 		if(this.visible) {
 			graphics.blit(this.background.get(), this.getX(), this.getY(), this.width, this.height, this.u, this.v, this.uWidth, this.uHeight, this.tileWidth, this.tileHeight);
 
-			if(this.isHovered() && this.hoveringText.get()!=null) {
+			if(this.isHovered()) {
 				graphics.fillGradient(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height, this.hoveredColor, this.hoveredColor);
-				graphics.renderTooltip(gui.getMinecraft().font, this.getMessage(), mouseX, mouseY);
+				if (this.getMessage()!=null && !this.getMessage().getString().isEmpty()) {
+					graphics.renderTooltip(gui.getMinecraft().font, this.getMessage(), mouseX, mouseY);
+				}
 			}
 		}
 	}

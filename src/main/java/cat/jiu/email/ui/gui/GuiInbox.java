@@ -4,6 +4,7 @@ import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.client.GifDecoder;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
@@ -23,9 +24,11 @@ import cat.jiu.email.ui.gui.component.GuiImageButton;
 import cat.jiu.email.ui.gui.component.GuiPopupMenu;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.client.EmailSenderSndSound;
+import cat.jiu.email.ui.gui.component.EmailSenderSndSound;
 import cat.jiu.core.util.client.AudioSystem;
 import com.google.common.collect.Lists;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.ChatFormatting;
@@ -51,10 +54,8 @@ import net.minecraftforge.common.MinecraftForge;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,7 @@ public class GuiInbox extends Screen {
     private final GuiPopupMenu filterMenu = new GuiPopupMenu(), functionMenu = new GuiPopupMenu();
     private final Inbox inbox = Inbox.getEmpty("");
     private long inboxSize = -1, currentEmailID = -1;
+    private boolean deleteEmailOverlay = false;
 
     public GuiInbox() {
         super(Component.nullToEmpty(null));
@@ -193,11 +195,16 @@ public class GuiInbox extends Screen {
                             EmailMain.net.sendMessageToServer(new MsgDeleteEmail.Delete(this.getCurrentEmailID()));
                             for (int i = 0; i < this.emailList.children().size(); i++) {
                                 if (this.emailList.children().get(i).getEmailId() == this.getCurrentEmailID()) {
-                                    this.inbox.deleteEmail(this.getCurrentEmailID());
-                                    this.updataInboxSize();
-                                    this.emailList.refreshList();
-                                    this.deleteEmailBtn.visible = false;
-                                    this.acceptEmailBtn.visible = false;
+                                    if (this.getCurrentEmail().isDeletable()) {
+                                        this.inbox.deleteEmail(this.getCurrentEmailID());
+                                        this.updataInboxSize();
+                                        this.emailList.refreshList();
+                                        this.deleteEmailOverlay = false;
+                                        this.deleteEmailBtn.visible = false;
+                                        this.acceptEmailBtn.visible = false;
+                                    }else {
+
+                                    }
                                     break;
                                 }
                             }
@@ -205,6 +212,7 @@ public class GuiInbox extends Screen {
                 )
                 .pos(btn.getX() - width - 8, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
+                .tooltip(Tooltip.create(Component.translatable("info.inbox.tip", GuiHandler.KEY_DELETE_EMAIL.name(), Component.translatable("info.inbox.delete"))))
                 .build());
         this.deleteEmailBtn.visible = false;
 
@@ -222,6 +230,7 @@ public class GuiInbox extends Screen {
                 )
                 .pos(btn.getX() - width - 8, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
+                .tooltip(Tooltip.create(Component.translatable("info.inbox.tip", GuiHandler.KEY_ACCEPT_EMAIL.name(), Component.translatable("info.inbox.accept"))))
                 .build());
         this.acceptEmailBtn.visible = false;
     }
@@ -241,6 +250,7 @@ public class GuiInbox extends Screen {
                 .render(graphics);
         this.renderTooltip(graphics, pMouseX, pMouseY);
         this.updataData();
+        this.renderDeleteEmailOverlay(graphics, pMouseX, pMouseY);
     }
 
     protected void renderTooltip(GuiGraphics graphics, int pX, int pY) {
@@ -309,6 +319,29 @@ public class GuiInbox extends Screen {
                 }
 //			    MinecraftForge.EVENT_BUS.post(new InboxDrawEvent(this, Type.SOUND, TickEvent.Phase.END, this.container.getInbox(), this.currentEmail, mouseX, mouseY));
             }
+        }
+    }
+
+    protected void renderDeleteEmailOverlay(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (this.deleteEmailOverlay) {
+            Component
+                    title1 = Component.translatable("info.inbox.delete.title.0"),
+                    title2 = Component.translatable("info.inbox.delete.title.1"),
+                    tip1 = Component.translatable("info.inbox.delete.confirm", GuiHandler.KEY_DELETE_EMAIL.name()),
+                    tip2 = Component.translatable("info.inbox.delete.cancel");
+            int width = Math.max(RenderUtils.width(title1), Math.max(RenderUtils.width(title2), Math.max(RenderUtils.width(tip1), RenderUtils.width(tip2))));
+            Window window = Minecraft.getInstance().getWindow();
+            int x = window.getGuiScaledWidth()/2, y =  window.getGuiScaledHeight()/2;
+            RenderUtils.tooltipBackground(graphics, x, y, width + 10, RenderUtils.getFontHeight() * 6+6, true, true);
+
+            RenderUtils.tooltipBackground(graphics, x, y-RenderUtils.getFontHeight() * 2, width, RenderUtils.getFontHeight() * 2, true, true);
+            RenderUtils.drawCenteredComponent(graphics, Arrays.asList(title1, title2), x, y - RenderUtils.getFontHeight()*3, Color.WHITE.getRGB(), true);
+
+            RenderUtils.tooltipBackground(graphics, x, y+3, RenderUtils.width(tip1), RenderUtils.getFontHeight(), true, true);
+            RenderUtils.drawCenteredComponent(graphics, tip1, x, y-1, Color.WHITE.getRGB(), true);
+
+            RenderUtils.tooltipBackground(graphics, x, y+RenderUtils.getFontHeight()*2-1, RenderUtils.width(tip2), RenderUtils.getFontHeight(), true, false);
+            RenderUtils.drawCenteredComponent(graphics, tip2, x, y+RenderUtils.getFontHeight()+8, Color.WHITE.getRGB(), true);
         }
     }
 
@@ -416,6 +449,7 @@ public class GuiInbox extends Screen {
             this.stopSound();
         }
         this.currentEmailID = id;
+        this.deleteEmailOverlay = false;
         if (id!= -1 && this.getCurrentEmail()!=null) {
             Email email = this.getCurrentEmail();
             this.currentEmailTitle.setValue(email.getTitle().format());
@@ -423,9 +457,16 @@ public class GuiInbox extends Screen {
             this.emailInfo.clearMessage();
 
             try {
-                this.deleteEmailBtn.visible = true;
+                this.deleteEmailBtn.visible = email.isDeletable();
                 this.acceptEmailBtn.visible = email.hasAttachment() && !email.isReceived();
                 this.playSoundBtn.visible = email.hasSound();
+
+                if (!this.deleteEmailBtn.visible) {
+                    this.acceptEmailBtn.setPosition(this.functionMenuBtn.getX() - this.acceptEmailBtn.getWidth() - 2, this.emailInfo.getBottom() + 2);
+                }else {
+                    this.deleteEmailBtn.setPosition(this.functionMenuBtn.getX() - this.deleteEmailBtn.getWidth() - 2, this.emailInfo.getBottom() + 2);
+                    this.acceptEmailBtn.setPosition(this.deleteEmailBtn.getX() - this.acceptEmailBtn.getWidth() - 2, this.emailInfo.getBottom() + 2);
+                }
             }catch (Throwable e){ }
 
             if(!email.isRead()) {
@@ -600,15 +641,18 @@ public class GuiInbox extends Screen {
         double listScroll = this.emailList.getScrollAmount();
         float infoScroll = this.emailInfo.getScrollDistance();
         long currentEmail = this.getCurrentEmailID();
+        boolean deleteEmailOverlay = this.deleteEmailOverlay;
 
         super.resize(pMinecraft, pWidth, pHeight);
 
-        this.emailList.setScrollAmount(listScroll);
+        this.emailList.refreshList();
         this.setCurrentEmail(-1);
-        this.setSelectEmail(currentEmail, false);
+        this.setSelectEmail(currentEmail, true);
+        this.deleteEmailOverlay = deleteEmailOverlay;
         this.emailInfo.setScrollDistance(infoScroll);
         this.filterMenu.setVisible(this.filterMenu.isVisible());
         this.functionMenu.setVisible(this.functionMenu.isVisible());
+//        refresh();
     }
 
     @Override
@@ -620,8 +664,21 @@ public class GuiInbox extends Screen {
 
     @Override
     public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
-        if (pKeyCode == Minecraft.getInstance().options.keyInventory.getKey().getValue()) {
+        if (Minecraft.getInstance().options.keyInventory.isActiveAndMatches(InputConstants.getKey(pKeyCode, pScanCode))) {
             this.onClose();
+            return true;
+        }
+        if (GuiHandler.KEY_DELETE_EMAIL.isClicked(pKeyCode, pScanCode) && this.getCurrentEmail() != null) {
+            if (this.deleteEmailOverlay) {
+                this.deleteEmailBtn.mouseClicked(this.deleteEmailBtn.getX()+1, this.deleteEmailBtn.getY()+1,0);
+            }else {
+                this.deleteEmailOverlay = true;
+            }
+            return true;
+        }
+        this.deleteEmailOverlay = false;
+        if (GuiHandler.KEY_ACCEPT_EMAIL.isClicked(pKeyCode, pScanCode)) {
+            this.acceptEmailBtn.mouseClicked(this.acceptEmailBtn.getX()+1, this.acceptEmailBtn.getY()+1,0);
             return true;
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);

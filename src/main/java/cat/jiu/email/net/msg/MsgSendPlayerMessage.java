@@ -4,8 +4,8 @@ import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.client.Minecraft;
@@ -47,7 +47,7 @@ public class MsgSendPlayerMessage extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		if(EmailMain.proxy.isClient()) {
+		if(SideProxy.isClient()) {
 			Component tc = this.color!=null ?
 					EmailUtils.createTextComponent(this.color, this.text.format())
 				  : EmailUtils.createTextComponent(this.text.format());

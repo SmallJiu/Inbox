@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.DBParser;
 import cat.jiu.email.util.EmailConfigs;
@@ -20,7 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLValues;
@@ -136,7 +137,7 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnRead() {
 		int i = 0;
-		for(long id : this.emails.keySet()) {
+		for(long id : this.getEmailIDs()) {
 			if(!this.getEmail(id).isRead()) i++;
 		}
 		return i;
@@ -147,7 +148,7 @@ public final class Inbox implements ISerializable {
 	 */
 	public int getUnReceived() {
 		int i = 0;
-		for(long id : this.emails.keySet()) {
+		for(long id : this.getEmailIDs()) {
 			Email email = this.getEmail(id);
 			if(email.hasAttachment() && !email.isReceived()) i++;
 		}
@@ -190,8 +191,6 @@ public final class Inbox implements ISerializable {
 	}
 	/**
 	 * set new email to id
-	 * @param id 
-	 * @param newEmail 
 	 * @return the previous email associated with id
 	 */
 	public Email setEmail(long id, Email newEmail) {
@@ -280,7 +279,6 @@ public final class Inbox implements ISerializable {
 	
 	/**
 	 * get sender blacklist
-	 * @return
 	 */
 	public List<String> getSenderBlacklist() {
 		return Collections.unmodifiableList(senderBlacklist);
@@ -291,7 +289,7 @@ public final class Inbox implements ISerializable {
 	 * @return true if save success
 	 */
 	public boolean saveToDisk() {
-		if(EmailMain.proxy.isClient()
+		if(SideProxy.isClient()
 		&& !Minecraft.getInstance().isLocalServer()) {
 			EmailMain.log.error("Client can not save inbox to Server!");
 			return false;
@@ -300,7 +298,7 @@ public final class Inbox implements ISerializable {
 			EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", this);
 		}
 		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
-			return DBParser.saveInboxToDB(DBParser.DB_URL, this);
+			return DBParser.write(DBParser.getDBUrl(), this);
 		}else {
 			return JsonParser.toJsonFile(EmailAPI.getSaveInboxPath() + owner + ".json", this.writeTo(JsonObject.class), false);
 		}
@@ -701,7 +699,7 @@ public final class Inbox implements ISerializable {
 	 * Do not use it anywhere except Server Stopped
 	 */
 	public static void clearCache() {
-		if(EmailMain.proxy.isServerClosed()) {
+		if(SideProxy.isServerClosed()) {
 			inboxCache.clear();
 		}
 	}

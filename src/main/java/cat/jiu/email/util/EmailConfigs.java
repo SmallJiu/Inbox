@@ -1,5 +1,6 @@
 package cat.jiu.email.util;
 
+import cat.jiu.core.util.client.config.BaseConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.*;
 
@@ -14,7 +15,9 @@ public final class EmailConfigs {
 		public final BooleanValue Enable_Chat_Button;
 		public final IntValue Email_List_Width;
 		public final BooleanValue Enable_Vanilla_Wrap_Text;
+		public final BooleanValue Lock_Inbox_Button_Dragging;
 		public final Position Position;
+		public final Time Prompt_Email;
 
 		Layout(Builder builder) {
 			super(builder);
@@ -24,6 +27,11 @@ public final class EmailConfigs {
 					.comment("inbox.config.layout.vanilla_wrap.0",
 							"inbox.config.layout.vanilla_wrap.1")
 					.define("Enable_Vanilla_Wrap_Text", true);
+
+			this.Lock_Inbox_Button_Dragging = builder
+					.translation("inbox.config.layout.button_dragging")
+					.comment("inbox.config.layout.button_dragging.0")
+					.define("Lock_Inbox_Button_Dragging", false);
 
 			this.Enable_Chat_Button = builder
 					.translation("inbox.config.enable_chat_btn")
@@ -36,6 +44,7 @@ public final class EmailConfigs {
 					.defineInRange("Email_List_Width", 100, 0, Integer.MAX_VALUE);
 
 			this.Position = new Position(builder);
+			this.Prompt_Email = new Time(builder, "inbox.config.layout.prompt", "prompt", 0, 0, 0, 25, 0, 0);
 			builder.pop();
 		}
 
@@ -54,14 +63,30 @@ public final class EmailConfigs {
 				public final Pos Chat_Gui_Button;
 				public final Pos Survival_Gui_Button;
 				public final Pos Creative_Tab_Button;
+				public final DoubleValue Chat_Gui_Button_Size;
+				public final DoubleValue Survival_Gui_Button_Size;
+				public final DoubleValue Creative_Tab_Button_Size;
 
 				public InboxButtons(Builder builder) {
 					super(builder);
 					builder.translation("inbox.config.layout.pos.inbox_btn").push("inbox_buttons");
 
 					this.Chat_Gui_Button = new Pos(builder, "chat_gui_button", "inbox.config.layout.pos.inbox_btn.chat_btn", 25, 5);
-					this.Survival_Gui_Button = new Pos(builder, "survival_gui_button", "inbox.config.layout.pos.inbox_btn.survival_btn", 76, 54);
-					this.Creative_Tab_Button = new Pos(builder, "creative_tab_button", "inbox.config.layout.pos.inbox_btn.creative_btn", 172, 166);
+					this.Survival_Gui_Button = new Pos(builder, "survival_gui_button", "inbox.config.layout.pos.inbox_btn.survival_btn", 76, 49);
+					this.Creative_Tab_Button = new Pos(builder, "creative_tab_button", "inbox.config.layout.pos.inbox_btn.creative_btn", 170, 165);
+
+					this.Chat_Gui_Button_Size = builder
+							.translation("inbox.config.layout.pos.inbox_btn.chat_btn.size")
+							.comment("inbox.config.layout.pos.inbox_btn.chat_btn.size.0")
+							.defineInRange("chat_gui_button_size", 1d, 0.15d, 10d);
+					this.Survival_Gui_Button_Size = builder
+							.translation("inbox.config.layout.pos.inbox_btn.survival_btn.size")
+							.comment("inbox.config.layout.pos.inbox_btn.survival_btn.size.0")
+							.defineInRange("survival_gui_button_size", 0.8d, 0.15d, 10d);
+					this.Creative_Tab_Button_Size = builder
+							.translation("inbox.config.layout.pos.inbox_btn.creative_btn.size")
+							.comment("inbox.config.layout.pos.inbox_btn.creative_btn.size.0")
+							.defineInRange("creative_tab_button_size", 1.05d, 0.15d, 10d);
 
 					builder.pop();
 				}
@@ -75,7 +100,7 @@ public final class EmailConfigs {
 		public final BooleanValue Enable_Send_WhiteList;
 		public final BooleanValue Enable_Send_To_Self;
 		public final BooleanValue Enable_Send_Cooling;
-		public final Cooling cooling;
+		public final Time cooling;
 		public final IntValue Send_History_Max_Count;
 
 		Send(Builder builder) {
@@ -104,7 +129,7 @@ public final class EmailConfigs {
 					.comment("inbox.config.send.cooling.0")
 					.define("Enable_Send_Cooling", true);
 
-			this.cooling = new Cooling(builder);
+			this.cooling = new Time(builder, "inbox.config.send.cooling", "cooling", 0, 0, 0, 5, 0, 0);
 
 			this.Send_History_Max_Count = builder
 					.translation("inbox.config.send.history_max")
@@ -112,51 +137,6 @@ public final class EmailConfigs {
 					.defineInRange("Send_History_Max_Count", 5, 0, Integer.MAX_VALUE);
 
 			builder.pop();
-		}
-
-		public static class Cooling extends BaseConfig {
-			public final IntValue Day;
-			public final IntValue Hour;
-			public final IntValue Minute;
-			public final IntValue Second;
-			public final IntValue Tick;
-			public final IntValue Millis;
-			Cooling(Builder builder) {
-				super(builder);
-				builder.translation("inbox.config.send.cooling").push("cooling");
-
-				this.Day = builder
-						.translation("inbox.config.time.day")
-						.comment("inbox.config.send.cooling.day")
-						.defineInRange("Day", 0, 0, Integer.MAX_VALUE);
-
-				this.Hour = builder
-						.translation("inbox.config.time.hour")
-						.comment("inbox.config.send.cooling.hour")
-						.defineInRange("Hour", 0, 0, Integer.MAX_VALUE);
-
-				this.Minute = builder
-						.translation("inbox.config.time.minute")
-						.comment("inbox.config.send.cooling.minute")
-						.defineInRange("Minute", 0, 0, Integer.MAX_VALUE);
-
-				this.Second = builder
-						.translation("inbox.config.time.second")
-						.comment("inbox.config.send.cooling.second")
-						.defineInRange("Second", 5, 0, Integer.MAX_VALUE);
-
-				this.Tick = builder
-						.translation("inbox.config.time.tick")
-						.comment("inbox.config.send.cooling.tick")
-						.defineInRange("Tick", 0, 0, Integer.MAX_VALUE);
-
-				this.Millis = builder
-						.translation("inbox.config.time.millis")
-						.comment("inbox.config.send.cooling.millis")
-						.defineInRange("Millis", 0, 0, Integer.MAX_VALUE);
-
-				builder.pop();
-			}
 		}
 	}
 
@@ -229,9 +209,51 @@ public final class EmailConfigs {
 			builder.pop();
 		}
 	}
+	public static class Time extends BaseConfig {
+		public final IntValue Day;
+		public final IntValue Hour;
+		public final IntValue Minute;
+		public final IntValue Second;
+		public final IntValue Tick;
+		public final IntValue Millis;
+		public Time(Builder builder, String translationKey, String path, int defaultDay, int defaultHour, int defaultMinute, int defaultSecond, int defaultTick, int defaultMillis) {
+			super(builder);
+			builder.translation(translationKey).push(path);
 
-	public static class BaseConfig {
-		public BaseConfig(@SuppressWarnings("unused") Builder builder) {}
+			this.Day = builder
+					.translation("inbox.config.time.day")
+					.defineInRange("Day", defaultDay, 0, Integer.MAX_VALUE);
+
+			this.Hour = builder
+					.translation("inbox.config.time.hour")
+					.defineInRange("Hour", defaultHour, 0, Integer.MAX_VALUE);
+
+			this.Minute = builder
+					.translation("inbox.config.time.minute")
+					.defineInRange("Minute", defaultMinute, 0, Integer.MAX_VALUE);
+
+			this.Second = builder
+					.translation("inbox.config.time.second")
+					.defineInRange("Second", defaultSecond, 0, Integer.MAX_VALUE);
+
+			this.Tick = builder
+					.translation("inbox.config.time.tick")
+					.defineInRange("Tick", defaultTick, 0, Integer.MAX_VALUE);
+
+			this.Millis = builder
+					.translation("inbox.config.time.millis")
+					.comment("inbox.config.send.cooling.millis")
+					.defineInRange("Millis", defaultMillis, 0, Integer.MAX_VALUE);
+
+			builder.pop();
+		}
+
+		public long getTicks() {
+			return EmailUtils.parseTick(this.Day.get(), this.Hour.get(), this.Minute.get(), this.Second.get(), this.Tick.get()) + this.Millis.get() / 50;
+		}
+		public long getMillis() {
+			return EmailUtils.parseMillis(this.Day.get(), this.Hour.get(), this.Minute.get(), this.Second.get(), this.Tick.get(), this.Millis.get());
+		}
 	}
 
 	@Deprecated

@@ -1,6 +1,6 @@
 package cat.jiu.email.element;
 
-import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;

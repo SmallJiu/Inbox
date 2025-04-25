@@ -21,43 +21,57 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
 
 import java.io.File;
+import java.util.Collection;
 
 class CommandSendEmail extends BaseCommand.Base {
 
     public CommandSendEmail() {
-        super("send", 4);
+        super("send", 2);
     }
 
     @Override
     public LiteralArgumentBuilder<CommandSourceStack> apply(LiteralArgumentBuilder<CommandSourceStack> node) {
         return node
                 .then(Commands.argument("player", new GameProfileArgument())
-                .then(Commands.argument("email", new EmailFileType()).executes(this)));
+                .then(Commands.argument("email", new EmailFileType(EmailAPI.getGlobalDataPath() + "emails/")).executes(this)));
     }
 
     @Override
     public int execute(MinecraftServer server, CommandSource sender, String[] args, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        for (GameProfile addressee : GameProfileArgument.getGameProfiles(ctx, "player")) {
-            String file = EmailAPI.getGlobalDataPath()+ "emails/" + args[1];
-            File f = ctx.getArgument("email", File.class);
-            JsonElement emailJson = JsonParser.parse(f);
-            if (emailJson == null || !emailJson.isJsonObject()) {
-                ctx.getSource().sendFailure(Component.translatable("file are not a json object."));
-                ctx.getSource().sendFailure(Component.translatable(String.format("%s: %s", file, emailJson)));
-                return 0;
-            }
-            if (EmailAPI.sendEmail(
-                    sender instanceof Player ? EmailSenderGroup.PLAYER : EmailSenderGroup.SYSTEM,
-                    addressee.getName(),
-                    new Email(emailJson.getAsJsonObject())
-                            .setSender(new Text(sender instanceof Player ? ((Player)sender).getName().getString() : EmailMain.SYSTEM))
-                            .setCreateTimeToNow()
-            )){
-                ctx.getSource().sendSystemMessage(Component.translatable("info.inbox.send.success", addressee.getName()));
-            }else {
-                ctx.getSource().sendFailure(Component.translatable("info.inbox.send.fail"));
-            }
+        Email email;
+        try {
+            File file = ctx.getArgument("email", File.class);
+            JsonElement emailJson = JsonParser.parseThrow(file);
+            email = new Email(emailJson.getAsJsonObject())
+                    .setSender(new Text(sender instanceof Player ? ((Player)sender).getName().getString() : EmailMain.SYSTEM));
+        } catch (Exception e) {
+            ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+            return 0;
         }
+
+        Collection<GameProfile> players = GameProfileArgument.getGameProfiles(ctx, "player");
+        new Thread(()->{
+            int result = 0;
+            GameProfile currentPlayer = null;
+            for (GameProfile addressee : players) {
+                currentPlayer = addressee;
+                if (EmailAPI.sendEmail(
+                        sender instanceof Player ? EmailSenderGroup.PLAYER : EmailSenderGroup.SYSTEM,
+                        addressee.getName(),
+                        email.setCreateTimeToNow()
+                )){
+                    result++;
+                }else {
+                    ctx.getSource().sendFailure(Component.translatable("info.inbox.send.fail"));
+                }
+            }
+            if (players.size() == 1) {
+                ctx.getSource().sendSystemMessage(Component.translatable("info.inbox.send.success", currentPlayer.getName()));
+            }else {
+                ctx.getSource().sendSystemMessage(Component.translatable("inbox.command.send.success", result));
+            }
+        }).start();
+
         return 1;
     }
 }

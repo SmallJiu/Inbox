@@ -13,28 +13,33 @@ import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailGenerate;
 import cat.jiu.email.ui.gui.component.*;
 import cat.jiu.email.util.*;
-import cat.jiu.email.util.client.ShowInboxGui;
+import cat.jiu.email.ui.InboxButton;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.StringUtils;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
@@ -46,11 +51,15 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 	private final GuiButtonPopupMenu mcSounds = new GuiButtonPopupMenu();
 	private GuiCheckbox useMCSound;
 	private GuiButton mcSoundBtn;
+	private LockIconButton lockBtn;
+	private final Inventory playerInventory;
+	private List<ItemStack> stacks;
 
 	public GuiEmailGenerate(ContainerEmailGenerate container, Inventory inventory) {
 		super(container, inventory, Component.empty());
 		this.imageWidth = 176;
 		this.imageHeight = 233;
+		this.playerInventory = inventory;
 		this.mcSounds.scroll.setShowCount(5);
 		this.mcSounds.setResetBtnWeight(true);
 	}
@@ -74,7 +83,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 
         this.initText();
 
-		this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos + 3, 16, 16, I18n.get("inbox.config.expiration"), 256, 256, 256, 256, btn->
+		Button expirationBtn = this.addRenderableWidget(new GuiImageButton(this, this.leftPos + 149 + 28, this.topPos - 5, 20, 20, I18n.get("inbox.config.expiration"), 256, 256, 256, 256, btn->
 			expiration.setEnable(!expiration.isEnable())
         )).setBackground(()->GuiEmailSend.EXPIRATION);
 
@@ -83,7 +92,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
         )).setBackground(()->BackGround);
 
 		this.addRenderableWidget(new GuiImageButton(this, this.titleField.getX() +this.titleField.getWidth()+4, this.titleField.getY() -2+btn.getHeight()+2, 22, this.localSound.getHeight()+2, I18n.get("info.inbox.name"), 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)))
-				.setBackground(()->ShowInboxGui.inbox);
+				.setBackground(()-> InboxButton.inbox);
 
 		this.mcSounds.scroll.collection.clear();
 		this.mcSounds.scroll.init();
@@ -116,6 +125,49 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				}
 			}
 		});
+		if (EmailUtils.isOP(Minecraft.getInstance().player)) {
+			this.lockBtn = this.addRenderableWidget(new LockIconButton(expirationBtn.getX(), expirationBtn.getY() + expirationBtn.getHeight() + 1, btn1->
+					this.lockBtn.setLocked(!this.lockBtn.isLocked())
+			));
+			this.lockBtn.setTooltip(Tooltip.create(Component.translatable("info.inbox.send.lock")));
+			this.lockBtn.setMessage(Component.translatable("info.inbox.send.lock"));
+
+			MutableComponent info = Component.translatable("info.inbox.memorize_items.0").append("\n").append(Component.translatable("info.inbox.memorize_items.1"));
+			Button saveItemsBtn = this.addRenderableWidget(new ImageButton(
+					expirationBtn.getX() + expirationBtn.getWidth() + 2, expirationBtn.getY() + 3,
+					15, 12, 182, 24, 0, AbstractWidget.WIDGETS_LOCATION,
+					btn1->{
+						if (Screen.hasShiftDown()) {
+							if (this.stacks!=null) this.stacks.clear();
+							btn1.setTooltip(Tooltip.create(info));
+							return;
+						}
+						if (this.stacks==null) {
+							this.stacks = new ArrayList<>();
+						}
+						this.stacks.clear();
+						for (ItemStack stack : this.playerInventory.items) {
+							if (!stack.isEmpty()) {
+								this.stacks.add(stack);
+							}
+						}
+						btn1.setTooltip(Tooltip.create(
+								info.copy().append("\n\n").append(Component.translatable("info.inbox.memorize_items.2")).append("\n\n")
+										.append(String.format("Count: %s items\n", this.stacks.size()))
+										.append(String.format(" Time: %s", EmailUtils.dateFormat.format(new Date())))
+						));
+					}
+			));
+			if (this.stacks==null || this.stacks.isEmpty()) {
+				saveItemsBtn.setTooltip(Tooltip.create(info));
+			}else {
+				saveItemsBtn.setTooltip(Tooltip.create(
+						info.copy().append("\n\n").append(Component.translatable("info.inbox.memorize_items.2")).append("\n\n")
+								.append(String.format("Count: %s items\n", this.stacks.size()))
+								.append(String.format(" Time: %s", EmailUtils.dateFormat.format(new Date())))
+				));
+			}
+		}
 	}
 
 	void generate(){
@@ -125,7 +177,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				title = "info.inbox.default_title";
 			}
 
-			if(this.textsIsEmpty() && this.getMenu().isEmpty()) {
+			if(this.textsIsEmpty() && this.getMenu().isEmpty() && (this.stacks==null || this.stacks.isEmpty())) {
 				this.setRenderText(I18n.get("info.inbox.error.empty_msgs_item"), Color.RED);
 				return;
 			}
@@ -168,13 +220,22 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				SizeReport report = EmailUtils.checkEmailSize(email_t);
 				if(!SizeReport.SUCCESS.equals(report)) {
 					if (this.getMenu().isLock()) this.getMenu().setLock(false);
-					this.setRenderText(new Text("info.inbox.error.send.to_big", report.slot(), report.size()).format(), Color.RED);
+					this.setRenderText(I18n.get("info.inbox.error.send.to_big", report.slot(), report.size()), Color.RED);
 					return;
 				}
 			}
 			if (!this.getMenu().isEmpty()) {
 				email.addItems(this.getMenu().toItemList(true));
 			}
+			if (this.stacks != null && !this.stacks.isEmpty()) {
+				email.addItems(this.stacks);
+				this.stacks.clear();
+			}
+
+			if (this.lockBtn != null) {
+				email.setDeletable(!this.lockBtn.isLocked());
+			}
+
 			this.getMenu().setLock(true);
 			String filename = email.getTitle().format() + "-" + System.currentTimeMillis() + ".json";
 
@@ -188,6 +249,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				object.add("attachments", new JsonArray());
 				object.add("AllAttachmentID", array);
 			}
+
 			File file = new File(EmailAPI.getGlobalDataPath(), "emails/"+filename);
 			JsonParser.toJsonFile(file, object, true);
 

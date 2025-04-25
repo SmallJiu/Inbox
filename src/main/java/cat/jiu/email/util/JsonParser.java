@@ -44,6 +44,16 @@ public final class JsonParser {
 			return null;
 		}
 	}
+
+	public static <T extends JsonElement> T parseThrow(File file) throws Exception {
+		return (T) parser.parse(new InputStreamReader(new FileInputStream(file)));
+	}
+	public static <T extends JsonElement> T parseThrow(String path) throws Exception {
+		return (T) parser.parse(new InputStreamReader(new FileInputStream(path)));
+	}
+	public static <T extends JsonElement> T parseThrow(InputStream path) throws Exception {
+		return (T) parser.parse(new InputStreamReader(path));
+	}
 	
 	public static boolean toJsonFile(String path, Object src, boolean format) {
 		return toJsonFile(new File(path), src, format);

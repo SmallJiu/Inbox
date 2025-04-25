@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import cat.jiu.email.util.EmailConfigs;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -22,7 +23,7 @@ public class Cooling {
 	private static final HashMap<String, Long> cooling = Maps.newHashMap();
 	
 	public static void cooling(String name) {
-		cooling(name, EmailUtils.getCoolingMillis());
+		cooling(name, EmailConfigs.Send.cooling.getTicks());
 	}
 	public static void cooling(String name, TimeMillis time) {
 		cooling(name, time.millis);

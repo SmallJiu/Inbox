@@ -1,8 +1,8 @@
 package cat.jiu.email.net.msg.refresh;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailAPI;
-import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.ui.gui.GuiGenerateScheduledEmail;
@@ -56,7 +56,7 @@ public class MsgRefreshScheduledEmail {
 
         @Override
         public boolean handler(Supplier<NetworkEvent.Context> context) {
-            if(EmailMain.proxy.isClient()) {
+            if(SideProxy.isClient()) {
                 if(Minecraft.getInstance().screen instanceof GuiScheduledEmail gui){
                     gui.addEmail(this.email);
                     gui.refresh();
@@ -109,7 +109,7 @@ public class MsgRefreshScheduledEmail {
 
         @Override
         public boolean handler(Supplier<NetworkEvent.Context> context) {
-            if(EmailMain.proxy.isClient()) {
+            if(SideProxy.isClient()) {
                 if(Minecraft.getInstance().screen instanceof GuiGenerateScheduledEmail gui){
                     gui.addPath(this.path, this.email);
                     gui.refresh();

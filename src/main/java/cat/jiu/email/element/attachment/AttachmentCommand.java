@@ -1,7 +1,7 @@
 package cat.jiu.email.element.attachment;
 
-import cat.jiu.core.api.handler.IJsonSerializable;
-import cat.jiu.core.api.handler.INBTSerializable;
+import cat.jiu.core.api.serializable.IJsonSerializable;
+import cat.jiu.core.api.serializable.INBTSerializable;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
 import cat.jiu.email.EmailMain;

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import cat.jiu.core.util.client.KeyUtil;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.ui.gui.*;
 import com.google.common.collect.Lists;
@@ -16,6 +17,7 @@ import cat.jiu.email.element.Inbox;
 import cat.jiu.email.net.msg.MsgOpenGui;
 import cat.jiu.email.ui.container.*;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.nbt.CompoundTag;
@@ -33,14 +35,35 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.IContainerFactory;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import org.lwjgl.glfw.GLFW;
 
+@Mod.EventBusSubscriber(Dist.CLIENT)
 public class GuiHandler {
 	public static final DeferredRegister<MenuType<?>> MENU_TYPE_REGISTER = DeferredRegister.create(ForgeRegistries.MENU_TYPES, EmailMain.MODID);
+	public static final KeyUtil KEY_DELETE_EMAIL = KeyUtil.of(
+			"info.inbox.key.delete",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_DELETE,
+			"info.inbox.name"
+	);
+	public static final KeyUtil KEY_ACCEPT_EMAIL = KeyUtil.of(
+			"info.inbox.key.accept",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_ENTER,
+			"info.inbox.name"
+	);
+	public static final KeyUtil KEY_BUTTON_DRAGGING = KeyUtil.of(
+			"info.inbox.key.dragging",
+			InputConstants.Type.KEYSYM,
+			GLFW.GLFW_KEY_L,
+			"info.inbox.name"
+	);
 	private static final Map<Integer, GuiConsumer<?>> GUIS = new HashMap<>();
 
 //	public static final RegistryObject<MenuType<ContainerEmailMain>> main_TYPE;

@@ -2,8 +2,8 @@ package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.email.EmailMain;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -44,7 +44,7 @@ public class MsgToast extends BaseMessage {
 
     @Override
     public boolean handler(Supplier<NetworkEvent.Context> context) {
-        if (EmailMain.proxy.isClient()) {
+        if (SideProxy.isClient()) {
             Minecraft.getInstance().getToasts().addToast(new net.minecraft.client.gui.components.toasts.SystemToast(
                     net.minecraft.client.gui.components.toasts.SystemToast.SystemToastIds.PACK_COPY_FAILURE,
                     this.title.toTextComponent(),

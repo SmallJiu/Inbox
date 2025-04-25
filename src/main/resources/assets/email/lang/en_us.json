@@ -14,6 +14,11 @@
   "info.inbox.error.to_big.0": "§7Inbox or email item or email item nbt is to big, please call admin delete email or email item or email item nbt.",
   "info.inbox.error.to_big.1": "§7Email ID: %s, Slot: %s, Size: §4%s §f/ §72097152 Bytes",
 
+  #key
+  "info.inbox.key.accept": "Receive email",
+  "info.inbox.key.delete": "Delete email",
+  "info.inbox.key.dragging": "Dragging button",
+
   #main
   "info.inbox.dispatch": "Send Email",
   "info.inbox.menu": "Menu",
@@ -53,10 +58,14 @@
   "info.inbox.xp_save_to_email.1": "Point: %s",
   "info.inbox.no_select_title": "Select an email to see info.",
   "info.inbox.no_select_time": "Now time: %s",
-  "info.inbox.delete.tip": "Select a email and press 'Delete' can delete email too.",
-  "info.inbox.delete.title": "Do you want to delete the selected email.",
-  "info.inbox.delete.confirm": "Press ' Delete ' to confirm.",
+  "info.inbox.tip": "Select a email and press %s can %s too.",
+  "info.inbox.delete.title.0": "Do you want to delete the selected email?",
+  "info.inbox.delete.title.1": "After deletion will receive attachment.",
+  "info.inbox.delete.confirm": "Press ' %s ' to confirm.",
   "info.inbox.delete.cancel": "' Any ' key to cancel.",
+  "info.inbox.key.dragging.info.lock": "Button dragging has lock.",
+  "info.inbox.key.dragging.info.unlock": "Button dragging has unlock.",
+  "info.inbox.key.dragging.info.mouse_right": "Use mouse right to dragging.",
 
   "info.inbox.filter.default": "Default",
   "info.inbox.filter.has_sound": "Has sound",
@@ -92,9 +101,10 @@
   "info.inbox.@p": "Online Players",
   "info.inbox.@a": "Save Players",
   "info.inbox.history": "History Addressee",
+  "info.inbox.send.lock": "Email can be delete.",
 
   "info.inbox.cooling": "Cooling -> %s:%s:%s:%s:%s",
-  "info.inbox.from": "You have a new E-mail from %s",
+  "info.inbox.from": "You have a new email from %s",
   "info.inbox.send.warn": "Warning: Use this button receive email maybe will lose items.",
   "info.inbox.send.not_op.abs": "Can not use obscure addresser: %s, please call admin.",
   "info.inbox.send.not_op.expiration": "Can not add expiration time to email, you are not Admin!",
@@ -103,16 +113,20 @@
 
   "info.inbox.error.not_found_player": "Can not found Player: %s !",
   "info.inbox.error.empty_name": "Addressee can not be empty !",
-  "info.inbox.error.send_self": "Server setting, You can't send e-mail to your self !",
+  "info.inbox.error.send_self": "Server setting, You can't send email to your self !",
   "info.inbox.error.empty_msgs_item": "item or message can not be empty!",
 
   "info.inbox.error.send.to_big": "Email item is to big, please remove some item or nbt. Slot: %s, Size: %s / 2097152 Bytes",
-  "info.inbox.error.send.to_big.email": "Send email to big, Please reduce the e-mail size. %s / 2097152 Bytes",
-  "info.inbox.send.success": "Send e-mail to player %s success.",
+  "info.inbox.error.send.to_big.email": "Send email to big, Please reduce the email size. %s / 2097152 Bytes",
+  "info.inbox.send.success": "Send email to player %s success.",
   "info.inbox.send.fail": "Failed to send the email, check log find the reason.",
   "info.inbox.send.fail.blacklist": "Failed to send the email, You have been block by the Addressee!",
   "info.inbox.send.fail.cooling": "? how are you pass the client check",
   "info.inbox.play_sound.category": "SoundSource: %s",
+
+  "info.inbox.memorize_items.0": "Too many items to send?",
+  "info.inbox.memorize_items.1": "This button can record all items in the inventory to email.",
+  "info.inbox.memorize_items.2": "Hold Shift to clear items.",
 
   #blacklist
   "info.inbox.black.title": "Block receive player email",
@@ -152,8 +166,9 @@
   "inbox.command.send": "/email send <File> [Player]",
   "inbox.command.send.file_not_found": "File not found, Path: %s",
   "inbox.command.send.msg": "/email sendmsg <Sender> <Addressee> <Title> <Messages>",
-  "inbox.command.send.success.all": "Send e-mail to all storage in 'usernamecache.json' players success.",
-  "inbox.command.send.success.all.online": "Send e-mail to all 'online' players success.",
+  "inbox.command.send.success": "Send email to %s players success.",
+  "inbox.command.send.success.all": "Send email to all storage in 'usernamecache.json' players success.",
+  "inbox.command.send.success.all.online": "Send email to all 'online' players success.",
   "inbox.command.send.error.abstract_name": "Can not use abstract name in not a player: %s。",
   "inbox.command.send.ing": "Sending, please wait... It is normal that the line may be disconnected during this period.",
 
@@ -177,16 +192,16 @@
   "inbox.command.send.list.white": "White List",
   "inbox.command.send.list.black": "Black List",
 
-  "inbox.command.send.list.unenable": "Server is not enable e-mail %s! please call you server admin to enable!",
+  "inbox.command.send.list.unenable": "Server is not enable email %s! please call you server admin to enable!",
   "inbox.command.send.list.not_found_player": "not found player %s %s ",
-  "inbox.command.send.list.add.success": "success to add player %s Send e-mail %s",
-  "inbox.command.send.list.remove.success": "success to remove player %s send e-mail %s",
-  "inbox.command.send.list.already_exist": "Player %s is has e-mail send %s",
+  "inbox.command.send.list.add.success": "success to add player %s Send email %s",
+  "inbox.command.send.list.remove.success": "success to remove player %s send email %s",
+  "inbox.command.send.list.already_exist": "Player %s is has email send %s",
   "inbox.command.send.list.error": "Unknow error, please check log.",
   "inbox.command.send.list.file_not_found": "Not found file: %s",
 
   "inbox.command.send.no_permission.black": "You has server send email blacklist, please call admin to remove.",
-  "inbox.command.send.no_permission.white": "You not has server send e-mail whitelist, please call admin to add.",
+  "inbox.command.send.no_permission.white": "You not has server send email whitelist, please call admin to add.",
 
   #config
 
@@ -227,8 +242,6 @@
   "inbox.config.screen_inbox_gui.0": "Use no Container gui, can disable similar JEI mods render",
   "inbox.config.screen_inbox_gui.1": "Testing content, any problem pls report.",
 
-  "inbox.config.enable_chat_btn": "Chat Button",
-  "inbox.config.enable_chat_btn.0": "Enable the button to open email in the chat gui",
 
   "inbox.config.layout": "About layout",
   "inbox.config.layout.show_text_rows": "Show Rows",
@@ -241,8 +254,16 @@
   "inbox.config.layout.vanilla_wrap.0": "Use vanilla to format Text",
   "inbox.config.layout.vanilla_wrap.1": "use single character line wrap if false (regardless of syntax)",
 
+  "inbox.config.layout.button_dragging": "Inbox button dragging",
+  "inbox.config.layout.button_dragging.0": "Enable inbox button dragging",
+
+  "inbox.config.enable_chat_btn": "Chat Button",
+  "inbox.config.enable_chat_btn.0": "Enable the button to open email in the chat gui",
+
   "inbox.config.layout.email_list_width": "Emails Width",
   "inbox.config.layout.email_list_width.0": "Candidate Emails Width",
+
+  "inbox.config.layout.prompt": "Unread email prompt interval",
 
   "inbox.config.layout.size.width": "Width",
   "inbox.config.layout.size.width.0": "Set inbox main gui width",
@@ -251,9 +272,18 @@
 
   "inbox.config.layout.pos": "Component position",
   "inbox.config.layout.pos.inbox_btn": "About inbox button",
+
   "inbox.config.layout.pos.inbox_btn.chat_btn": "Chat gui button",
-  "inbox.config.layout.pos.inbox_btn.survival_btn": "survival gui button",
-  "inbox.config.layout.pos.inbox_btn.creative_btn": "creative gui button",
+  "inbox.config.layout.pos.inbox_btn.chat_btn.size": "Chat gui button size",
+  "inbox.config.layout.pos.inbox_btn.chat_btn.size.0": "Dragging button can use mouse scroll to modify size.",
+
+  "inbox.config.layout.pos.inbox_btn.survival_btn": "Survival gui button",
+  "inbox.config.layout.pos.inbox_btn.survival_btn.size": "Survival gui button size",
+  "inbox.config.layout.pos.inbox_btn.survival_btn.size.0": "Dragging button can use mouse scroll to modify size.",
+
+  "inbox.config.layout.pos.inbox_btn.creative_btn": "Creative gui button",
+  "inbox.config.layout.pos.inbox_btn.creative_btn.size": "Creative gui button size",
+  "inbox.config.layout.pos.inbox_btn.creative_btn.size.0": "Dragging button can use mouse scroll to modify size.",
 
   "inbox.config.expiration": "Email Expiration",
   "inbox.config.expiration.can": "Can Expiration",

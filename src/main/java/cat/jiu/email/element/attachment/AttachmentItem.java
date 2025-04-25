@@ -1,11 +1,13 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
@@ -136,7 +138,7 @@ public class AttachmentItem implements IAttachment {
     @Override
     public void accept(Player player) {
         if (!this.isEmpty()) {
-            EmailUtils.spawnAsEntity(player, this.items);
+            EmailUtils.spawnAsEntity(player, this.getItems());
         }
     }
 
@@ -145,17 +147,18 @@ public class AttachmentItem implements IAttachment {
     public void render(AttachmentEvent.Render event) {
         if (!this.isEmpty()) {
             event.renderSaveTo("info.inbox.items");
-            event.addY(event.font.lineHeight + 2);
+            event.addY(event.font.lineHeight);
 
             int itemX = event.x;
             for (ItemStack item : this.getItems()) {
-                if (itemX >= event.x + event.viewWidth - 36) {
-                    event.addY(16 + 2);
+                if (itemX >= event.x + event.viewWidth - 30) {
+                    event.addY(16);
                     itemX = event.x;
                 }
-                event.graphics.renderItem(item, itemX, event.getY());
-                event.graphics.renderItemDecorations(event.font, item, itemX, event.getY());
-                if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, itemX, event.getY(), 16, 16)) {
+                int y = event.getY() + 4;
+                event.graphics.renderItem(item, itemX, y);
+                event.graphics.renderItemDecorations(event.font, item, itemX, y);
+                if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, itemX, y, 16, 16)) {
                     event.disableScissor();
                     event.graphics.renderTooltip(event.font, item, event.mouseX, event.mouseY);
                     event.enableScissor();
@@ -172,21 +175,21 @@ public class AttachmentItem implements IAttachment {
         if (!this.isEmpty()) {
             event.addHeight(event.font.lineHeight + 2);
 
-//            int maxWidth = event.guiWidth - 36;
+//            int maxWidth = event.guiWidth - 30;
 //            int lineCount = maxWidth / (16 + 2) ;
-//            float line1 = (float)attachment.getItems().size() / lineCount;
+//            float line1 = (float)this.getItems().size() / lineCount;
 //            int line = (int)line1;
-//            int less = attachment.getItems().size() - (line * lineCount);
+//            int less = this.getItems().size() - (line * lineCount);
 //            if (less > 0) {
 //                line += 1;
 //            }
-//            event.addHeight((16 + 2) * line);
+//            event.addHeight(16 * line);
 
-            event.addHeight(16 + 2);
+            event.addHeight(event.font.lineHeight + 4);
             int itemX = 0;
             for (ItemStack item : this.getItems()) {
-                if (itemX >= event.guiWidth - 36) {
-                    event.addHeight(16 + 2);
+                if (itemX >= event.guiWidth - 30) {
+                    event.addHeight(16);
                     itemX = 0;
                 }
                 itemX += 16 + 2;

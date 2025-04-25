@@ -74,7 +74,7 @@ public class EmailAPI {
 		}
 	}
 	
-	public static boolean sendEmail(EmailSenderGroup group, String address, Email email) {
+	public static synchronized boolean sendEmail(EmailSenderGroup group, String address, Email email) {
 		EmailUtils.initNameAndUUID(EmailMain.server);
 		Inbox inbox = Inbox.get(address);
 		

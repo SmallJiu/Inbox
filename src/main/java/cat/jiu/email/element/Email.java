@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
 import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
@@ -27,7 +28,7 @@ import com.google.gson.JsonPrimitive;
 
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.api.handler.ISerializable;
+import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
@@ -50,6 +51,7 @@ public class Email implements ISerializable {
 
 	protected boolean read;
 	protected boolean receive;
+	protected boolean deletable = true;
 
 	protected TimeMillis expiration_time;
 	protected long expiration_time_l;
@@ -60,7 +62,7 @@ public class Email implements ISerializable {
 
 	protected ISound mc_sound;
 	protected AudioSystem.Audio external_sound;
-	protected boolean isNetworkOrLocalSound;
+	protected boolean isExternalSound;
 
 	public Email(@Nonnull IText title, @Nonnull IText sender) {
 		this.title = title;
@@ -99,7 +101,7 @@ public class Email implements ISerializable {
 		this.title = title;
 		this.sender = sender;
 		this.external_sound = external_sound;
-		this.isNetworkOrLocalSound = true;
+		this.isExternalSound = true;
 		if (items!=null && !items.isEmpty()) {
 			this.addItems(items);
 		}
@@ -111,6 +113,15 @@ public class Email implements ISerializable {
 	}
 	public Email(JsonObject json) {
 		this.read(json);
+	}
+
+	public boolean isDeletable() {
+		return deletable;
+	}
+
+	public Email setDeletable(boolean deletable) {
+		this.deletable = deletable;
+		return this;
 	}
 
 	@Deprecated
@@ -276,7 +287,7 @@ public class Email implements ISerializable {
 		return this.isExternalSound();
 	}
 	public boolean isExternalSound() {
-		return isNetworkOrLocalSound;
+		return isExternalSound;
 	}
 
 	/**
@@ -298,7 +309,7 @@ public class Email implements ISerializable {
 	 * @param externalSound 是否是本地或网络音效
 	 */
 	public Email setIsExternalSound(boolean externalSound) {
-		isNetworkOrLocalSound = externalSound;
+		isExternalSound = externalSound;
 		return this;
 	}
 	@Deprecated
@@ -720,8 +731,11 @@ public class Email implements ISerializable {
 		}
 
 		json.add("sender", this.sender.writeTo(JsonObject.class));
+
 		if(this.isRead()) json.addProperty("read", true);
 		if(this.isReceived()) json.addProperty("receive", true);
+		json.addProperty("deletable", this.isDeletable());
+
 		if(this.hasSound()) {
 			if (this.isExternalSound()) {
 				JsonObject sound_obj = new JsonObject();
@@ -806,6 +820,7 @@ public class Email implements ISerializable {
 			}else if(json.has("receive")) {
 				this.receive = json.get("receive").getAsBoolean();
 			}
+			this.setDeletable(JsonUtils.get(json, "deletable", true));
 
 			if(json.has("sound")) {
 				if (JsonUtils.get(json, "network_local_sound", false)
@@ -883,6 +898,7 @@ public class Email implements ISerializable {
 		nbt.put("sender", this.sender.writeTo(CompoundTag.class));
 		if(this.isRead()) nbt.putBoolean("read", this.isRead());
 		if(this.isReceived()) nbt.putBoolean("receive", this.isReceived());
+		if (!this.isDeletable()) nbt.putBoolean("deletable", this.isDeletable());
 		if(this.hasSound()) {
 			if (this.isExternalSound()) {
 				CompoundTag sound_obj = new CompoundTag();
@@ -944,6 +960,7 @@ public class Email implements ISerializable {
 			this.sender = new Text(nbt.getCompound("sender"));
 			if(nbt.contains("read")) this.read = nbt.getBoolean("read");
 			if(nbt.contains("receive")) this.receive = nbt.getBoolean("receive");
+			this.setDeletable(NBTUtils.get(nbt, "deletable", true));
 			if(nbt.contains("sound")) {
 				if (nbt.contains("external_sound") && nbt.getBoolean("external_sound")) {
 					CompoundTag network_local = nbt.getCompound("sound");
