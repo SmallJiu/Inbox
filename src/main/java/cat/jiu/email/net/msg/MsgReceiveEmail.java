@@ -41,9 +41,10 @@ public class MsgReceiveEmail  {
 						inbox.setEmail(msgID, email);
 
 						if(!email.isReceived()) {
-							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
-								return;
-							}
+//							已经，不需要检查邮箱大小了
+//							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
+//								return;
+//							}
 
 							email.receive(player);
 
@@ -76,9 +77,10 @@ public class MsgReceiveEmail  {
 						inbox.setEmail(i, email);
 
 						if(!email.isReceived()) {
-							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
-								return;
-							}
+//							已经，不需要检查邮箱大小了
+//							if(inbox.getInboxSize()+55 >= 2097152L && !EmailConfigs.isInfiniteSize()) {
+//								return;
+//							}
 							email.receive(player);
 							changed = true;
 						}

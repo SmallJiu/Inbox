@@ -151,7 +151,7 @@ public class MsgSend extends BaseMessage {
 		}
 		
 		if(!EmailConfigs.isInfiniteSize()
-		&& !this.checkEmailSize(inbox, sender, stacks, lock)) {
+		&& !this.checkEmailSize(sender, stacks, lock)) {
 			if(this.group.isPlayerSend()) {
 				if(lock) container.setLock(false);
 			}
@@ -180,7 +180,7 @@ public class MsgSend extends BaseMessage {
 		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, this.group, addresses, this.email));
 	}
 	
-	private boolean checkEmailSize(Inbox inbox, ServerPlayer msgSender, List<ItemStack> stacks, boolean lock) {
+	private boolean checkEmailSize(ServerPlayer msgSender, List<ItemStack> stacks, boolean lock) {
 		SizeReport report = EmailUtils.checkEmailSize(this.email);
 		if(!SizeReport.SUCCESS.equals(report)) {
 			if(msgSender!=null) {
@@ -195,24 +195,6 @@ public class MsgSend extends BaseMessage {
 				}
 			}else {
 				EmailMain.log.warn("Email item is to big, please remove some item or nbt. Slot: {}, Size: {} / 2097152 Bytes", report.slot(), report.size());
-			}
-			return false;
-		}
-		
-		long size = inbox.getInboxSize() + EmailUtils.getSize(this.email.writeTo(CompoundTag.class));
-		if(size >= 2097152L) {
-			if(msgSender!=null) {
-				if(this.group.isPlayerSend()) {
-					if(msgSender.containerMenu instanceof ContainerEmailSend container) {
-						container.putStack(stacks);
-						if(lock) container.setLock(false);
-					}
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.error.send.to_big.email", size)), msgSender);
-				}else {
-					EmailUtils.sendMessage(msgSender, ChatFormatting.RED, "info.inbox.error.send.to_big.email", size);
-				}
-			}else {
-				EmailMain.log.warn("Send email to big, Please reduce the e-mail size. Size: {} / 2097152 Bytes", size);
 			}
 			return false;
 		}

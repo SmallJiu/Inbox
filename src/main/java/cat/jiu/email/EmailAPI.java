@@ -79,7 +79,7 @@ public class EmailAPI {
 		Inbox inbox = Inbox.get(address);
 		
 		if(!EmailConfigs.isInfiniteSize()
-		&& email.hasAttachment() && !checkEmailSize(inbox, email)) {
+		&& email.hasAttachment() && !SizeReport.SUCCESS.equals(EmailUtils.checkEmailSize(email))) {
 			return false;
 		}
 
@@ -107,16 +107,6 @@ public class EmailAPI {
 			}
 		}
 		return true;
-	}
-	
-	private static boolean checkEmailSize(Inbox inbox, Email email) {
-		SizeReport report = EmailUtils.checkEmailSize(email);
-		if(!SizeReport.SUCCESS.equals(report)) {
-			return false;
-		}
-		
-		long size = inbox.getInboxSize() + EmailUtils.getSize(email.writeTo(CompoundTag.class));
-		return size < 2097152L;
 	}
 
 	public static IEmailStyle getEmailStyle() {

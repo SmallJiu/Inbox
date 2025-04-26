@@ -211,7 +211,8 @@ public class EmailUtils {
 		long size = getSize(email.writeTo(CompoundTag.class));
 		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCESS;
 	}
-	
+
+	@Deprecated
 	public static SizeReport checkInboxSize(Inbox inbox) {
 		if(inbox == null || inbox.isEmptyInbox()) return SizeReport.SUCCESS;
 		
@@ -429,7 +430,7 @@ public class EmailUtils {
 	public static void spawnAsEntity(Level world, Vec3 pos, ItemStack stack){
 		if(!stack.isEmpty()){
 			ItemEntity item = new ItemEntity(world, pos.x+0.5F, pos.y+0.5F, pos.z+0.5F, stack.copy());
-			item.setNoPickUpDelay();
+			item.setPickUpDelay(1);
 			world.addFreshEntity(item);
 		}
 	}

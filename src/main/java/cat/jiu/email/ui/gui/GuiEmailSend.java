@@ -242,9 +242,6 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 				email.setExpirationTime(new TimeMillis(expiration));
 			}
 
-			if(!this.getMenu().isEmpty()) {
-				this.getMenu().toItemList(true).forEach(email::addItem);
-			}
 			if (this.stacks != null && !this.stacks.isEmpty()) {
 				email.addItems(this.stacks);
 				this.stacks.clear();
