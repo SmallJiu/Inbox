@@ -62,15 +62,16 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
     }
     public static void load() {
         REGISTRY.clear();
-        JsonObject emails = JsonParser.parse(EmailAPI.getGlobalDataPath()+"event_emails.json");
-        if (emails != null) {
-            for (String s : emails.keySet()) {
-                ResourceLocation event = new ResourceLocation(s);
-                for (JsonElement element : emails.getAsJsonArray(s)) {
-                    register(event, new EventEmail(element.getAsString()));
+        try {
+            JsonObject emails = JsonParser.parseThrow(EmailAPI.getGlobalDataPath()+"event_emails.json");if (emails != null) {
+                for (String s : emails.keySet()) {
+                    ResourceLocation event = new ResourceLocation(s);
+                    for (JsonElement element : emails.getAsJsonArray(s)) {
+                        register(event, new EventEmail(element.getAsString()));
+                    }
                 }
             }
-        }
+        } catch (Exception ignored) {}
     }
     public static void save() {
         JsonObject object = new JsonObject();

@@ -18,9 +18,13 @@ public class DBParser {
             DB_TABLE = "inboxes",
             DB_TABLE_KEY_UUID = "uuid",
             DB_TABLE_KEY_INBOX = "inbox"
-     ;
+    ;
 
     public static String getDBUrl() {
+        if(true) {
+            EmailConfigs.SQL_PROPERTIES.Database_Driver.get().loadDriver();
+            return EmailConfigs.SQL_PROPERTIES.Database_Driver.get().url(EmailConfigs.SQL_PROPERTIES.Database_Url.get().replace("{root}", EmailAPI.getSaveEmailRootPath()));
+        }
         return DBParser.DB_PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db";
     }
 
@@ -36,20 +40,17 @@ public class DBParser {
         return db;
     }
 
-    public static boolean write(String dbURL, Inbox inbox) {
+    public static boolean write(String dbURL, Inbox inbox) throws Exception {
         try(SQLDatabase db = getDatabase(dbURL)) {
             db.prepared.delete(DBParser.DB_TABLE, new SQLSelect(SQLSelectType.WHERE, "'" + inbox.getOwner() + "'")
                     .add(new Where(DBParser.DB_TABLE_KEY_UUID, SQLOperator.EQUAL, "?", null)));
 
-            db.prepared.insert(DBParser.DB_TABLE, inbox.writeTo(SQLValues.class));
+            db.prepared.insert(DBParser.DB_TABLE, inbox.write(new SQLValues()));
             return true;
-        }catch (Exception e) {
-            e.printStackTrace();
         }
-        return false;
     }
 
-    public static JsonObject read(String dbURL, String uid) {
+    public static JsonObject read(String dbURL, String uid) throws Exception {
         try(SQLDatabase db = getDatabase(dbURL)) {
             try(ResultSet rs = db.prepared.select(DBParser.DB_TABLE, new SQLSelect(SQLSelectType.WHERE, uid)
                     .add(new Where(DBParser.DB_TABLE_KEY_UUID, SQLOperator.EQUAL, "?", null)))) {
@@ -60,8 +61,6 @@ public class DBParser {
                     }
                 }
             }
-        }catch(Exception e) {
-            e.printStackTrace();
         }
         return new JsonObject();
     }

@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<ResourceLocation> {
     Logger LOGGER = LogManager.getLogger("Inbox:Attachment");
     ResourceLocation EMPTY_ID = new ResourceLocation(EmailMain.MODID, "attachment/empty");
+    String ID_NAME = "id";
     IAttachment EMPTY = new IAttachment() {
         @Override
         public CompoundTag write(CompoundTag nbt) {return nbt;}
@@ -42,13 +43,16 @@ public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<R
         public ResourceLocation getID() {return EMPTY_ID;}
     };
 
-    DynamicRegistry<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry<>((id, json) -> {
+    DynamicRegistry<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry<ResourceLocation, IAttachment>((id, json) -> {
         LOGGER.error("Attachment '{}' is not registered.", id);
         return EMPTY;
     }, (id, nbt) -> {
         LOGGER.error("Attachment '{}' is not registered.", id);
         return EMPTY;
-    });
+    }).setKeyGetter(
+            data->new ResourceLocation(data.getString(ID_NAME)),
+            data->new ResourceLocation(data.get(ID_NAME).getAsString())
+    );
 
     ResourceLocation getID();
 

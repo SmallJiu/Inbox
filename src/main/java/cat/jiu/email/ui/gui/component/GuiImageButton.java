@@ -146,6 +146,11 @@ public class GuiImageButton extends Button {
 	}
 
 	@Override
+	protected boolean clicked(double pMouseX, double pMouseY) {
+		return this.isActive() && this.visible && this.isHovered();
+	}
+
+	@Override
 	public Component getMessage() {
 		return this.hoveringText.get();
 	}

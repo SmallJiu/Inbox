@@ -15,12 +15,11 @@ import java.util.stream.Collectors;
 
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.client.RenderUtils;
-import cat.jiu.email.EmailAPI;
+import cat.jiu.email.element.StorageType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cat.jiu.core.api.element.IText;
@@ -164,6 +163,19 @@ public class EmailUtils {
 		EmailMain.log.error("Can not save Inbox to Disk! Owner: {}, UUID: {}, Retry count: {}", inbox.getOwner(), inbox.getOwnerAsUUID(), retry);
 		return false;
 	}
+
+	public static JsonObject getInboxJson(String uid) {
+		try {
+			StorageType type = StorageType.getInstance();
+			if (type==null) {
+				return new JsonObject();
+			}
+			return type.read.apply(uid);
+		} catch (Exception e) {
+			EmailMain.log.error(e);
+		}
+		return new JsonObject();
+	}
 	
 	public static void getAllFiles(List<File> files, File dir) {
 		for(File file : dir.listFiles()) {
@@ -260,21 +272,6 @@ public class EmailUtils {
 			}
 		});
 		return size.get();
-	}
-
-	public static JsonObject getInboxJson(String uid) {
-		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
-			return DBParser.read(DBParser.getDBUrl(), uid);
-		}else {
-			File email = new File(EmailAPI.getSaveInboxPath() + uid + ".json");
-			if(email.exists()) {
-				JsonElement file = JsonParser.parse(email);
-				if(file != null && file.isJsonObject()) {
-					return file.getAsJsonObject();
-				}
-			}
-		}
-		return new JsonObject();
 	}
 	
 	private static final HashMap<String, UUID> NameToUUID = Maps.newHashMap();

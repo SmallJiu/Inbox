@@ -15,7 +15,6 @@ import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.JsonToStackUtil;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -26,7 +25,6 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.SlotItemHandler;
-import org.jetbrains.annotations.NotNull;
 
 public class ContainerEmailSend extends AbstractContainerMenu {
 	public final Player player;

@@ -1,15 +1,16 @@
 package cat.jiu.email.util;
 
 import cat.jiu.core.util.client.config.BaseConfig;
+import cat.jiu.email.element.StorageType;
+import cat.jiu.sql.SQLDatabaseDriver;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.*;
 
 public final class EmailConfigs {
-//	public static final BooleanValue Enable_Inbox_Infinite_Storage_Cache;
 	public static final BooleanValue Save_To_Minecraft_Root_Directory;
-	public static final BooleanValue Save_Inbox_To_SQL;
-//	public static final BooleanValue Screen_Inbox_Gui;
 	public static final ConfigValue<String> Custom_Inbox_Path;
+	public static final ConfigValue<String> Storage_Inbox_Types;
+	public static final SQLProperties SQL_PROPERTIES;
 	public static final Layout Layout;
 	public static class Layout extends BaseConfig {
 		public final BooleanValue Enable_Chat_Button;
@@ -140,15 +141,41 @@ public final class EmailConfigs {
 		}
 	}
 
+	public static class SQLProperties extends BaseConfig {
+		public final EnumValue<SQLDatabaseDriver> Database_Driver;
+		public final ConfigValue<String> Database_Url;
+		public final ConfigValue<String> Database_Username;
+		public final ConfigValue<String> Database_Password;
+
+		public SQLProperties(Builder builder) {
+			super(builder);
+			builder.translation("inbox.config.sql_properties").push("sql_properties");
+
+			this.Database_Driver = builder
+					.translation("inbox.config.sql_properties.driver")
+					.defineEnum("sql_driver", SQLDatabaseDriver.SQLite);
+
+			this.Database_Url = builder
+					.translation("inbox.config.sql_properties.url")
+					.comment("{root} = inbox root save path. default is '/<minecraft>/saves/<world>/'")
+					.define("sql_url", "{root}/inbox.db");
+
+			this.Database_Username = builder
+					.translation("inbox.config.sql_properties.user")
+					.define("sql_username", "");
+
+			this.Database_Password = builder
+					.translation("inbox.config.sql_properties.pwd")
+					.define("sql_password", "");
+
+			builder.pop();
+		}
+	}
+
 	public static final ForgeConfigSpec CONFIG_MAIN;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-//		Enable_Inbox_Infinite_Storage_Cache = builder
-//				.translation("inbox.config.infinite_size")
-//				.comment("inbox.config.infinite_size.0",
-//						"inbox.config.infinite_size.1")
-//				.define("Enable_Inbox_Infinite_Storage_Cache", false);
 
 		Save_To_Minecraft_Root_Directory = builder
 				.worldRestart()
@@ -157,19 +184,16 @@ public final class EmailConfigs {
 						"inbox.config.save_to_root_directory.1")
 				.define("Save_To_Minecraft_Root_Directory", false);
 
-		Save_Inbox_To_SQL = builder
-				.worldRestart()
-				.translation("inbox.config.save_inbox_to_sql")
-				.comment("inbox.config.save_inbox_to_sql.0",
-						"inbox.config.save_inbox_to_sql.1")
-				.define("Save_Inbox_To_SQL", false);
-
-//		Screen_Inbox_Gui = builder
-//				.worldRestart()
-//				.translation("inbox.config.screen_inbox_gui")
-//				.comment("inbox.config.screen_inbox_gui.0",
-//						"inbox.config.screen_inbox_gui.1")
-//				.define("Screen_Inbox_Gui", true);
+		Storage_Inbox_Types = builder
+				.translation("inbox.config.storage_type")
+				.comment(
+						"inbox.config.storage_type.0",
+						"inbox.config.storage_type.1",
+						"inbox.config.storage_type.2",
+						"inbox.config.storage_type.3",
+						"Allowed Values: " + String.join(", ", StorageType.REGISTRY.getIDs())
+				)
+				.define("storage_types", "json"::toString, k->StorageType.REGISTRY.registered(String.valueOf(k)));
 
 		Custom_Inbox_Path = builder
 				.worldRestart()
@@ -181,11 +205,10 @@ public final class EmailConfigs {
 						"inbox.config.custom_inbox_path.4")
 				.define("inbox_path", "");
 
-
 		Layout = new Layout(builder);
 		Send = new Send(builder);
+		SQL_PROPERTIES = new SQLProperties(builder);
 
-//		builder.pop();
 		CONFIG_MAIN = builder.build();
 	}
 
@@ -242,7 +265,6 @@ public final class EmailConfigs {
 
 			this.Millis = builder
 					.translation("inbox.config.time.millis")
-					.comment("inbox.config.send.cooling.millis")
 					.defineInRange("Millis", defaultMillis, 0, Integer.MAX_VALUE);
 
 			builder.pop();

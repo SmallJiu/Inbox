@@ -6,6 +6,8 @@ import java.util.Map;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.AttachmentCommand;
+import cat.jiu.email.element.attachment.AttachmentEffect;
+import cat.jiu.email.element.attachment.AttachmentMaxHealth;
 import cat.jiu.email.net.msg.MsgToast;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;
@@ -26,6 +28,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.ServerOpListEntry;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -59,6 +63,13 @@ public class SendDevEmail {
 				.setExperience(9980, 9980)
 				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
 				.setExternalSound(new AudioSystem.Audio("E:/application/tools/ffmpeg/bin/inbox_dev_sound.mp3", SoundSource.PLAYERS))
+				.addAttachment(new AttachmentEffect()
+						.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 1000))
+						.addEffect(new MobEffectInstance(MobEffects.HEAL, 1000))
+						.addEffect(new MobEffectInstance(MobEffects.JUMP, 1000))
+						.addEffect(new MobEffectInstance(MobEffects.LUCK, 1000))
+				)
+				.addAttachment(new AttachmentMaxHealth(2))
 				.setAccept(true);
 	}
 	
@@ -81,7 +92,7 @@ public class SendDevEmail {
 			
 			if(!inbox.isSendDevMsg()) {
 				inbox.setSendDevMsg(true);
-				inbox.addEmail(devEmail.copy().setCreateTimeToNow(), true);
+				inbox.addEmail(getDevEmail().copy(), true);
 				
 //				EmailExecuteEvent.initDefaultCustomValue(inbox);
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(player, inbox));

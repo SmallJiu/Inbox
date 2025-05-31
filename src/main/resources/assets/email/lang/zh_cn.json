@@ -84,6 +84,11 @@
   "info.inbox.sound_not_found": "无法播放音频，注册名: %s",
   "info.inbox.sound_not_found.ext": "无法播放音频，路径: %s",
 
+  "info.inbox.items": "物品",
+  "info.inbox.xps": "经验",
+  "info.inbox.commands": "指令",
+  "info.inbox.healths": "生命",
+
   #gen
   "info.inbox.generate": "生成邮件",
   "info.inbox.generate.sound": "音频",
@@ -94,9 +99,6 @@
   "info.inbox.addressee": "收件人",
   "info.inbox.title": "标题",
   "info.inbox.msgs": "信息",
-  "info.inbox.items": "物品",
-  "info.inbox.xps": "经验",
-  "info.inbox.commands": "指令",
   "info.inbox.default_msg": "一封来自虚空的邮件",
   "info.inbox.default_title": "来自虚空的邮件",
   "info.inbox.@p": "在线玩家",
@@ -225,10 +227,17 @@
   "inbox.config.save_to_root_directory.0": "保存邮箱至根目录,",
   "inbox.config.save_to_root_directory.1": "否则保存到对应存档下.",
 
-  "inbox.config.save_inbox_to_sql": "使用数据库保存邮箱(未完成)",
-  "inbox.config.save_inbox_to_sql.0": "保存邮箱文件到数据库文件(inbox.db)",
-  "inbox.config.save_inbox_to_sql.1": "§c警告，你可能需要备份之前的邮箱邮件(email/<uuid>.json)",
-  "inbox.config.save_inbox_to_sql.not_load_sql": "未加载SQLite mod",
+  "inbox.config.storage_type": "邮箱存储格式",
+  "inbox.config.storage_type.0": "定义邮箱的存储格式, §c你可能需要备份之前的邮箱邮件",
+  "inbox.config.storage_type.1": "Json格式可读,   文件较大",
+  "inbox.config.storage_type.2": "NBT 格式不可读, 文件小",
+  "inbox.config.storage_type.3": "Sql 格式需专用软件才可读, 文件大小视情况而定",
+
+  "inbox.config.sql_properties": "数据库配置",
+  "inbox.config.sql_properties.driver": "数据库类型",
+  "inbox.config.sql_properties.url": "数据库地址",
+  "inbox.config.sql_properties.user": "数据库用户名",
+  "inbox.config.sql_properties.pwd": "数据库密码",
 
   "inbox.config.custom_inbox_path": "保存邮箱的路径",
   "inbox.config.custom_inbox_path.0": "自定义保存邮箱的路径, 默认为对应存档的文件夹",

@@ -77,7 +77,7 @@ public class InboxButton {
 	@OnlyIn(Dist.CLIENT)
 	@SubscribeEvent
 	public static void onGuiKeyPressed(ScreenEvent.KeyPressed.Pre event) {
-		if (INSTANCE != null && GuiHandler.KEY_BUTTON_DRAGGING.isClicked(event.getKeyCode(), event.getScanCode())) {
+		if (INSTANCE != null && KeyBinds.KEY_BUTTON_DRAGGING.isClicked(event.getKeyCode(), event.getScanCode())) {
 			EmailConfigs.Layout.Lock_Inbox_Button_Dragging.set(!EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get());
 			INSTANCE.displayTextTime = event.getScreen().getMinecraft().level.getLevelData().getGameTime() + 3 * 20;
 			INSTANCE.displayText = Component.translatable(EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get() ? "info.inbox.key.dragging.info.unlock" : "info.inbox.key.dragging.info.lock");

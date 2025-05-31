@@ -9,9 +9,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import cat.jiu.core.util.SideProxy;
-import cat.jiu.email.EmailAPI;
-import cat.jiu.email.util.DBParser;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.JsonParser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -297,11 +294,16 @@ public final class Inbox implements ISerializable {
 		if(this.isEmptyInbox()){
 			EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", this);
 		}
-		if(EmailConfigs.Save_Inbox_To_SQL.get() && EmailMain.SQLite_INIT) {
-			return DBParser.write(DBParser.getDBUrl(), this);
-		}else {
-			return JsonParser.toJsonFile(EmailAPI.getSaveInboxPath() + owner + ".json", this.writeTo(JsonObject.class), false);
+		try {
+			StorageType type = StorageType.getInstance();
+			if (type!=null) {
+				type.write.accept(this);
+				return true;
+			}
+		} catch (Exception e) {
+			EmailMain.log.error(e);
 		}
+		return false;
 	}
 	
 	/**
@@ -363,7 +365,7 @@ public final class Inbox implements ISerializable {
 		return json;
 	}
 
-	static final List<String> old_version_black_key = Arrays.asList("dev", "custom", "historySize", "blacklist");
+	private static final List<String> old_version_black_key = Arrays.asList("dev", "custom", "historySize", "blacklist");
 
 	@Override
 	public void read(JsonObject json) {

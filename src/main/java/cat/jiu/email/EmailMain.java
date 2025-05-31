@@ -11,10 +11,10 @@ import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.element.attachment.*;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.ui.GuiHandler;
+import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraft.server.MinecraftServer;
@@ -29,7 +29,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import org.apache.commons.lang3.ArrayUtils;
+import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -108,6 +108,8 @@ public class EmailMain {
         IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
         IAttachment.REGISTRY.register(AttachmentCommand.ID, AttachmentCommand::new, AttachmentCommand::new);
         IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
+        IAttachment.REGISTRY.register(AttachmentMaxHealth.ID, AttachmentMaxHealth::new, AttachmentMaxHealth::new);
+        IAttachment.REGISTRY.register(AttachmentEffect.ID, AttachmentEffect::new, AttachmentEffect::new);
 //        IAttachment.register(IAttachment.EMPTY_ID, nbt -> IAttachment.EMPTY, nbt -> IAttachment.EMPTY);
 //        IAttachment.register(AttachmentDatapack.ID, AttachmentDatapack::new, AttachmentDatapack::new);
 
@@ -120,9 +122,9 @@ public class EmailMain {
     }
     @OnlyIn(Dist.CLIENT)
     void onRegisterBindings(RegisterKeyMappingsEvent event) {
-        GuiHandler.KEY_DELETE_EMAIL.register(event);
-        GuiHandler.KEY_ACCEPT_EMAIL.register(event);
-        GuiHandler.KEY_BUTTON_DRAGGING.register(event);
+        KeyBinds.KEY_DELETE_EMAIL.register(event);
+        KeyBinds.KEY_ACCEPT_EMAIL.register(event);
+        KeyBinds.KEY_BUTTON_DRAGGING.register(event);
     }
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {

@@ -38,6 +38,7 @@ import cat.jiu.sql.SQLValues;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -221,6 +222,15 @@ public class Email implements ISerializable {
 	public List<ItemStack> getItems() {
 		if (this.hasAttachments(AttachmentItem.ID)) {
 			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).getItems();
+		}
+		return Collections.emptyList();
+	}
+	/**
+	 * @return 邮件附带的效果
+	 */
+	public List<MobEffectInstance> getEffects() {
+		if (this.hasAttachments(AttachmentEffect.ID)) {
+			return this.<AttachmentEffect>getAttachment(AttachmentItem.ID).getEffects();
 		}
 		return Collections.emptyList();
 	}

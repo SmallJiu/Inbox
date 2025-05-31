@@ -83,6 +83,12 @@
   "info.inbox.sound_not_found": "Can not play audio, registry name: %s",
   "info.inbox.sound_not_found.ext": "Can not play audio, path: %s",
 
+  "info.inbox.items": "Items",
+  "info.inbox.xps": "XPs",
+  "info.inbox.commands": "Commands",
+  "info.inbox.healths": "Healths",
+  "info.inbox.effects": "Buff/Debuff",
+
   #gen
   "info.inbox.generate": "Generate email.",
   "info.inbox.generate.sound": "Sound",
@@ -93,9 +99,6 @@
   "info.inbox.addressee": "Send to",
   "info.inbox.title": "Title",
   "info.inbox.msgs": "Messages",
-  "info.inbox.items": "Items",
-  "info.inbox.xps": "XPs",
-  "info.inbox.commands": "Commands",
   "info.inbox.default_msg": "From the Void",
   "info.inbox.default_title": "A email from the Void",
   "info.inbox.@p": "Online Players",
@@ -226,10 +229,17 @@
   "inbox.config.save_to_root_directory.0": "save email to world directory if false,",
   "inbox.config.save_to_root_directory.1": "can cross you saves send email if true.",
 
-  "inbox.config.save_inbox_to_sql": "Use database storage inbox(Unfinish)",
-  "inbox.config.save_inbox_to_sql.0": "save inbox to sql file(inboxs.db)",
-  "inbox.config.save_inbox_to_sql.1": "§cWarning: you need backup old inbox files!(email/<uuid>.json)",
-  "inbox.config.save_inbox_to_sql.not_load_sql": "Not load SQLite mod.",
+  "inbox.config.storage_type": "Inbox storage type",
+  "inbox.config.storage_type.0": "Inbox storage type, §cyou need backup inbox files",
+  "inbox.config.storage_type.1": "Json can read, file size may big",
+  "inbox.config.storage_type.2": "NBT can't read, file size may small",
+  "inbox.config.storage_type.3": "SQL requires specialized software to read, file size depends on the situation",
+
+  "inbox.config.sql_properties": "SQL Properties",
+  "inbox.config.sql_properties.driver": "SQL Type",
+  "inbox.config.sql_properties.url": "SQL url",
+  "inbox.config.sql_properties.user": "SQL username",
+  "inbox.config.sql_properties.pwd": "SQL password",
 
   "inbox.config.custom_inbox_path": "Inbox save path",
   "inbox.config.custom_inbox_path.0": "Custom inbox save path, default is world dir.",

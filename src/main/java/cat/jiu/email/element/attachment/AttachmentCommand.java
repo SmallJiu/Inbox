@@ -24,7 +24,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
@@ -240,7 +239,7 @@ public class AttachmentCommand implements IAttachment {
 
                 event.enableScissor();
             }
-            event.addY(16);
+            event.addY(event.font.lineHeight + 2);
         }
     }
 
