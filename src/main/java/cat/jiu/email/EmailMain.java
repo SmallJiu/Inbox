@@ -47,7 +47,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.3-a0";
+                                VERSION = "1.20.1-1.1.3-a1";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -69,9 +69,11 @@ public class EmailMain {
     public EmailMain() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         bus.addListener(this::setup);
-        bus.addListener(this::onClientSetup);
         bus.addListener(this::onConfigLoading);
-        bus.addListener(this::onRegisterBindings);
+        if (FMLLoader.getDist().isClient()) {
+            bus.addListener(this::onClientSetup);
+            bus.addListener(this::onRegisterBindings);
+        }
         GuiHandler.MENU_TYPE_REGISTER.register(bus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/inbox/configs.toml");
         MinecraftForge.EVENT_BUS.register(this);
@@ -112,6 +114,7 @@ public class EmailMain {
         AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }
 
+    @OnlyIn(Dist.CLIENT)
     void onClientSetup(final FMLClientSetupEvent event) {
         GuiHandler.registerScreen();
     }
