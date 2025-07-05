@@ -1,6 +1,7 @@
 package cat.jiu.email.util;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.sql.*;
 import cat.jiu.sql.select.Where;
@@ -22,8 +23,8 @@ public class DBParser {
 
     public static String getDBUrl() {
         if(true) {
-            EmailConfigs.SQL_PROPERTIES.Database_Driver.get().loadDriver();
-            return EmailConfigs.SQL_PROPERTIES.Database_Driver.get().url(EmailConfigs.SQL_PROPERTIES.Database_Url.get().replace("{root}", EmailAPI.getSaveEmailRootPath()));
+            EmailConfigServer.SQL_PROPERTIES.Database_Driver.get().loadDriver();
+            return EmailConfigServer.SQL_PROPERTIES.Database_Driver.get().url(EmailConfigServer.SQL_PROPERTIES.Database_Url.get().replace("{root}", EmailAPI.getSaveEmailRootPath()));
         }
         return DBParser.DB_PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db";
     }

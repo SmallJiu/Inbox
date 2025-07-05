@@ -6,7 +6,7 @@ import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.event.RegisterStorageTypeEvent;
 import cat.jiu.email.util.DBParser;
-import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.configs.EmailConfigServer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -26,7 +26,7 @@ public class StorageType implements Supplier<String> {
             );
 
     public static StorageType getInstance() {
-        return StorageType.REGISTRY.get(EmailConfigs.Storage_Inbox_Types.get());
+        return StorageType.REGISTRY.get(EmailConfigServer.Storage_Inbox_Types.get());
     }
 
     public final String name;
@@ -64,7 +64,7 @@ public class StorageType implements Supplier<String> {
                     }
                     throw new JsonParseException("json not a object. " + file);
                 }
-                throw new FileNotFoundException();
+                throw new FileNotFoundException(String.valueOf(email));
             }
     ).register();
 

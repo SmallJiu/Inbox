@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import cat.jiu.email.configs.EmailConfigClient;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.ui.gui.component.GuiButtonPopupMenu;
 import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
@@ -172,7 +174,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 			}
 		}
 		if (!has) {
-			if (this.addresseeHistory.scroll.collection.size() >= EmailConfigs.Send.Send_History_Max_Count.get()) {
+			if (this.addresseeHistory.scroll.collection.size() >= EmailConfigClient.Send_History_Max_Count.get()) {
 				this.addresseeHistory.scroll.collection.remove(0);
 			}
 			this.addresseeHistory.addButton(Button.builder(component, b->{
@@ -246,13 +248,11 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 				email.addItems(this.stacks);
 				this.stacks.clear();
 			}
-			if(!EmailConfigs.isInfiniteSize()){
-				SizeReport report = EmailUtils.checkEmailSize(email);
-				if(!SizeReport.SUCCESS.equals(report)) {
-					if (this.getMenu().isLock()) this.getMenu().setLock(false);
-					this.setRenderText(I18n.get("info.inbox.error.send.to_big", report.slot(), report.size()), Color.RED);
-					return;
-				}
+			SizeReport report = EmailUtils.checkEmailSize(email);
+			if(!SizeReport.SUCCESS.equals(report)) {
+				if (this.getMenu().isLock()) this.getMenu().setLock(false);
+				this.setRenderText(I18n.get("info.inbox.error.send.to_big", report.slot(), report.size()), Color.RED);
+				return;
 			}
 			if (this.lockBtn != null) {
 				email.setDeletable(!this.lockBtn.isLocked());
@@ -451,8 +451,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 					List<? extends Player> playerList = Minecraft.getInstance().player.level().players();
 					if(this.index < playerList.size()) {
 						Component name = playerList.get(this.index).getName();
-						if(name.equals(Minecraft.getInstance().player.getName())
-								&& EmailConfigs.Send.Enable_Send_To_Self.get()) {
+						if(name.equals(Minecraft.getInstance().player.getName())) {
 							this.setValue(name.getString());
 							this.index++;
 							return true;

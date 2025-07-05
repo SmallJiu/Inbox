@@ -5,6 +5,7 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
+import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.event.AttachmentEvent;
@@ -12,7 +13,6 @@ import cat.jiu.email.net.msg.MsgScheduledEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -56,7 +56,7 @@ public class GuiScheduledEmail extends Screen {
     protected void init() {
         super.init();
         Font font = RenderUtils.getFontRenderer();
-        int listWidth = EmailConfigs.Layout.Email_List_Width.get();
+        int listWidth = EmailConfigClient.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
 
         this.emailList = this.addRenderableWidget(new ScheduledEmailList(this, listWidth, this.height - 35, x, y));
@@ -309,7 +309,7 @@ public class GuiScheduledEmail extends Screen {
                 Component component = message.toTextComponent();
 
                 List<FormattedCharSequence> texts;
-                if (EmailConfigs.Layout.Enable_Vanilla_Wrap_Text.get()) {
+                if (EmailConfigClient.Enable_Vanilla_Wrap_Text.get()) {
                     texts = Language.getInstance().getVisualOrder(font.getSplitter().splitLines(component, textMaxLength, Style.EMPTY));
                 }else {
                     texts = EmailUtils.splitString(message.format(), textMaxLength).stream().map(e->FormattedCharSequence.backward(e, Style.EMPTY)).collect(Collectors.toList());

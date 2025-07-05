@@ -8,6 +8,7 @@ import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
+import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.AttachmentEvent;
@@ -23,7 +24,6 @@ import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.ui.gui.component.EmailListWidget;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 import cat.jiu.email.ui.gui.component.GuiPopupMenu;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.ui.gui.component.EmailSenderSndSound;
 import cat.jiu.core.util.client.AudioSystem;
@@ -106,7 +106,7 @@ public class GuiInbox extends Screen {
         refresh();
         this.deleteEmailOverlay = false;
         Font font = this.getFont();
-        int listWidth = EmailConfigs.Layout.Email_List_Width.get();
+        int listWidth = EmailConfigClient.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
 
         this.emailList = this.addRenderableWidget(new EmailListWidget(this, listWidth, this.height - 35, x, y));
@@ -132,7 +132,7 @@ public class GuiInbox extends Screen {
 
     protected void initButtons(int x, int y) {
         this.addRenderableWidget(new GuiImageButton(this, this.emailInfo.getRight() - 4 - 16, 1, 14, 14, ()->null, 16, 16, 16, 16, btn->
-                Minecraft.getInstance().setScreen(new cat.jiu.core.util.client.config.GuiConfig("/config/jiu/inbox/configs.toml", this, EmailConfigs.CONFIG_MAIN))
+                Minecraft.getInstance().setScreen(new cat.jiu.core.util.client.config.GuiConfig(this, EmailMain.MODID))
         )).setBackground(()-> CONFIG_ICON);
 
         this.playSoundBtn = this.addRenderableWidget(new GuiImageButton(this, this.currentEmailTitle.getX() + this.currentEmailTitle.getWidth() - this.currentEmailTitle.getHeight()*2 - 5, this.currentEmailTitle.getY(), this.currentEmailTitle.getHeight()*2 - 6, this.currentEmailTitle.getHeight()*2 - 6, ()->null, 256, 256, 0, 169, 56, 56, btn->
@@ -211,8 +211,6 @@ public class GuiInbox extends Screen {
                                         this.deleteEmailOverlay = false;
                                         this.deleteEmailBtn.visible = false;
                                         this.acceptEmailBtn.visible = false;
-                                    }else {
-
                                     }
                                     break;
                                 }
@@ -488,7 +486,7 @@ public class GuiInbox extends Screen {
                 Component component = message.toTextComponent();
 
                 List<FormattedCharSequence> texts;
-                if (EmailConfigs.Layout.Enable_Vanilla_Wrap_Text.get()) {
+                if (EmailConfigClient.Enable_Vanilla_Wrap_Text.get()) {
                     texts = Language.getInstance().getVisualOrder(font.getSplitter().splitLines(component, textMaxLength, Style.EMPTY));
                 }else {
                     texts = EmailUtils.splitString(message.format(), textMaxLength).stream().map(e->FormattedCharSequence.backward(e, Style.EMPTY)).collect(Collectors.toList());
@@ -669,7 +667,7 @@ public class GuiInbox extends Screen {
         }
         if (KeyBinds.KEY_DELETE_EMAIL.isClicked(pKeyCode, pScanCode) && this.getCurrentEmail() != null) {
             if (this.deleteEmailOverlay) {
-                this.deleteEmailBtn.mouseClicked(this.deleteEmailBtn.getX()+1, this.deleteEmailBtn.getY()+1,0);
+                this.deleteEmailBtn.onPress();
             }else {
                 this.deleteEmailOverlay = true;
             }
@@ -677,7 +675,7 @@ public class GuiInbox extends Screen {
         }
         this.deleteEmailOverlay = false;
         if (KeyBinds.KEY_ACCEPT_EMAIL.isClicked(pKeyCode, pScanCode)) {
-            this.acceptEmailBtn.mouseClicked(this.acceptEmailBtn.getX()+1, this.acceptEmailBtn.getY()+1,0);
+            this.acceptEmailBtn.onPress();
             return true;
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);

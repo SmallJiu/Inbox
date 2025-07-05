@@ -7,10 +7,10 @@ import java.util.function.BiConsumer;
 
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.ui.gui.*;
+import cat.jiu.email.ui.gui.component.AttachmentInboxIcon;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.element.Cooling;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.net.msg.MsgOpenGui;
@@ -32,6 +32,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.ConfigScreenHandler;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.IContainerFactory;
@@ -64,8 +65,12 @@ public class GuiHandler {
 		MenuScreens.<ContainerEmailGenerate, GuiEmailGenerate>register(GuiHandler.generate_TYPE.get(), (container, inventory, title) -> new GuiEmailGenerate(container, inventory));
 
 		ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class, ()->new ConfigScreenHandler.ConfigScreenFactory((mc, parent)->
-				new cat.jiu.core.util.client.config.GuiConfig("/config/jiu/inbox/configs.toml", parent, EmailConfigs.CONFIG_MAIN)
+				new cat.jiu.core.util.client.config.GuiConfig(parent, EmailMain.MODID)
 		));
+
+		if (ModList.get().isLoaded("attributeslib")) {
+			AttachmentInboxIcon.getIconType();
+		}
 	}
 
 	static {

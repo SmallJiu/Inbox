@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.client.RenderUtils;
+import cat.jiu.email.configs.EmailConfigClient;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.StorageType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -434,11 +436,11 @@ public class EmailUtils {
 
 	@Deprecated
 	public static long getCoolingMillis() {
-		return EmailConfigs.Send.cooling.getTicks();
+		return EmailConfigServer.Send.cooling.getTicks();
 	}
 	@Deprecated
 	public static long getPromptTicks() {
-		return EmailConfigs.Layout.Prompt_Email.getTicks();
+		return EmailConfigClient.Prompt_Email.getTicks();
 	}
 	
 	public static long parseTick(long day, long h, long m, long s, long tick) {
@@ -453,7 +455,7 @@ public class EmailUtils {
 
 	@Deprecated
 	public static boolean isInfiniteSize() {
-		return EmailConfigs.isInfiniteSize();
+		return EmailConfigServer.isInfiniteSize();
 	}
 
     public static List<String> splitString(String text, int textMaxLength) {

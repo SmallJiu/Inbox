@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.element.EventEmail;
+import cat.jiu.email.element.attachment.AttachmentAttribute;
 import cat.jiu.email.element.attachment.AttachmentCommand;
 import cat.jiu.email.element.attachment.AttachmentEffect;
 import cat.jiu.email.element.attachment.AttachmentMaxHealth;
-import cat.jiu.email.net.msg.MsgToast;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;
 import com.google.common.collect.Lists;
@@ -30,6 +31,8 @@ import net.minecraft.server.players.ServerOpListEntry;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -70,6 +73,11 @@ public class SendDevEmail {
 						.addEffect(new MobEffectInstance(MobEffects.LUCK, 1000))
 				)
 				.addAttachment(new AttachmentMaxHealth(2))
+				.addAttachment(new AttachmentAttribute()
+						.addValue(Attributes.LUCK, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
+						.addValue(Attributes.ATTACK_DAMAGE, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
+						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
+				)
 				.setAccept(true);
 	}
 	
@@ -138,7 +146,7 @@ public class SendDevEmail {
 	@SubscribeEvent
 	public static void onClientTick(TickEvent.ClientTickEvent event){
 		if (event.phase == TickEvent.Phase.END) {
-			if (showToast >= EmailConfigs.Layout.Prompt_Email.getTicks()) {
+			if (showToast >= EmailConfigClient.Prompt_Email.getTicks()) {
 				if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
 					Minecraft.getInstance().getToasts().addToast(new SystemToast(
 							SystemToast.SystemToastIds.PACK_COPY_FAILURE,

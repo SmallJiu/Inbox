@@ -88,6 +88,8 @@
   "info.inbox.xps": "经验",
   "info.inbox.commands": "指令",
   "info.inbox.healths": "生命",
+  "info.inbox.healths.temp": " (临时的)",
+  "info.inbox.attribute": "属性",
 
   #gen
   "info.inbox.generate": "生成邮件",

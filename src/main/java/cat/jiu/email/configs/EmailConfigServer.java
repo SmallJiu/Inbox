@@ -1,108 +1,25 @@
-package cat.jiu.email.util;
+package cat.jiu.email.configs;
 
 import cat.jiu.core.util.client.config.BaseConfig;
 import cat.jiu.email.element.StorageType;
+import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLDatabaseDriver;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.*;
 
-public final class EmailConfigs {
+public class EmailConfigServer {
 	public static final BooleanValue Save_To_Minecraft_Root_Directory;
 	public static final ConfigValue<String> Custom_Inbox_Path;
 	public static final ConfigValue<String> Storage_Inbox_Types;
 	public static final SQLProperties SQL_PROPERTIES;
-	public static final Layout Layout;
-	public static class Layout extends BaseConfig {
-		public final BooleanValue Enable_Chat_Button;
-		public final IntValue Email_List_Width;
-		public final BooleanValue Enable_Vanilla_Wrap_Text;
-		public final BooleanValue Lock_Inbox_Button_Dragging;
-		public final Position Position;
-		public final Time Prompt_Email;
-
-		Layout(Builder builder) {
-			super(builder);
-			builder.translation("inbox.config.layout").push("main");
-			this.Enable_Vanilla_Wrap_Text = builder
-					.translation("inbox.config.layout.vanilla_wrap")
-					.comment("inbox.config.layout.vanilla_wrap.0",
-							"inbox.config.layout.vanilla_wrap.1")
-					.define("Enable_Vanilla_Wrap_Text", true);
-
-			this.Lock_Inbox_Button_Dragging = builder
-					.translation("inbox.config.layout.button_dragging")
-					.comment("inbox.config.layout.button_dragging.0")
-					.define("Lock_Inbox_Button_Dragging", false);
-
-			this.Enable_Chat_Button = builder
-					.translation("inbox.config.enable_chat_btn")
-					.comment("inbox.config.enable_chat_btn.0")
-					.define("Enable_Chat_Button", false);
-
-			this.Email_List_Width = builder
-					.translation("inbox.config.layout.email_list_width")
-					.comment("inbox.config.layout.email_list_width.0")
-					.defineInRange("Email_List_Width", 100, 0, Integer.MAX_VALUE);
-
-			this.Position = new Position(builder);
-			this.Prompt_Email = new Time(builder, "inbox.config.layout.prompt", "prompt", 0, 0, 0, 25, 0, 0);
-			builder.pop();
-		}
-
-		public static class Position extends BaseConfig {
-			public final InboxButtons Inbox_Buttons;
-			Position(Builder builder) {
-				super(builder);
-				builder.translation("inbox.config.layout.pos").push("position");
-
-				this.Inbox_Buttons = new InboxButtons(builder);
-
-				builder.pop();
-			}
-
-			public static class InboxButtons extends BaseConfig {
-				public final Pos Chat_Gui_Button;
-				public final Pos Survival_Gui_Button;
-				public final Pos Creative_Tab_Button;
-				public final DoubleValue Chat_Gui_Button_Size;
-				public final DoubleValue Survival_Gui_Button_Size;
-				public final DoubleValue Creative_Tab_Button_Size;
-
-				public InboxButtons(Builder builder) {
-					super(builder);
-					builder.translation("inbox.config.layout.pos.inbox_btn").push("inbox_buttons");
-
-					this.Chat_Gui_Button = new Pos(builder, "chat_gui_button", "inbox.config.layout.pos.inbox_btn.chat_btn", 25, 5);
-					this.Survival_Gui_Button = new Pos(builder, "survival_gui_button", "inbox.config.layout.pos.inbox_btn.survival_btn", 76, 49);
-					this.Creative_Tab_Button = new Pos(builder, "creative_tab_button", "inbox.config.layout.pos.inbox_btn.creative_btn", 170, 165);
-
-					this.Chat_Gui_Button_Size = builder
-							.translation("inbox.config.layout.pos.inbox_btn.chat_btn.size")
-							.comment("inbox.config.layout.pos.inbox_btn.chat_btn.size.0")
-							.defineInRange("chat_gui_button_size", 1d, 0.15d, 10d);
-					this.Survival_Gui_Button_Size = builder
-							.translation("inbox.config.layout.pos.inbox_btn.survival_btn.size")
-							.comment("inbox.config.layout.pos.inbox_btn.survival_btn.size.0")
-							.defineInRange("survival_gui_button_size", 0.8d, 0.15d, 10d);
-					this.Creative_Tab_Button_Size = builder
-							.translation("inbox.config.layout.pos.inbox_btn.creative_btn.size")
-							.comment("inbox.config.layout.pos.inbox_btn.creative_btn.size.0")
-							.defineInRange("creative_tab_button_size", 1.05d, 0.15d, 10d);
-
-					builder.pop();
-				}
-			}
-		}
-	}
-
 	public static final Send Send;
+
 	public static class Send extends BaseConfig {
 		public final BooleanValue Enable_Send_BlackList;
 		public final BooleanValue Enable_Send_WhiteList;
 		public final BooleanValue Enable_Send_To_Self;
 		public final BooleanValue Enable_Send_Cooling;
 		public final Time cooling;
-		public final IntValue Send_History_Max_Count;
 
 		Send(Builder builder) {
 			super(builder);
@@ -131,11 +48,6 @@ public final class EmailConfigs {
 					.define("Enable_Send_Cooling", true);
 
 			this.cooling = new Time(builder, "inbox.config.send.cooling", "cooling", 0, 0, 0, 5, 0, 0);
-
-			this.Send_History_Max_Count = builder
-					.translation("inbox.config.send.history_max")
-					.comment("send history max count")
-					.defineInRange("Send_History_Max_Count", 5, 0, Integer.MAX_VALUE);
 
 			builder.pop();
 		}
@@ -205,7 +117,6 @@ public final class EmailConfigs {
 						"inbox.config.custom_inbox_path.4")
 				.define("inbox_path", "");
 
-		Layout = new Layout(builder);
 		Send = new Send(builder);
 		SQL_PROPERTIES = new SQLProperties(builder);
 

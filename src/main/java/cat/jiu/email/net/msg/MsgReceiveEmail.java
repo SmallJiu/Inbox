@@ -3,11 +3,9 @@ package cat.jiu.email.net.msg;
 import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
-import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailReceiveEvent;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.network.FriendlyByteBuf;

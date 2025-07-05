@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
+import cat.jiu.email.configs.EmailConfigServer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.nbt.CompoundTag;
@@ -29,7 +30,6 @@ import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendEvent;
-import cat.jiu.email.util.EmailConfigs;
 import cat.jiu.email.util.SizeReport;
 import cat.jiu.email.util.EmailUtils;
 
@@ -79,7 +79,7 @@ public class MsgSend extends BaseMessage {
 			EmailUtils.initNameAndUUID(EmailMain.server);
 			ServerPlayer sender = ctx.get().getSender();
 
-			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigs.Send.Enable_Send_To_Self.get()) {
+			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigServer.Send.Enable_Send_To_Self.get()) {
 				this.sendMessage(sender, Level.ERROR, "info.inbox.error.send_self");
 				return;
 			}
@@ -150,7 +150,7 @@ public class MsgSend extends BaseMessage {
 			}
 		}
 		
-		if(!EmailConfigs.isInfiniteSize()
+		if(!EmailConfigServer.isInfiniteSize()
 		&& !this.checkEmailSize(sender, stacks, lock)) {
 			if(this.group.isPlayerSend()) {
 				if(lock) container.setLock(false);
@@ -214,7 +214,7 @@ public class MsgSend extends BaseMessage {
 					if(msgSender.containerMenu instanceof ContainerEmailSend container) {
 						if(lock) container.setLock(false);
 					}
-					if(EmailConfigs.Send.Enable_Send_Cooling.get()) {
+					if(EmailConfigServer.Send.Enable_Send_Cooling.get()) {
 						Cooling.cooling(msgSender.getName().getString());
 					}
 					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.inbox.send.success", addresser)), msgSender);

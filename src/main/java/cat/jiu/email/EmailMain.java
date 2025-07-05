@@ -1,9 +1,11 @@
 package cat.jiu.email;
 
+import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.command.EmailCommands;
 import cat.jiu.email.command.EmailEventType;
 import cat.jiu.email.command.EmailFileType;
+import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.Inbox;
@@ -12,33 +14,31 @@ import cat.jiu.email.element.attachment.*;
 import cat.jiu.email.net.EmailNetworkHandler;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.KeyBinds;
-import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
-
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.fml.loading.FMLLoader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLLoader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,18 +69,25 @@ public class EmailMain {
     public EmailMain() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         bus.addListener(this::setup);
-        bus.addListener(this::onConfigLoading);
+//        bus.addListener(this::onConfigLoading);
         if (FMLLoader.getDist().isClient()) {
             bus.addListener(this::onClientSetup);
             bus.addListener(this::onRegisterBindings);
         }
         GuiHandler.MENU_TYPE_REGISTER.register(bus);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, EmailConfigs.CONFIG_MAIN, "jiu/inbox/configs.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, EmailConfigServer.CONFIG_MAIN, "jiu/inbox/configs-server.toml");
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, EmailConfigClient.CONFIG_MAIN, "jiu/inbox/configs-client.toml");
         MinecraftForge.EVENT_BUS.register(this);
     }
 
     void onConfigLoading(ModConfigEvent.Loading event){
         if(MODID.equalsIgnoreCase(event.getConfig().getModId())){
+            EmailAPI.setRootPath();
+        }
+    }
+    @SubscribeEvent
+    public void onConfigReload(ConfigWriteEvent event) {
+        if(event.file.contains("jiu/inbox/config-server.toml")){
             EmailAPI.setRootPath();
         }
     }
@@ -90,7 +97,6 @@ public class EmailMain {
     public static int getUnread() {
         return unread;
     }
-
     public static int getUnaccepted() {
         return unaccepted;
     }
@@ -110,8 +116,7 @@ public class EmailMain {
         IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
         IAttachment.REGISTRY.register(AttachmentMaxHealth.ID, AttachmentMaxHealth::new, AttachmentMaxHealth::new);
         IAttachment.REGISTRY.register(AttachmentEffect.ID, AttachmentEffect::new, AttachmentEffect::new);
-//        IAttachment.register(IAttachment.EMPTY_ID, nbt -> IAttachment.EMPTY, nbt -> IAttachment.EMPTY);
-//        IAttachment.register(AttachmentDatapack.ID, AttachmentDatapack::new, AttachmentDatapack::new);
+        IAttachment.REGISTRY.register(AttachmentAttribute.ID, AttachmentAttribute::new, AttachmentAttribute::new);
 
         AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }

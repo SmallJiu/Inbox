@@ -8,6 +8,7 @@ import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.container.ContainerEmailGenerate;
@@ -212,7 +213,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				email.setExternalSound(new AudioSystem.Audio(this.localSound.getValue(), SoundSource.PLAYERS));
 			}
 
-			if(!EmailConfigs.isInfiniteSize()) {
+			if(!EmailConfigServer.isInfiniteSize()) {
 				Email email_t = email.copy();
 				if(!this.getMenu().isEmpty()) {
 					email_t.addItems(this.getMenu().toItemList(true));

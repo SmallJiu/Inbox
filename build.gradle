@@ -1,30 +1,23 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
     id 'org.parchmentmc.librarian.forgegradle' version '1.2.0'
 }
 
 version = mod_version
 group = mod_group_id
+archivesBaseName = mod_name
+String is_mixin = enable_mixin
+String mixin_file = mod_id + ".mixin.json"
+String mixin_refmap_file = mod_id + ".mixin.refmap.json"
+
+Date date = new Date()
 
 base {
     archivesName = mod_name
-}
-
-reobf {
-    jarJar { }
-}
-reobfJarJar {
-    jarJar { }
-}
-
-jar.finalizedBy('reobfJarJar')
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -43,24 +36,19 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
 jarJar.enable()
+reobf {
+    jarJar {}
+}
+
+tasks.jarJar.configure {
+    archivesBaseName = mod_name
+    version = mod_version
+}
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
-    // The mappings can be changed at any time and must be in the following format.
-    // Channel:   Version:
-    // official   MCVersion             Official field/method names from Mojang mapping files
-    // parchment  YYYY.MM.DD-MCVersion  Open community-sourced parameter names and javadocs layered on top of official
-    //
-    // You must be aware of the Mojang license when using the 'official' or 'parchment' mappings.
-    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
-    //
-    // Parchment is an unofficial project maintained by ParchmentMC, separate from MinecraftForge
-    // Additional setup is needed to use their mappings: https://parchmentmc.org/docs/getting-started
-    //
-    // Use non-default mappings at your own risk. They may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
-//    mappings channel: 'official', version: '1.20.1'
     mappings channel: mapping_channel, version: mapping_version
     enableEclipsePrepareRuns = false
     enableIdeaPrepareRuns = false
@@ -74,8 +62,10 @@ minecraft {
             workingDirectory project.file(workingDirectory)
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+			if(is_mixin == "true"){
+				property 'mixin.env.remapRefMap', 'true'
+				property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+			}
 
             mods {
                 "${mod_id}" {
@@ -87,48 +77,76 @@ minecraft {
         client {
             workingDirectory project.file(client_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             args '--username', run_user
+            if (is_mixin == "true") {
+				property 'mixin.env.remapRefMap', 'true'
+				property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+                arg '-mixin.config='+mixin_file
+            }
         }
 
         server {
             workingDirectory project.file(server_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             args '--nogui'
+            if (is_mixin == "true") {
+				property 'mixin.env.remapRefMap', 'true'
+				property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+				arg '-mixin.config='+mixin_file
+            }
         }
 
         gameTestServer {
             workingDirectory project.file(gameTestServer_dir)
             property 'forge.enabledGameTestNamespaces', mod_id
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+            if (is_mixin == "true") {
+                property 'mixin.env.remapRefMap', 'true'
+                property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+                arg '-mixin.config='+mixin_file
+            }
         }
 
         data {
             workingDirectory project.file(data_dir)
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            if (is_mixin == "true") {
+				property 'mixin.env.remapRefMap', 'true'
+				property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+                arg '-mixin.config='+mixin_file
+            }
         }
     }
 }
+
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     maven { url = 'https://maven.parchmentmc.org' }
+    maven { url =  'https://www.cursemaven.com/'  }
     flatDir {
         dir 'libs'
     }
 }
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
+    if(is_mixin == "true") {
+        annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    }
+	
 //    implementation('com.h2database:h2:2.2.224')
+//    implementation("org.xerial:sqlite-jdbc:[3.49.1.0,)")
+    runtimeOnly fg.deobf("curse.maven:lan-server-properties-387365:4776657")
+    runtimeOnly fg.deobf("curse.maven:placebo-283644:6274231")
+    implementation fg.deobf("curse.maven:apothic-attributes-898963:5634071")
+
     implementation fg.deobf("local.libs:JiuCore-1.20.1:0.0.1-all")
     jarJar("local.libs:JiuCore-1.20.1:[0.0.1-all,)")
-//        jarJar.pin(it, "0.0.1-all")
-//    }
+}
+
+mixin {
+    if (is_mixin == "true") {
+        add sourceSets.main, mixin_refmap_file
+    }
 }
 
 publishing {
@@ -154,7 +172,6 @@ import java.util.zip.ZipOutputStream
 
 File archiveFile1
 tasks.named('jar', Jar).configure {
-    Date date = new Date()
     manifest {
         attributes([
                 'Specification-Title'     : mod_name,
@@ -165,6 +182,10 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Vendor'   : mod_authors,
                 'Implementation-Timestamp': date.format("yyyy/MM/dd_HH:mm:ss")
         ])
+    }
+
+    if(is_mixin == "true") {
+        manifest.attributes.put('MixinConfigs', mixin_file)
     }
     finalizedBy 'reobfJar'
 
@@ -223,4 +244,3 @@ static void zip(ZipOutputStream os, File f) {
         }
     }
 }
-

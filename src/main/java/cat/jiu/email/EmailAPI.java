@@ -1,7 +1,6 @@
 package cat.jiu.email;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -10,10 +9,11 @@ import java.util.UUID;
 
 import cat.jiu.core.util.NBTUtils;
 import cat.jiu.email.api.IEmailStyle;
+import cat.jiu.email.configs.EmailConfigClient;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
-import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.ui.gui.GuiInbox;
@@ -29,7 +29,6 @@ import cat.jiu.core.util.element.Text;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -38,13 +37,11 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.commons.lang3.StringUtils;
 
-@Mod.EventBusSubscriber
 public class EmailAPI {
 	/**
 	 * send player email to player. sender is email sender
@@ -78,7 +75,7 @@ public class EmailAPI {
 		EmailUtils.initNameAndUUID(EmailMain.server);
 		Inbox inbox = Inbox.get(address);
 		
-		if(!EmailConfigs.isInfiniteSize()
+		if(!EmailConfigServer.isInfiniteSize()
 		&& email.hasAttachment() && !SizeReport.SUCCESS.equals(EmailUtils.checkEmailSize(email))) {
 			return false;
 		}
@@ -144,7 +141,7 @@ public class EmailAPI {
 				}else {
 					list = new JsonArray();
 				}
-				if (list.size() >= EmailConfigs.Send.Send_History_Max_Count.get()) {
+				if (list.size() >= EmailConfigClient.Send_History_Max_Count.get()) {
 					list.remove(0);
 				}
 				list.add(name);
@@ -165,27 +162,20 @@ public class EmailAPI {
 		return whitelist.contains(name);
 	}
 
-	@SubscribeEvent
-	public static void onConfigWrite(ConfigWriteEvent event){
-		if(event.spec == EmailConfigs.CONFIG_MAIN){
-			setRootPath();
-		}
-	}
-
 	static void setRootPath(){
 		clearEmailPath();
-		if(EmailConfigs.Save_To_Minecraft_Root_Directory.get()){
+		if(EmailConfigServer.Save_To_Minecraft_Root_Directory.get()){
 			EmailRootPath = String.valueOf(FMLLoader.getGamePath());
 			EmailMain.log.info(String.format("Set inbox root path to: %s", EmailRootPath));
 		}
 
-		if(!StringUtils.isEmpty(EmailConfigs.Custom_Inbox_Path.get())){
-			File path = new File(EmailConfigs.Custom_Inbox_Path.get());
+		if(!StringUtils.isEmpty(EmailConfigServer.Custom_Inbox_Path.get())){
+			File path = new File(EmailConfigServer.Custom_Inbox_Path.get());
 			if(!path.exists()){
 				path.mkdirs();
 			}
 			if(path.isDirectory()){
-				EmailRootPath = EmailConfigs.Custom_Inbox_Path.get();
+				EmailRootPath = EmailConfigServer.Custom_Inbox_Path.get();
 			}else if(path.isFile()){
 				EmailRootPath = path.getParent();
 			}
@@ -204,7 +194,7 @@ public class EmailAPI {
 
 	public static String getSaveEmailRootPath() {
 		if(EmailRootPath == null) {
-			boolean root = EmailConfigs.Save_To_Minecraft_Root_Directory.get();
+			boolean root = EmailConfigServer.Save_To_Minecraft_Root_Directory.get();
 			if(root
 					|| EmailMain.server == null) {
 				EmailRootPath = String.valueOf(FMLLoader.getGamePath());

@@ -87,7 +87,9 @@
   "info.inbox.xps": "XPs",
   "info.inbox.commands": "Commands",
   "info.inbox.healths": "Healths",
+  "info.inbox.healths.temp": " (Temp)",
   "info.inbox.effects": "Buff/Debuff",
+  "info.inbox.attribute": "Attributes",
 
   #gen
   "info.inbox.generate": "Generate email.",

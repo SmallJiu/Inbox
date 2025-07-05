@@ -1,9 +1,10 @@
 package cat.jiu.email.ui;
 
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
 
-import cat.jiu.email.util.EmailConfigs;
+import cat.jiu.email.configs.EmailConfigServer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -37,13 +38,13 @@ public class InboxButton {
 	@SubscribeEvent
 	public static void onGuiInit(ScreenEvent.Init.Post event) {
 		Screen gui = event.getScreen();
-		if(gui instanceof ChatScreen && EmailConfigs.Layout.Enable_Chat_Button.get()) {
-			event.addListener(new Button(gui, EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button, EmailConfigs.Layout.Position.Inbox_Buttons.Chat_Gui_Button_Size, I18n.get("info.inbox.name")));
+		if(gui instanceof ChatScreen && EmailConfigClient.Enable_Chat_Button.get()) {
+			event.addListener(new Button(gui, EmailConfigClient.Position.Inbox_Buttons.Chat_Gui_Button, EmailConfigClient.Position.Inbox_Buttons.Chat_Gui_Button_Size, I18n.get("info.inbox.name")));
 		}else if(gui instanceof AbstractContainerScreen<?> con) {
 			if(con instanceof InventoryScreen) {
-				event.addListener(new Button(gui, EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button, EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button_Size, I18n.get("info.inbox.name")));
+				event.addListener(new Button(gui, EmailConfigClient.Position.Inbox_Buttons.Survival_Gui_Button, EmailConfigClient.Position.Inbox_Buttons.Survival_Gui_Button_Size, I18n.get("info.inbox.name")));
 			}else if(con instanceof CreativeModeInventoryScreen) {
-				event.addListener(new Button(gui, EmailConfigs.Layout.Position.Inbox_Buttons.Creative_Tab_Button, EmailConfigs.Layout.Position.Inbox_Buttons.Creative_Tab_Button_Size, I18n.get("info.inbox.name")));
+				event.addListener(new Button(gui, EmailConfigClient.Position.Inbox_Buttons.Creative_Tab_Button, EmailConfigClient.Position.Inbox_Buttons.Creative_Tab_Button_Size, I18n.get("info.inbox.name")));
 			}
 		}
 	}
@@ -67,7 +68,7 @@ public class InboxButton {
 	@SubscribeEvent
 	public static void onGuiMouseDragged(ScreenEvent.MouseDragged.Pre event) {
 		if (INSTANCE != null) {
-			if (event.getMouseButton() == 1 && EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get() && INSTANCE.isMouseOver(event.getMouseX(), event.getMouseY())) {
+			if (event.getMouseButton() == 1 && EmailConfigClient.Lock_Inbox_Button_Dragging.get() && INSTANCE.isMouseOver(event.getMouseX(), event.getMouseY())) {
 				INSTANCE.isDragging = true;
 				event.setCanceled(true);
 			}
@@ -78,10 +79,10 @@ public class InboxButton {
 	@SubscribeEvent
 	public static void onGuiKeyPressed(ScreenEvent.KeyPressed.Pre event) {
 		if (INSTANCE != null && KeyBinds.KEY_BUTTON_DRAGGING.isClicked(event.getKeyCode(), event.getScanCode())) {
-			EmailConfigs.Layout.Lock_Inbox_Button_Dragging.set(!EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get());
+			EmailConfigClient.Lock_Inbox_Button_Dragging.set(!EmailConfigClient.Lock_Inbox_Button_Dragging.get());
 			INSTANCE.displayTextTime = event.getScreen().getMinecraft().level.getLevelData().getGameTime() + 3 * 20;
-			INSTANCE.displayText = Component.translatable(EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get() ? "info.inbox.key.dragging.info.unlock" : "info.inbox.key.dragging.info.lock");
-			INSTANCE.displayText1 = EmailConfigs.Layout.Lock_Inbox_Button_Dragging.get() ? Component.translatable("info.inbox.key.dragging.info.mouse_right") : null;
+			INSTANCE.displayText = Component.translatable(EmailConfigClient.Lock_Inbox_Button_Dragging.get() ? "info.inbox.key.dragging.info.unlock" : "info.inbox.key.dragging.info.lock");
+			INSTANCE.displayText1 = EmailConfigClient.Lock_Inbox_Button_Dragging.get() ? Component.translatable("info.inbox.key.dragging.info.mouse_right") : null;
 			event.setCanceled(true);
 		}
 	}
@@ -90,14 +91,14 @@ public class InboxButton {
 	public static class Button extends GuiImageButton {
 		protected final Screen gui;
 		protected final Progress progress = new Progress();
-		protected final EmailConfigs.Pos pos;
+		protected final EmailConfigServer.Pos pos;
 		protected final ForgeConfigSpec.DoubleValue size;
 		protected boolean isDragging;
 
 		protected long displayTextTime;
 		protected Component displayText, displayText1;
 
-		public Button(Screen gui, EmailConfigs.Pos pos, ForgeConfigSpec.DoubleValue size, String buttonText) {
+		public Button(Screen gui, EmailConfigServer.Pos pos, ForgeConfigSpec.DoubleValue size, String buttonText) {
 			super(gui, 0, 0, 20, 13, buttonText, 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN));
 			this.gui = gui;
 			this.pos = pos;
@@ -134,14 +135,14 @@ public class InboxButton {
 		}
 
 		protected void saveConfig() {
-			EmailConfigs.CONFIG_MAIN.save();
+			EmailConfigServer.CONFIG_MAIN.save();
 		}
 
 		@Override
 		protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			super.renderWidget(graphics, mouseX, mouseY, partialTick);
 			if(this.gui instanceof InventoryScreen inv) {
-				this.setX(inv.getGuiLeft() + EmailConfigs.Layout.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
+				this.setX(inv.getGuiLeft() + EmailConfigClient.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
 			}
 			if(EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
 				this.drawHasEmailInfo(graphics, partialTick);
