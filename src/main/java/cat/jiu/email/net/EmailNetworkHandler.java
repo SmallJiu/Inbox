@@ -1,6 +1,7 @@
 package cat.jiu.email.net;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.net.msg.*;
 import cat.jiu.email.net.msg.refresh.*;
@@ -25,7 +26,7 @@ public class EmailNetworkHandler {
 	public EmailNetworkHandler() {
 		ID = 0;
 		this.channel = NetworkRegistry.newSimpleChannel(
-				new ResourceLocation(EmailMain.MODID, "main_network"),
+				Utils.location(EmailMain.MODID, "main_network"),
 				EmailMain.VERSION::toString,
 				EmailMain.VERSION::equals,
 				EmailMain.VERSION::equals
@@ -50,7 +51,6 @@ public class EmailNetworkHandler {
 				.register(MsgSendRenderText.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgSendCooling.class, NetworkDirection.PLAY_TO_CLIENT)
-				.register(MsgPlayerPermissionLevel.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgReadEmail.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgReadEmail.All.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgSendPlayerMessage.class, NetworkDirection.PLAY_TO_CLIENT)

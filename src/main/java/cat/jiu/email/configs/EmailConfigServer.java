@@ -9,6 +9,7 @@ import net.minecraftforge.common.ForgeConfigSpec.*;
 
 public class EmailConfigServer {
 	public static final BooleanValue Save_To_Minecraft_Root_Directory;
+	public static final BooleanValue Enable_New_Player_Email;
 	public static final ConfigValue<String> Custom_Inbox_Path;
 	public static final ConfigValue<String> Storage_Inbox_Types;
 	public static final SQLProperties SQL_PROPERTIES;
@@ -95,6 +96,12 @@ public class EmailConfigServer {
 				.comment("inbox.config.save_to_root_directory.0",
 						"inbox.config.save_to_root_directory.1")
 				.define("Save_To_Minecraft_Root_Directory", false);
+
+		Enable_New_Player_Email = builder
+				.translation("inbox.config.new_player_email")
+				.comment("inbox.config.new_player_email.0",
+						"inbox.config.new_player_email.1")
+				.define("Enable_New_Player_Email", true);
 
 		Storage_Inbox_Types = builder
 				.translation("inbox.config.storage_type")

@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.api.IEmailStyle;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
@@ -37,7 +38,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.commons.lang3.StringUtils;
@@ -72,7 +72,7 @@ public class EmailAPI {
 	}
 	
 	public static synchronized boolean sendEmail(EmailSenderGroup group, String address, Email email) {
-		EmailUtils.initNameAndUUID(EmailMain.server);
+		EmailUtils.initNameAndUUID(SideProxy.getServer());
 		Inbox inbox = Inbox.get(address);
 		
 		if(!EmailConfigServer.isInfiniteSize()
@@ -91,12 +91,12 @@ public class EmailAPI {
 		
 		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, group, address, email));
 		
-		if(EmailMain.server != null) {
+		if(SideProxy.getServer() != null) {
 			ServerPlayer player;
 			try {
-				player = EmailMain.server.getPlayerList().getPlayer(UUID.fromString(address));
+				player = SideProxy.getServer().getPlayerList().getPlayer(UUID.fromString(address));
 			}catch(Exception e) {
-				player = EmailMain.server.getPlayerList().getPlayerByName(address);
+				player = SideProxy.getServer().getPlayerList().getPlayerByName(address);
 			}
 			if(player != null) {
 				EmailUtils.sendMessage(player, "info.inbox.from", email.getSender());
@@ -196,10 +196,10 @@ public class EmailAPI {
 		if(EmailRootPath == null) {
 			boolean root = EmailConfigServer.Save_To_Minecraft_Root_Directory.get();
 			if(root
-					|| EmailMain.server == null) {
+					|| SideProxy.getServer() == null) {
 				EmailRootPath = String.valueOf(FMLLoader.getGamePath());
 			}else {
-				EmailRootPath = new File(String.valueOf(EmailMain.server.getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParent();
+				EmailRootPath = new File(String.valueOf(SideProxy.getServer().getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParent();
 			}
 		}
 		return EmailRootPath;

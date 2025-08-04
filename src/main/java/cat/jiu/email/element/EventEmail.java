@@ -2,6 +2,7 @@ package cat.jiu.email.element;
 
 import cat.jiu.core.api.serializable.IJsonSerializable;
 import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.JsonParser;
@@ -25,7 +26,7 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
 
 
     public static ResourceLocation registerEvent(String id, String name) {
-        return registerEvent(new ResourceLocation(id, name));
+        return registerEvent(Utils.location(id, name));
     }
     public static ResourceLocation registerEvent(ResourceLocation event) {
         REGISTRY_EVENT.add(event);
@@ -65,7 +66,7 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
         try {
             JsonObject emails = JsonParser.parseThrow(EmailAPI.getGlobalDataPath()+"event_emails.json");if (emails != null) {
                 for (String s : emails.keySet()) {
-                    ResourceLocation event = new ResourceLocation(s);
+                    ResourceLocation event = Utils.location(s);
                     for (JsonElement element : emails.getAsJsonArray(s)) {
                         register(event, new EventEmail(element.getAsString()));
                     }

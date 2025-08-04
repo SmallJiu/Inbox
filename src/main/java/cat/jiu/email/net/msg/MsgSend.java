@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.configs.EmailConfigServer;
@@ -76,7 +77,7 @@ public class MsgSend extends BaseMessage {
 	@Override
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		ctx.get().enqueueWork(()->{
-			EmailUtils.initNameAndUUID(EmailMain.server);
+			EmailUtils.initNameAndUUID(SideProxy.getServer());
 			ServerPlayer sender = ctx.get().getSender();
 
 			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigServer.Send.Enable_Send_To_Self.get()) {

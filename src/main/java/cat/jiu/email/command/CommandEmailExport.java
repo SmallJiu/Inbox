@@ -3,7 +3,7 @@ package cat.jiu.email.command;
 import cat.jiu.core.util.base.BaseCommand;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.util.JsonParser;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.arguments.BoolArgumentType;

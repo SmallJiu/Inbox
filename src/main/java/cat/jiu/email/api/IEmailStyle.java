@@ -1,5 +1,6 @@
 package cat.jiu.email.api;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.registry.StaticRegistry;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
@@ -12,8 +13,8 @@ public interface IEmailStyle extends Supplier<ResourceLocation> {
     static String NAME_ID = "style";
     static StaticRegistry<ResourceLocation, IEmailStyle> REGISTRY = new StaticRegistry<ResourceLocation, IEmailStyle>(EmailMain.MODID, "email/style")
             .setKeyGetter(
-                    data->new ResourceLocation(data.getString(NAME_ID)),
-                    data->new ResourceLocation(data.get(NAME_ID).getAsString())
+                    data-> Utils.location(data.getString(NAME_ID)),
+                    data->Utils.location(data.get(NAME_ID).getAsString())
             );
 
     void renderBack(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, boolean canScroll, float partialTick);

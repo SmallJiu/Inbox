@@ -1,5 +1,6 @@
 package cat.jiu.email.command;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.element.EventEmail;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -23,7 +24,7 @@ public class EmailEventType implements ArgumentType<ResourceLocation> {
             reader.skip();
         }
         String s = reader.getString().substring(i, reader.getCursor());
-        return new ResourceLocation(s);
+        return Utils.location(s);
     }
 
     @Override

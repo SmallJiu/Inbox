@@ -4,6 +4,7 @@ import cat.jiu.core.api.serializable.IJsonSerializable;
 import cat.jiu.core.api.serializable.INBTSerializable;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.api.ParameterFunction;
@@ -35,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class AttachmentCommand implements IAttachment {
-    public static final ResourceLocation ID = new ResourceLocation(EmailMain.MODID, "attachment/command");
+    public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/command");
     protected static final ItemStack COMMAND_BLOCK = new ItemStack(Items.COMMAND_BLOCK);
     public static final String PARAMETER_START = "{*", PARAMETER_END = "*}";
     private static final Map<String, ParameterFunction> PARAMETERS_PARSER = new ConcurrentHashMap<>();

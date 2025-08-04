@@ -3,6 +3,7 @@ package cat.jiu.email.ui.gui;
 import java.awt.Color;
 import java.util.Arrays;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.gui.component.GuiButton;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
@@ -28,7 +29,7 @@ import org.lwjgl.glfw.GLFW;
 
 @OnlyIn(Dist.CLIENT)
 public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklist> {
-	public static final ResourceLocation bg = new ResourceLocation(EmailMain.MODID, "textures/gui/container/blacklist.png");
+	public static final ResourceLocation bg = Utils.location(EmailMain.MODID, "textures/gui/container/blacklist.png");
 
 	protected int[] nameIndex;
 	

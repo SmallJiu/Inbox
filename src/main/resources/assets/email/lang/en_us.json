@@ -231,6 +231,10 @@
   "inbox.config.save_to_root_directory.0": "save email to world directory if false,",
   "inbox.config.save_to_root_directory.1": "can cross you saves send email if true.",
 
+  "inbox.config.new_player_email": "Enable new player default email",
+  "inbox.config.new_player_email.0": "Enable new player default email",
+  "inbox.config.new_player_email.1": "This will not disable event email of email:email/event/mc/logged",
+
   "inbox.config.storage_type": "Inbox storage type",
   "inbox.config.storage_type.0": "Inbox storage type, §cyou need backup inbox files",
   "inbox.config.storage_type.1": "Json can read, file size may big",

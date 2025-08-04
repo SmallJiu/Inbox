@@ -18,7 +18,6 @@ import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
-import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -47,7 +46,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.3-a2";
+                                VERSION = "1.20.1-1.1.3-a3";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -59,7 +58,6 @@ public class EmailMain {
         SQLite_INIT = init;
     }
     public static EmailNetworkHandler net;
-    public static MinecraftServer server;
     private static final long initTime = System.currentTimeMillis();
     @OnlyIn(Dist.CLIENT)
     public static long getSysTime() {
@@ -133,7 +131,6 @@ public class EmailMain {
     }
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {
-        server = event.getServer();
         EmailUtils.initNameAndUUID(event.getServer());
         Cooling.load();
         EventEmail.load();
@@ -141,7 +138,6 @@ public class EmailMain {
     }
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
-        server = null;
         Inbox.clearCache();
         ScheduledEmail.saveScheduledEmail();
         EmailAPI.setRootPath();

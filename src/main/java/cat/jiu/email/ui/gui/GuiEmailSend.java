@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.ui.gui.component.GuiButtonPopupMenu;
@@ -48,8 +49,8 @@ import org.lwjgl.glfw.GLFW;
 
 @OnlyIn(Dist.CLIENT)
 public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
-	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_send.png");
-	public static final ResourceLocation EXPIRATION = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_expiration.png");
+	public static final ResourceLocation BackGround = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_send.png");
+	public static final ResourceLocation EXPIRATION = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_expiration.png");
 	private EditBox nameField, titleField;
     private final EditBox[] textFields = new EditBox[5];
 	private LockIconButton lockBtn;

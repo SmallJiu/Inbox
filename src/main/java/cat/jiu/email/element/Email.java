@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
@@ -31,11 +32,12 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 
 import net.minecraft.nbt.*;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -277,6 +279,7 @@ public class Email implements ISerializable {
 	 * @param receive 邮件是否已领
 	 */
 	public Email setReceive(boolean receive) {this.receive = receive; return this;}
+	@Deprecated
 	public Email setAccept(boolean receive) {return this.setReceive(receive);}
 
 	public void setMcSound(ISound mc_sound) {
@@ -725,7 +728,7 @@ public class Email implements ISerializable {
 			copy.setExpirationTime(this.getExpirationTime());
 		}
 		copy.setRead(this.isRead());
-		copy.setAccept(this.isReceived());
+		copy.setReceive(this.isReceived());
 
 		return copy;
 	}
@@ -734,13 +737,13 @@ public class Email implements ISerializable {
 	public JsonObject write(JsonObject json) {
 		if(json==null) json = new JsonObject();
 
-		json.add("title", this.title.writeTo(JsonObject.class));
+		json.add("title", this.title.write(new JsonObject()));
 		json.addProperty("time", this.create_time);
 		if(this.expiration_time!=null) {
 			json.addProperty("expiration", this.expiration_time.millis);
 		}
 
-		json.add("sender", this.sender.writeTo(JsonObject.class));
+		json.add("sender", this.sender.write(new JsonObject()));
 
 		if(this.isRead()) json.addProperty("read", true);
 		if(this.isReceived()) json.addProperty("receive", true);
@@ -761,7 +764,7 @@ public class Email implements ISerializable {
 		if (this.attachments!=null && !this.attachments.isEmpty()) {
 			JsonArray attachments = new JsonArray();
 			this.attachments.forEach((k,v)->{
-				JsonObject object = v.writeTo(JsonObject.class);
+				JsonObject object = v.write(new JsonObject());
 				object.addProperty("id", String.valueOf(k));
 				attachments.add(object);
 			});
@@ -772,11 +775,7 @@ public class Email implements ISerializable {
 			JsonObject msgs = new JsonObject();
 			for (IText msg : this.messages) {
 				if (msg.getParameters() != null && msg.getParameters().length > 0) {
-					JsonArray arg = new JsonArray();
-					for (int j = 0; j < msg.getParameters().length; j++) {
-						arg.add(String.valueOf(msg.getParameters()[j]));
-					}
-					msgs.add(msg.getText(), arg);
+					msgs.add(msg.getText(), msg.writeArgs(new JsonArray()));
 				} else {
 					msgs.add(msg.getText(), JsonNull.INSTANCE);
 				}
@@ -855,7 +854,7 @@ public class Email implements ISerializable {
 			if (json.has("attachments")) {
 				for (JsonElement element : json.getAsJsonArray("attachments")) {
 					JsonObject object = element.getAsJsonObject();
-					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getAsString()), object));
+					this.addAttachment(IAttachment.REGISTRY.get(Utils.location(object.get("id").getAsString()), object));
 				}
 			}
 
@@ -865,23 +864,22 @@ public class Email implements ISerializable {
 				if(msgElement.isJsonObject()) {
 					JsonObject msgs = msgElement.getAsJsonObject();
 					for(Entry<String, JsonElement> msg : msgs.entrySet()) {
-						String key = msg.getKey();
-						JsonElement a = msg.getValue();
-						if(a.isJsonArray()) {
-							JsonArray argJson = a.getAsJsonArray();
-							Object[] args = new Object[argJson.size()];
-							for(int i = 0; i < args.length; i++) {
-								args[i] = argJson.get(i).getAsString();
-							}
-							this.messages.add(new Text(key, args));
+						if(msg.getValue().isJsonArray()) {
+							this.messages.add(new Text(msg.getKey(), IText.readArgs(msg.getValue().getAsJsonArray())));
 						}else {
-							this.messages.add(new Text(key));
+							this.messages.add(new Text(msg.getKey()));
 						}
 					}
 				}else if(msgElement.isJsonArray()) {
 					JsonArray msgs = msgElement.getAsJsonArray();
 					for(int i = 0; i < msgs.size(); i++) {
-						this.messages.add(new Text(msgs.get(i).getAsString()));
+						JsonElement msg = msgs.get(i);
+						if(msg.isJsonObject()) {
+							JsonObject object = msg.getAsJsonObject();
+							this.messages.add(new Text(object.get("text").getAsString(), IText.readArgs(object.getAsJsonArray("parameters"))));
+						} else if (msg.isJsonNull()) {
+							this.messages.add(new Text(msg.getAsString()));
+						}
 					}
 				}
 			}
@@ -937,14 +935,7 @@ public class Email implements ISerializable {
 				IText msg = this.messages.get(i);
 				Tag msgNBT;
 				if(msg.getParameters()!=null && msg.getParameters().length>0) {
-					CompoundTag msgNBT0 = new CompoundTag();
-					ListTag args = new ListTag();
-					for(int j = 0; j < msg.getParameters().length; j++) {
-						args.add(StringTag.valueOf(String.valueOf(msg.getParameters()[i])));
-					}
-					msgNBT0.putString("text", msg.getText());
-					msgNBT0.put("args", args);
-					msgNBT = msgNBT0;
+					msgNBT = msg.write(new CompoundTag());
 				}else if(!"".equals(msg.getText())) {
 					msgNBT = StringTag.valueOf(msg.getText());
 				}else {
@@ -960,7 +951,7 @@ public class Email implements ISerializable {
 
 	@Override
 	public void read(CompoundTag nbt) {
-		if(nbt!=null && nbt.size()>0) {
+		if(nbt!=null && !nbt.isEmpty()) {
 			this.title = new Text(nbt.getCompound("title"));
 			this.create_time = nbt.getLong("time");
 			if(nbt.contains("expiration")) {
@@ -997,7 +988,7 @@ public class Email implements ISerializable {
 				ListTag attachments = nbt.getList("attachments", 10);
 				for (int i = 0; i < attachments.size(); i++) {
 					CompoundTag object = attachments.getCompound(i);
-					this.addAttachment(IAttachment.REGISTRY.get(new ResourceLocation(object.get("id").getAsString()), object));
+					this.addAttachment(IAttachment.REGISTRY.get(Utils.location(object.get("id").getAsString()), object));
 				}
 			}
 
@@ -1010,13 +1001,7 @@ public class Email implements ISerializable {
 					if(msg instanceof StringTag) {
 						this.messages.add(new Text(msg.getAsString()));
 					}else if(msg instanceof CompoundTag text) {
-						ListTag argsNBT = text.getList("args", 8);
-
-						Object[] args = new Object[argsNBT.size()];
-						for(int i = 0; i < args.length; i++) {
-							args[i] = argsNBT.getString(i);
-						}
-						this.messages.add(new Text(text.getString("text"), args));
+						this.messages.add(new Text(text.getString("text"), IText.readArgs(text.getList("args", 8))));
 					}else if(msg instanceof ByteTag) {
 						this.messages.add(Text.empty);
 					}

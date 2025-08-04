@@ -2,6 +2,7 @@ package cat.jiu.email.api;
 
 import cat.jiu.core.api.serializable.ISerializable;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.registry.DynamicRegistry;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.event.AttachmentEvent;
@@ -24,7 +25,7 @@ import java.util.function.Supplier;
 
 public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<ResourceLocation> {
     Logger LOGGER = LogManager.getLogger("Inbox:Attachment");
-    ResourceLocation EMPTY_ID = new ResourceLocation(EmailMain.MODID, "attachment/empty");
+    ResourceLocation EMPTY_ID = Utils.location(EmailMain.MODID, "attachment/empty");
     String ID_NAME = "id";
     IAttachment EMPTY = new IAttachment() {
         @Override
@@ -50,8 +51,8 @@ public interface IAttachment extends Consumer<Player>, ISerializable, Supplier<R
         LOGGER.error("Attachment '{}' is not registered.", id);
         return EMPTY;
     }).setKeyGetter(
-            data->new ResourceLocation(data.getString(ID_NAME)),
-            data->new ResourceLocation(data.get(ID_NAME).getAsString())
+            data->Utils.location(data.getString(ID_NAME)),
+            data->Utils.location(data.get(ID_NAME).getAsString())
     );
 
     ResourceLocation getID();

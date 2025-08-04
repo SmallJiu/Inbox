@@ -3,6 +3,7 @@ package cat.jiu.email.ui.gui;
 import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.GifDecoder;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.sound.SoundMC;
@@ -62,11 +63,11 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("all")
 public class GuiInbox extends Screen {
-    public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_bg.png");
-    public static final ResourceLocation ICON = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_icon.png");
-    public static final ResourceLocation CONFIG_ICON = new ResourceLocation(EmailMain.MODID, "textures/gui/container/icon_config.png");
+    public static final ResourceLocation BackGround = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_bg.png");
+    public static final ResourceLocation ICON = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_icon.png");
+    public static final ResourceLocation CONFIG_ICON = Utils.location(EmailMain.MODID, "textures/gui/container/icon_config.png");
     @Deprecated
-    public static final ResourceLocation load = new ResourceLocation(EmailMain.MODID, "textures/gui/load.png");
+    public static final ResourceLocation load = Utils.location(EmailMain.MODID, "textures/gui/load.png");
     public static final GifDecoder.GifTexture LOADING_GIF = GifDecoder.getTexture(EmailMain.class.getResourceAsStream("/assets/email/textures/gui/loading.gif"), -1);
     private EmailListWidget emailList;
     private EmailInfo emailInfo;

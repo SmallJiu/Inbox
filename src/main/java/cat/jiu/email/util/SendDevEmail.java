@@ -5,6 +5,7 @@ import java.util.Map;
 
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.configs.EmailConfigClient;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.AttachmentAttribute;
 import cat.jiu.email.element.attachment.AttachmentCommand;
@@ -20,14 +21,12 @@ import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendDevMessageEvent;
-import cat.jiu.email.net.msg.MsgPlayerPermissionLevel;
 
 import com.google.common.collect.Maps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.ServerOpListEntry;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -53,10 +52,15 @@ public class SendDevEmail {
 		for(int i = 0; i < 14; i++) {
 			msgs.add(new Text("inbox.dev_message."+i));
 		}
+		msgs.add(new Text("%s of %s of %s of %s",
+				new Text("inbox.dev_message.title"),
+				Component.translatable("info.inbox.main.from", "981314"),
+				Component.literal("9856168549616596416548"),
+				"99999"
+		));
 		devEmail = new Email(new Text("inbox.dev_message.title"), EmailAPI.SYSTEM)
 //				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
 				.addMessages(msgs)
-				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
 				.addCommands(
 						new AttachmentCommand.Cmd("/say this command is ' server ' command, use ' server console permission ' to execute.", true),
 						new AttachmentCommand.Cmd("/me this command is ' player ' command, use ' player permission ' to execute.", false),
@@ -73,12 +77,13 @@ public class SendDevEmail {
 						.addEffect(new MobEffectInstance(MobEffects.LUCK, 1000))
 				)
 				.addAttachment(new AttachmentMaxHealth(2))
+				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
 				.addAttachment(new AttachmentAttribute()
 						.addValue(Attributes.LUCK, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
 						.addValue(Attributes.ATTACK_DAMAGE, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
 						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
 				)
-				.setAccept(true);
+				.setReceive(true);
 	}
 	
 	public static Email getDevEmail() {
@@ -90,17 +95,14 @@ public class SendDevEmail {
 		if(event.getEntity() instanceof ServerPlayer player) {
 			Inbox inbox = Inbox.get(player);
 			
-			int level = 0;
-			ServerOpListEntry opEntry = player.getServer().getPlayerList().getOps().get(player.getGameProfile());
-            if (opEntry != null) {
-                level = opEntry.getLevel();
-            }
-			
-			EmailMain.net.sendMessageToPlayer(new MsgPlayerPermissionLevel(level), player);
+			player.getServer().getPlayerList().sendPlayerPermissionLevel(player);
 			
 			if(!inbox.isSendDevMsg()) {
 				inbox.setSendDevMsg(true);
-				inbox.addEmail(getDevEmail().copy(), true);
+
+				if (EmailConfigServer.Enable_New_Player_Email.get()) {
+					inbox.addEmail(getDevEmail().copy(), true);
+				}
 				
 //				EmailExecuteEvent.initDefaultCustomValue(inbox);
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(player, inbox));
@@ -141,12 +143,12 @@ public class SendDevEmail {
 		}
 	}
 
-	static int showToast;
+	static long showToast;
 	@OnlyIn(Dist.CLIENT)
 	@SubscribeEvent
 	public static void onClientTick(TickEvent.ClientTickEvent event){
-		if (event.phase == TickEvent.Phase.END) {
-			if (showToast >= EmailConfigClient.Prompt_Email.getTicks()) {
+		if (event.phase == TickEvent.Phase.END && Minecraft.getInstance().player != null) {
+			if (System.currentTimeMillis() >= showToast) {
 				if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
 					Minecraft.getInstance().getToasts().addToast(new SystemToast(
 							SystemToast.SystemToastIds.PACK_COPY_FAILURE,
@@ -154,9 +156,7 @@ public class SendDevEmail {
 							Component.translatable("info.inbox.has_unreceive", EmailMain.getUnaccepted())
 					));
 				}
-				showToast = 0;
-			}else {
-				showToast++;
+				showToast = System.currentTimeMillis() + EmailConfigClient.Prompt_Email.getMillis();
 			}
 		}
 	}

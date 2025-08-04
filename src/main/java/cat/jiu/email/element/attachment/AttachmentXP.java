@@ -1,5 +1,6 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
@@ -22,7 +23,7 @@ import java.util.List;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class AttachmentXP implements IAttachment {
-    public static final ResourceLocation ID = new ResourceLocation(EmailMain.MODID, "attachment/xp");
+    public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/xp");
     public static final ItemStack EXPERIENCE_BOTTLE = new ItemStack(Items.EXPERIENCE_BOTTLE);
 
     protected int levels;

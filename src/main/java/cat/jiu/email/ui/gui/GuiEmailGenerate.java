@@ -1,6 +1,7 @@
 package cat.jiu.email.ui.gui;
 
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.core.util.element.sound.SoundMC;
@@ -45,7 +46,7 @@ import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGenerate> {
-	public static final ResourceLocation BackGround = new ResourceLocation(EmailMain.MODID, "textures/gui/container/inbox_generate.png");
+	public static final ResourceLocation BackGround = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_generate.png");
     private EditBox titleField, localSound;
     private final EditBox[] textFields = new EditBox[5];
     private final GuiTime expiration = new GuiTime(this, false);
@@ -206,7 +207,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			if (this.useMCSound.selected()) {
 				email.setMcSound(new SoundMC()
 						.setDuration(59, 59, 19)
-						.setSoundEvent(ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(this.mcSoundBtn.getMessage().getString())))
+						.setSoundEvent(ForgeRegistries.SOUND_EVENTS.getValue(Utils.location(this.mcSoundBtn.getMessage().getString())))
 						.setSoundChannel(SoundSource.PLAYERS)
 				);
 			}else if (!this.localSound.getValue().isEmpty()) {

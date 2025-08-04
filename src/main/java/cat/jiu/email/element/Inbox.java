@@ -158,7 +158,7 @@ public final class Inbox implements ISerializable {
 
 	/**
 	 * @param id email id
-	 * @return true if inbox has email by id
+	 * @return true if inbox has email with id
 	 */
 	public boolean hasEmail(long id) {
 		return this.emails.containsKey(id);
@@ -240,7 +240,6 @@ public final class Inbox implements ISerializable {
 	public boolean hasCustomValue(String key) {
 		return this.customValue.containsKey(key);
 	}
-	
 	/**
 	 * @return inbox custom value
 	 */
@@ -344,7 +343,7 @@ public final class Inbox implements ISerializable {
 		if(!this.isEmptyInbox()) {
 			JsonObject emails = new JsonObject();
 			for(Entry<Long, Email> email : this.emails.entrySet()) {
-				emails.add(String.valueOf(email.getKey()), email.getValue().writeTo(JsonObject.class));
+				emails.add(String.valueOf(email.getKey()), email.getValue().write(new JsonObject()));
 			}
 			json.add("emails", emails);
 		}
@@ -523,7 +522,7 @@ public final class Inbox implements ISerializable {
 	public SQLValues write(SQLValues value) {
 		if(value==null) value = new SQLValues();
 		value.put("uuid", "'" + this.getOwner() + "'");
-		value.put("inbox", "'" + this.writeTo(JsonObject.class) + "'");
+		value.put("inbox", "'" + this.write(new JsonObject()) + "'");
 		return value;
 	}
 	
@@ -663,7 +662,6 @@ public final class Inbox implements ISerializable {
 	 * @param uid the owner
 	 * @param set the inbox serialize data
 	 * @return the inbox
-	 * @throws SQLException 
 	 */
 	public static Inbox get(@Nonnull UUID uid, ResultSet set) throws SQLException {
 		if(set==null)return null;

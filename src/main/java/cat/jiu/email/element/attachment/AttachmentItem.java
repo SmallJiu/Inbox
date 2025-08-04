@@ -1,11 +1,12 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +27,7 @@ import java.util.List;
 
 @Mod.EventBusSubscriber
 public class AttachmentItem implements IAttachment {
-    public static final ResourceLocation ID = new ResourceLocation(EmailMain.MODID, "attachment/item");
+    public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/item");
 
     protected List<ItemStack> items, unmodifiable;
 

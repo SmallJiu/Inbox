@@ -13,7 +13,6 @@ import com.google.gson.JsonParseException;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.jarjar.nio.util.LambdaExceptionUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,13 +29,13 @@ public class StorageType implements Supplier<String> {
     }
 
     public final String name;
-    public final LambdaExceptionUtils.Function_WithExceptions<String, JsonObject, Exception> read;
-    public final LambdaExceptionUtils.Consumer_WithExceptions<Inbox, Exception> write;
+    public final Function_WithExceptions<String, JsonObject, Exception> read;
+    public final Consumer_WithExceptions<Inbox, Exception> write;
 
     public StorageType(
             String name,
-            LambdaExceptionUtils.Consumer_WithExceptions<Inbox, Exception> write,
-            LambdaExceptionUtils.Function_WithExceptions<String, JsonObject, Exception> read
+            Consumer_WithExceptions<Inbox, Exception> write,
+            Function_WithExceptions<String, JsonObject, Exception> read
     ) {
         this.name = name;
         this.write = write;
@@ -95,4 +94,15 @@ public class StorageType implements Supplier<String> {
             inbox->DBParser.write(DBParser.getDBUrl(), inbox),
             owner->DBParser.read(DBParser.getDBUrl(), owner)
     ).register();
+
+
+    @FunctionalInterface
+    public interface Consumer_WithExceptions<T, E extends Exception> {
+        void accept(T t) throws E;
+    }
+
+    @FunctionalInterface
+    public interface Function_WithExceptions<T, R, E extends Exception> {
+        R apply(T t) throws E;
+    }
 }

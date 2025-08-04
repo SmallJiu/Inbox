@@ -1,5 +1,6 @@
 package cat.jiu.email.ui;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
@@ -23,9 +24,9 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
 @EventBusSubscriber(Dist.CLIENT)
 public class InboxButton {
-	public static final ResourceLocation inbox = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min.png");
-	public static final ResourceLocation inbox_hover = new ResourceLocation(EmailMain.MODID, "textures/gui/inbox_min_hover.png");
-	static final ResourceLocation email = new ResourceLocation(EmailMain.MODID, "textures/gui/email.png");
+	public static final ResourceLocation inbox = Utils.location(EmailMain.MODID, "textures/gui/inbox_min.png");
+	public static final ResourceLocation inbox_hover = Utils.location(EmailMain.MODID, "textures/gui/inbox_min_hover.png");
+	static final ResourceLocation email = Utils.location(EmailMain.MODID, "textures/gui/email.png");
 
 	static Button INSTANCE;
 

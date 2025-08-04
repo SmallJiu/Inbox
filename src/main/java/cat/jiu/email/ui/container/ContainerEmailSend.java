@@ -12,7 +12,7 @@ import cat.jiu.email.element.Cooling;
 import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonToStackUtil;
+import cat.jiu.core.util.JsonToStackUtil;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;

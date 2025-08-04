@@ -7,6 +7,7 @@ import cat.jiu.sql.*;
 import cat.jiu.sql.select.Where;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.util.StringUtil;
 
 import java.io.File;
 import java.sql.JDBCType;
@@ -23,14 +24,17 @@ public class DBParser {
 
     public static String getDBUrl() {
         if(true) {
-            EmailConfigServer.SQL_PROPERTIES.Database_Driver.get().loadDriver();
-            return EmailConfigServer.SQL_PROPERTIES.Database_Driver.get().url(EmailConfigServer.SQL_PROPERTIES.Database_Url.get().replace("{root}", EmailAPI.getSaveEmailRootPath()));
+            SQLDatabaseDriver driver = EmailConfigServer.SQL_PROPERTIES.Database_Driver.get();
+            driver.loadDriver();
+            return driver.url(EmailConfigServer.SQL_PROPERTIES.Database_Url.get().replace("{root}", EmailAPI.getSaveEmailRootPath()));
         }
         return DBParser.DB_PREFIX + EmailAPI.getSaveEmailRootPath() + File.separator + "inbox.db";
     }
 
     public static SQLDatabase getDatabase(String url) throws SQLException {
-        SQLDatabase db = new SQLDatabase(url);
+        String user = EmailConfigServer.SQL_PROPERTIES.Database_Username.get();
+        SQLDatabase db = StringUtil.isNullOrEmpty(user) ? new SQLDatabase(url) : new SQLDatabase(url, user, EmailConfigServer.SQL_PROPERTIES.Database_Password.get());
+
         db.prepared.createTable(DBParser.DB_TABLE, new SQLTableKey()
                 .put(DBParser.DB_TABLE_KEY_UUID, db.createKey(JDBCType.VARCHAR)
                         .setNotNull(true)

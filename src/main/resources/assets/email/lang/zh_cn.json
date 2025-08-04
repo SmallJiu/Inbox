@@ -229,6 +229,10 @@
   "inbox.config.save_to_root_directory.0": "保存邮箱至根目录,",
   "inbox.config.save_to_root_directory.1": "否则保存到对应存档下.",
 
+  "inbox.config.new_player_email": "启用新玩家默认邮件",
+  "inbox.config.new_player_email.0": "启用新玩家的默认邮件",
+  "inbox.config.new_player_email.1": "此设置不会禁用事件邮件 email:email/event/mc/logged 所设置的邮件",
+
   "inbox.config.storage_type": "邮箱存储格式",
   "inbox.config.storage_type.0": "定义邮箱的存储格式, §c你可能需要备份之前的邮箱邮件",
   "inbox.config.storage_type.1": "Json格式可读,   文件较大",

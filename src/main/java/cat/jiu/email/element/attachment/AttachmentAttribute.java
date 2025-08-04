@@ -1,6 +1,7 @@
 package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
@@ -33,7 +34,7 @@ import java.util.List;
 
 @Mod.EventBusSubscriber
 public class AttachmentAttribute implements IAttachment {
-    public static final ResourceLocation ID = new ResourceLocation(EmailMain.MODID, "attachment/attribute");
+    public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/attribute");
 
     protected HashMap<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> attributeMap = new HashMap<>();
 

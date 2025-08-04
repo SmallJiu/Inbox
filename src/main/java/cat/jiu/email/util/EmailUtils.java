@@ -406,31 +406,26 @@ public class EmailUtils {
 		}
 		return true;
 	}
-	
-	public static void spawnAsEntity(Player player, List<ItemStack> stacks) {
-		if(stacks == null || stacks.size() == 0) return;
-		Level world = player.level();
-		if (!world.isClientSide() && !world.restoringBlockSnapshots) {
-			for(ItemStack stack : stacks) {
-				spawnAsEntity(world, player.getEyePosition(), stack);
-			}
-        }
-	}
 
+	public static void spawnAsEntity(Player player, List<ItemStack> stacks) {
+		if(stacks == null || stacks.isEmpty()) return;
+		spawnAsEntity(player.level(), player.getEyePosition(), stacks.toArray(new ItemStack[0]));
+	}
 	public static void spawnAsEntity(Player player, ItemStackHandler handler) {
 		if(handler==null || handler.getSlots()==0) return;
-		Level world = player.level();
-		if (!world.isClientSide() && !world.restoringBlockSnapshots) {
-			for(int i = 0; i < handler.getSlots(); i++) {
-				spawnAsEntity(world, player.getEyePosition(), handler.getStackInSlot(i));
-			}
+		for(int i = 0; i < handler.getSlots(); i++) {
+			spawnAsEntity(player.level(), player.getEyePosition(), handler.getStackInSlot(i));
 		}
 	}
-	public static void spawnAsEntity(Level world, Vec3 pos, ItemStack stack){
-		if(!stack.isEmpty()){
-			ItemEntity item = new ItemEntity(world, pos.x+0.5F, pos.y+0.5F, pos.z+0.5F, stack.copy());
-			item.setPickUpDelay(1);
-			world.addFreshEntity(item);
+	public static void spawnAsEntity(Level world, Vec3 pos, ItemStack... stacks){
+		if (!world.isClientSide()) {
+			for (ItemStack stack : stacks) {
+				if(!stack.isEmpty()){
+					ItemEntity item = new ItemEntity(world, pos.x, pos.y, pos.z, stack.copy());
+					item.setPickUpDelay(1);
+					world.addFreshEntity(item);
+				}
+			}
 		}
 	}
 
