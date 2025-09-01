@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.Utils;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
@@ -90,7 +91,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 
 		{
 			if(EmailAPI.globalEmailCache.exists()) {
-				JsonElement e = JsonParser.parse(EmailAPI.globalEmailCache);
+				JsonElement e = JsonUtils.parse(EmailAPI.globalEmailCache, EmailConfigServer.File_Charset.get());
 				if(e != null && e.isJsonObject()) {
 					JsonObject json = e.getAsJsonObject();
 					if (json.has("history")) {

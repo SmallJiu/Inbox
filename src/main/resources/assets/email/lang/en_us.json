@@ -41,6 +41,7 @@
   "info.inbox.play_sound.stop": "Stop",
   "info.inbox.refresh": "Refresh Inbox",
   "info.inbox.refreshing": "Refreshing...",
+  "info.inbox.refresh.hard": "Hard Refresh Inbox",
   "info.inbox.refresh.cooling": "Cooling...",
   "info.inbox.email_size": "Email Size: %s Bytes",
   "info.inbox.remain_expiration_time": "Expiration remaining: %s",
@@ -90,6 +91,7 @@
   "info.inbox.healths.temp": " (Temp)",
   "info.inbox.effects": "Buff/Debuff",
   "info.inbox.attribute": "Attributes",
+  "info.inbox.undying": "Power of Immortality",
 
   #gen
   "info.inbox.generate": "Generate email.",
@@ -158,13 +160,16 @@
   "info.inbox.scheduled.gen.addressee.1.info": "Online and Offline Players.",
   "info.inbox.scheduled.gen.addressee.2": "Custom Players",
   "info.inbox.scheduled.gen.addressee.2.info": "Can custom addressee.",
-  "info.inbox.scheduled.gen.addressee.2.custom": "Add custom addressee, use ',' to split.",
+  "info.inbox.scheduled.gen.addressee.2.custom": "Add custom addressee, use ',' to split. like ' player1,player2,player3 '",
   "info.inbox.scheduled.gen.interval": "Interval: ",
   "info.inbox.scheduled.gen.interval.change": "Change",
   "info.inbox.scheduled.gen.interval.change.un": "Not change.",
   "info.inbox.scheduled.gen.note": "Note: ",
 
   #command
+  "inbox.command.undying.set": "Your immortal power has been set to %s by %s",
+  "inbox.command.undying.add": "Your immortal power has been add to %s by %s",
+
   "inbox.command.send.event": "/email event_reload - reload event",
   "inbox.command.send.cooling": "/email cooling_reload - reload send email cooling",
 
@@ -227,6 +232,9 @@
   "inbox.config.infinite_size.0": "§mEnable Inbox infinite storage.§r§c(Disable)",
   "inbox.config.infinite_size.1": "§c§mWarning: only enable on Single player..",
 
+  "inbox.config.file_charset": "File storage charset",
+  "inbox.config.file_charset.0": "json file storage charset",
+
   "inbox.config.save_to_root_directory": "Save email to root directory",
   "inbox.config.save_to_root_directory.0": "save email to world directory if false,",
   "inbox.config.save_to_root_directory.1": "can cross you saves send email if true.",
@@ -280,6 +288,13 @@
   "inbox.config.layout.email_list_width.0": "Candidate Emails Width",
 
   "inbox.config.layout.prompt": "Unread email prompt interval",
+
+  "inbox.config.layout.corner": "Undying count render side",
+  "inbox.config.layout.corner.0": "Change undying count render side",
+  "inbox.config.layout.corner.upper_left": "Upper left corner",
+  "inbox.config.layout.corner.upper_right": "Upper right corner",
+  "inbox.config.layout.corner.lower_left": "Lower left corner",
+  "inbox.config.layout.corner.lower_right": "Lower right corner",
 
   "inbox.config.layout.size.width": "Width",
   "inbox.config.layout.size.width.0": "Set inbox main gui width",

@@ -43,7 +43,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	@Override
 	public void init() {
 		super.init();
-		EmailMain.net.sendMessageToServer(new MsgRefreshBlacklist.Refresh());
+		EmailMain.NETWORK.sendMessageToServer(MsgRefreshBlacklist.REFRESH);
 
 		this.addRenderableWidget(new GuiButton(this.leftPos + 6, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.back"), btn-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)));
 		this.addRenderableWidget(new GuiButton(this.leftPos + 6 + 75, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.add"), btn-> getMinecraft().setScreen(new GuiAddBlacklist(this.getMenu().getBlacklist()))));
@@ -53,22 +53,13 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 				this.getMenu().getBlacklist().clear();
 				currentShowName = null;
 			}
-			EmailMain.net.sendMessageToServer(new MsgRefreshBlacklist.Refresh());
+			EmailMain.NETWORK.sendMessageToServer(MsgRefreshBlacklist.REFRESH);
 			btn.visible = false;
 			new Thread(()->{
-				long s = 1;
-				while(true) {
-					if(s <= 0) {
-						btn.visible = true;
-						return;
-					}
-					try {
-						Thread.sleep(1000);
-						s--;
-					}catch(InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
+				try {
+					Thread.sleep(1000);
+					btn.visible = true;
+				}catch(Exception ignored) {}
 			}).start();
 		}));
 		this.goName(0);
@@ -194,7 +185,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 
 	protected void removeBlacklist(int index) {
 		if(this.getMenu().getBlacklist()==null) return;
-		EmailMain.net.sendMessageToServer(new MsgBlacklist.Remove(this.getMenu().getBlacklist().get(index)));
+		EmailMain.NETWORK.sendMessageToServer(new MsgBlacklist.Remove(this.getMenu().getBlacklist().get(index)));
 	}
 	
 	@Override
@@ -205,11 +196,5 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
         }else {
         	return super.charTyped(typedChar, keyCode);
         }
-	}
-
-	@Override
-	public void onClose() {
-		super.onClose();
-		MinecraftForge.EVENT_BUS.unregister(this);
 	}
 }

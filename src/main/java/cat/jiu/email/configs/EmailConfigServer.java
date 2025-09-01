@@ -1,6 +1,6 @@
 package cat.jiu.email.configs;
 
-import cat.jiu.core.util.client.config.BaseConfig;
+import cat.jiu.core.util.base.BaseConfig;
 import cat.jiu.email.element.StorageType;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLDatabaseDriver;
@@ -12,6 +12,7 @@ public class EmailConfigServer {
 	public static final BooleanValue Enable_New_Player_Email;
 	public static final ConfigValue<String> Custom_Inbox_Path;
 	public static final ConfigValue<String> Storage_Inbox_Types;
+	public static final ConfigValue<String> File_Charset;
 	public static final SQLProperties SQL_PROPERTIES;
 	public static final Send Send;
 
@@ -110,7 +111,7 @@ public class EmailConfigServer {
 						"inbox.config.storage_type.1",
 						"inbox.config.storage_type.2",
 						"inbox.config.storage_type.3",
-						"Allowed Values: " + String.join(", ", StorageType.REGISTRY.getIDs())
+						"Deafult Allowed Values: json, json_format, nbt, sql"
 				)
 				.define("storage_types", "json"::toString, k->StorageType.REGISTRY.registered(String.valueOf(k)));
 
@@ -123,6 +124,11 @@ public class EmailConfigServer {
 						"inbox.config.custom_inbox_path.3",
 						"inbox.config.custom_inbox_path.4")
 				.define("inbox_path", "");
+
+		File_Charset = builder
+				.translation("inbox.config.file_charset")
+				.comment("inbox.config.file_charset.0")
+				.define("file_charset", "UTF-8");
 
 		Send = new Send(builder);
 		SQL_PROPERTIES = new SQLProperties(builder);

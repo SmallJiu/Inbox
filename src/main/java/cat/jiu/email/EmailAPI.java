@@ -5,15 +5,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import java.util.Set;
 import java.util.UUID;
 
+import cat.jiu.core.api.IData;
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
 import cat.jiu.core.util.SideProxy;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.api.IEmailStyle;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
-import cat.jiu.email.element.EmailSenderGroup;
-import cat.jiu.email.element.ScheduledEmail;
+import cat.jiu.email.element.*;
 import cat.jiu.email.net.msg.refresh.MsgRefreshScheduledEmail;
 import cat.jiu.email.event.EmailSendEvent;
 import cat.jiu.email.net.msg.*;
@@ -27,21 +30,24 @@ import com.google.gson.JsonObject;
 
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
-import cat.jiu.email.element.Email;
-import cat.jiu.email.element.Inbox;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent.Phase;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.commons.lang3.StringUtils;
 
+@Mod.EventBusSubscriber
 public class EmailAPI {
 	/**
 	 * send player email to player. sender is email sender
@@ -65,7 +71,7 @@ public class EmailAPI {
 	 */
 	public static void sendEmail(Player player, EmailSenderGroup group, String addresser, Email email) {
 		if(player.level().isClientSide()) {
-			EmailMain.net.sendMessageToServer(new MsgSend(group, addresser, email));
+			EmailMain.NETWORK.sendMessageToServer(new MsgSend(group, addresser, email));
 		}else {
 			sendEmail(group, addresser, email);
 		}
@@ -99,30 +105,30 @@ public class EmailAPI {
 				player = SideProxy.getServer().getPlayerList().getPlayerByName(address);
 			}
 			if(player != null) {
-				EmailUtils.sendMessage(player, "info.inbox.from", email.getSender());
-				EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendEmail(inbox.getEmailHistoryCount(), email), player);
+				player.sendSystemMessage(Component.translatable("info.inbox.from", email.getSender().toTextComponent()));
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgInboxToClient.SendEmail(inbox.getEmailHistoryCount(), email), player);
 			}
 		}
 		return true;
 	}
 
 	public static IEmailStyle getEmailStyle() {
-		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonParser.parse(EmailAPI.globalEmailCache) : new JsonObject();
+		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonUtils.parse(EmailAPI.globalEmailCache, EmailConfigServer.File_Charset.get()) : new JsonObject();
 		if(e != null && e.isJsonObject()) {
 			return IEmailStyle.REGISTRY.get(e.getAsJsonObject());
 		}
 		return null;
 	}
 	public static void saveEmailStyle(IEmailStyle style) {
-		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonParser.parse(EmailAPI.globalEmailCache) : new JsonObject();
+		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonUtils.parse(EmailAPI.globalEmailCache, EmailConfigServer.File_Charset.get()) : new JsonObject();
 		if(e != null && e.isJsonObject()) {
 			e.getAsJsonObject().addProperty(IEmailStyle.NAME_ID, String.valueOf(style.getID()));
-			JsonParser.toJsonFile(EmailAPI.globalEmailCache.getPath(), e, false);
+			JsonUtils.toJsonFile(EmailAPI.globalEmailCache, e, false, EmailConfigServer.File_Charset.get());
 		}
 	}
 
 	public static void addAddresseeHistory(String name) {
-		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonParser.parse(EmailAPI.globalEmailCache) : new JsonObject();
+		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonUtils.parse(EmailAPI.globalEmailCache, EmailConfigServer.File_Charset.get()) : new JsonObject();
 		if(e != null && e.isJsonObject()) {
 			JsonObject json = e.getAsJsonObject();
 			boolean has = false;
@@ -146,11 +152,31 @@ public class EmailAPI {
 				}
 				list.add(name);
 				json.add("history", list);
-				JsonParser.toJsonFile(EmailAPI.globalEmailCache.getPath(), json, false);
+				JsonUtils.toJsonFile(EmailAPI.globalEmailCache.getPath(), json, false, EmailConfigServer.File_Charset.get());
 			}
 		}
 	}
-	
+
+	private static int unread = 0;
+	private static int unaccepted = 0;
+	public static int getUnread() {
+		return unread;
+	}
+	public static int getUnaccepted() {
+		return unaccepted;
+	}
+	public static void setAccept(int unRead, int unReceived) {
+		unread = unRead;
+		unaccepted = unReceived;
+	}
+	private static long undyingCount = 0;
+	public static long getUndyingCount() {
+		return undyingCount;
+	}
+	public static void setUndyingCount(long undyingCount) {
+		EmailAPI.undyingCount = undyingCount;
+	}
+
 	private static final List<String> whitelist = Lists.newArrayList();
 	public static void addBlockReceiveWhitelist(String name) {
 		if(!isInBlockReceiveWhitelist(name)) {
@@ -249,7 +275,6 @@ public class EmailAPI {
 	public static final File globalEmailCache = new File("./email.json");
 	public static final String globalEmailListPath = EmailAPI.globalEmailCache.getPath();
 
-
 	public static boolean addToWhiteList(String name, UUID uid) {
 		return addToList(name, uid, false);
 	}
@@ -263,26 +288,13 @@ public class EmailAPI {
 		return addToBlackList(player.getName().getString(), player.getUUID());
 	}
 	private static boolean addToList(String name, UUID uid, boolean black) {
-		String theListName = black ? "BlackList" : "WhiteList";
-		File jsonFile = new File(globalEmailListPath);
-		JsonObject json = new JsonObject();
-		if(jsonFile.exists()) {
-			JsonElement e = JsonParser.parse(jsonFile);
-			if(e != null && e.isJsonObject()) {
-				json = e.getAsJsonObject();
-			}
-		}
-		
-		JsonObject list = null;
-		if(json.has(theListName) && json.get(theListName).isJsonObject()) {
-			list = json.get(theListName).getAsJsonObject();
-		}else {
-			list = new JsonObject();
-		}
-		
-			list.addProperty(name, uid.toString());
-		json.add(theListName, list);
-		return JsonParser.toJsonFile(globalEmailListPath, json, false);
+        try {
+			BlackAndWhiteList list = new BlackAndWhiteList();
+            list.add(name, String.valueOf(uid), black);
+			return list.save().writeToFile(globalEmailCache, false, EmailConfigServer.File_Charset.get());
+        } catch (Exception ignored) {
+			return false;
+        }
 	}
 
 	public static boolean isInWhiteList(Player player) {
@@ -304,28 +316,12 @@ public class EmailAPI {
 		return isInList(name, true);
 	}
 	private static boolean isInList(String str, boolean black) {
-		String inList = black ? "BlackList" : "WhiteList";
-		File jsonFile = new File(globalEmailListPath);
-		if(jsonFile.exists()) {
-			JsonElement jsonO = JsonParser.parse(jsonFile);
-			if(jsonO != null && jsonO.isJsonObject()) {
-				JsonObject json = jsonO.getAsJsonObject();
-				if(json.has(inList)) {
-					JsonElement e = json.get(inList);
-					if(e.isJsonObject()) {
-						if(e.getAsJsonObject().has(str)) return true;
-						for(Entry<String, JsonElement> names : e.getAsJsonObject().entrySet()) {
-							String listName = names.getKey();
-							String listUUID = names.getValue().getAsString();
-							if(listName.equalsIgnoreCase(str) || listUUID.equalsIgnoreCase(str)) {
-								return true;
-							}
-						}
-					}
-				}
-			}
+		try {
+			BlackAndWhiteList list = new BlackAndWhiteList();
+			return list.contains(str, true, black) || list.contains(str, false, black);
+		} catch (Exception ignored) {
+			return false;
 		}
-		return false;
 	}
 	
 	public static boolean removeInWhiteList(Player player) {
@@ -347,34 +343,44 @@ public class EmailAPI {
 		return removeInList(name, true);
 	}
 	private static boolean removeInList(String name, boolean black) {
-		String inList = black ? "BlackList" : "WhiteList";
-		File jsonFile = new File(globalEmailListPath);
-		if(jsonFile.exists()) {
-			JsonElement jsonO = JsonParser.parse(jsonFile);
-			if(jsonO != null && jsonO.isJsonObject()) {
-				JsonObject json = jsonO.getAsJsonObject();
-				if(json.has(inList)) {
-					JsonElement e = json.get(inList);
-					if(e.isJsonObject()) {
-						JsonObject list = e.getAsJsonObject();
-						if(list.has(name)) {
-							list.remove(name);
-							return JsonParser.toJsonFile(globalEmailListPath, json, false);
-						}else {
-							for(Entry<String, JsonElement> names : Sets.newHashSet(list.entrySet())) {
-								String listName = names.getKey();
-								String listUUID = names.getValue().getAsString();
-								if(listName.equalsIgnoreCase(name) || listUUID.equalsIgnoreCase(name)) {
-									list.remove(listName);
-									return JsonParser.toJsonFile(globalEmailListPath, json, false);
-								}
-							}
-						}
-					}
-				}
+		try {
+			BlackAndWhiteList list = new BlackAndWhiteList();
+			list.remove(name, black);
+			return list.save().writeToFile(globalEmailCache, false, EmailConfigServer.File_Charset.get());
+		} catch (Exception ignored) {
+			return false;
+		}
+	}
+
+	private static String onServerOrSaveName;
+	@OnlyIn(Dist.CLIENT)
+	@SubscribeEvent
+	public static void onPlayerLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
+		if (Minecraft.getInstance().isLocalServer()) {
+			onServerOrSaveName = new File(String.valueOf(SideProxy.getServer().getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParentFile().getName();
+		}else {
+			onServerOrSaveName = Minecraft.getInstance().getCurrentServer().ip.replace(':', '-');
+		}
+        try {
+            GuiInbox.INBOX.read(NBTData.readMap(new File("./inbox", onServerOrSaveName+".dat"), true));
+        } catch (Exception e) {
+			e.printStackTrace();
+        }
+    }
+	@OnlyIn(Dist.CLIENT)
+	@SubscribeEvent
+	public static void onPlayerLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+		if (onServerOrSaveName != null) {
+			try {
+				IData.IMapData<?> data = NBTData.map();
+				GuiInbox.INBOX.write(data);
+				data.writeToFile(new File("./inbox", onServerOrSaveName+".dat"), true, "UTF-8");
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
-		return true;
+        GuiInbox.INBOX.deleteAllEmail();
+		onServerOrSaveName = null;
 	}
 
 	@OnlyIn(Dist.CLIENT)
@@ -394,13 +400,13 @@ public class EmailAPI {
 					if (file.isFile()) {
 						try {
 							String path = file.getName();
-							Email email = new Email(JsonParser.parse(file).getAsJsonObject());
-							EmailMain.net.sendMessageToPlayer(new MsgRefreshScheduledEmail.SendMap(path.substring(0, path.indexOf('.')), email), player);
+							Email email = new Email(JsonUtils.parse(file, EmailConfigServer.File_Charset.get()).getAsJsonObject());
+							EmailMain.NETWORK.sendMessageToPlayer(new MsgRefreshScheduledEmail.SendMap(path.substring(0, path.indexOf('.')), email), player);
 						}catch (Exception ignored){ }
 					}
 				}
 			}
-		},50);
+		});
 	}
 
 	public static void sendScheduledEmailToClient(ServerPlayer player) {
@@ -413,21 +419,24 @@ public class EmailAPI {
 				if (check && email.getAsEmail() != null) {
 					try {
 						Thread.sleep(25);
-						EmailMain.net.sendMessageToPlayer(new MsgRefreshScheduledEmail.Send(email), player);
+						EmailMain.NETWORK.sendMessageToPlayer(new MsgRefreshScheduledEmail.Send(email), player);
 					} catch (Exception ignored) {}
 				}
 			}
-		}, 50);
+		});
 	}
 
-	public static void sendInboxToClient(Inbox inbox, ServerPlayer player) {
+	public static void sendInboxToClient(Inbox inbox, Set<Long> emailIDs, ServerPlayer player) {
 //		EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.CreateInbox(inbox.getOwner()), player);
 		EmailMain.execute(()-> {
-			EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendOther(inbox), player);
-			for (Long id : inbox.getEmailIDs()) {
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgInboxToClient.SendOther(inbox), player);
+			for (long id : inbox.getEmailIDs()) {
 //			for (int id = 0; id < 2560; id++) {
 				if (!NBTUtils.get(player.getPersistentData(), "displayInbox", false)) {
 					break;
+				}
+				if (emailIDs.contains(id)) {
+					continue;
 				}
 				try {
 					Thread.sleep(25);
@@ -440,7 +449,7 @@ public class EmailAPI {
 							player.sendSystemMessage(Component.translatable("info.inbox.error.to_big.0"));
 							player.sendSystemMessage(Component.translatable("info.inbox.error.to_big.1", report.id(), report.slot(), report.size()));
 						}else {
-							EmailMain.net.sendMessageToPlayer(new MsgInboxToClient.SendEmail(id, email), player);
+							EmailMain.NETWORK.sendMessageToPlayer(new MsgInboxToClient.SendEmail(id, email), player);
 						}
 					}
 				} catch (Throwable e) {
@@ -450,6 +459,6 @@ public class EmailAPI {
 					player.sendSystemMessage(Component.literal(String.format("Exception: %s", e.getMessage())));
 				}
 			}
-		}, 50);
+		});
 	}
 }

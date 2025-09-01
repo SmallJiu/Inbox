@@ -1,5 +1,6 @@
 package cat.jiu.email.command;
 
+import cat.jiu.email.EmailAPI;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -14,10 +15,16 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class EmailFileType implements ArgumentType<File> {
+    public static final File DEFAULT_EMAIL = new File("default");
+
     public final File dir;
 
+    public EmailFileType() {
+        this(EmailAPI.getGlobalDataPath() + "emails/");
+    }
     public EmailFileType(String dir) {
         this.dir = new File(dir);
+        this.dir.mkdirs();
     }
 
     @Override
@@ -27,6 +34,9 @@ public class EmailFileType implements ArgumentType<File> {
             reader.skip();
         }
         String s = reader.getString().substring(i, reader.getCursor());
+        if ("default".equals(s)) {
+            return DEFAULT_EMAIL;
+        }
         return new File(this.dir, s);
     }
 
@@ -39,6 +49,7 @@ public class EmailFileType implements ArgumentType<File> {
                 files.add(file.getName());
             }
         }
+        files.add("default");
         return SharedSuggestionProvider.suggest(files, builder);
     }
 }

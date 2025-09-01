@@ -2,10 +2,11 @@ package cat.jiu.email.element;
 
 import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.JsonUtils;
+import cat.jiu.core.util.NBTUtils;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.email.util.JsonParser;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonArray;
@@ -86,7 +87,7 @@ public class ScheduledEmail implements ISerializable {
 
     public Email getAsEmail() {
         if (this.email==null) {
-            this.email = new Email(JsonParser.parse(this.getAsFile()));
+            this.email = new Email(JsonUtils.parse(this.getAsFile(), EmailConfigServer.File_Charset.get()).getAsJsonObject());
         }
         return this.email.setCreateTimeToNow();
     }
@@ -131,6 +132,7 @@ public class ScheduledEmail implements ISerializable {
         json.addProperty("id", this.id);
         json.addProperty("path", this.getFilePath());
         json.addProperty("interval", this.getInterval().millis);
+        json.addProperty("next", this.getNextExecuteTime());
         json.addProperty("note", this.getNote());
         json.addProperty("addressee", this.getAddressee().getName());
         if (this.getAddressee().isCustomPlayers()) {
@@ -148,6 +150,10 @@ public class ScheduledEmail implements ISerializable {
         this.id = JsonUtils.get(data, "id", 0);
         this.setNote(JsonUtils.get(data, "note", ""));
         this.setAddressee(Addressee.get(data.has("addressee") ? data.get("addressee").getAsString() : "online"));
+        this.nextExecuteTime = JsonUtils.get(data, "next", -1);
+        if (this.nextExecuteTime == -1) {
+            this.refreshNextExecuteTime();
+        }
         if (data.has("custom_addressee") && this.getAddressee().isCustomPlayers()) {
             data.getAsJsonArray("custom_addressee").forEach(e->this.addCustomAddressee(e.getAsString()));
         }
@@ -158,8 +164,8 @@ public class ScheduledEmail implements ISerializable {
         nbt.putLong("id", this.id);
         nbt.putString("path", this.getFilePath());
         nbt.putLong("interval", this.getInterval().millis);
+        nbt.putLong("next", this.getNextExecuteTime());
         nbt.putString("note", this.getNote());
-        nbt.putLong("next", this.nextExecuteTime);
         nbt.put("email", this.getAsEmail().write(new CompoundTag()));
         nbt.putString("addressee", this.getAddressee().getName());
         if (this.getAddressee().isCustomPlayers()) {
@@ -176,7 +182,10 @@ public class ScheduledEmail implements ISerializable {
         this.setFilePath(nbt.getString("path"));
         this.setInterval(new TimeMillis(nbt.getLong("interval")));
         this.setNote(nbt.getString("note"));
-        this.nextExecuteTime = nbt.getLong("next");
+        this.nextExecuteTime = NBTUtils.get(nbt, "next", -1);
+        if (this.nextExecuteTime == -1) {
+            this.refreshNextExecuteTime();
+        }
         this.email = new Email(nbt.getCompound("email"));
         this.setAddressee(Addressee.get(nbt.getString("addressee")));
         if (nbt.contains("custom_addressee") && this.getAddressee().isCustomPlayers()) {
@@ -202,23 +211,24 @@ public class ScheduledEmail implements ISerializable {
         return Objects.hash(emailFile, this.id);
     }
 
-    private static final ArrayList<ScheduledEmail> scheduled_emails = new ArrayList<>();
-    static List<ScheduledEmail> unmodifiable;
+    private static final List<ScheduledEmail>
+            scheduled_emails = new ArrayList<>(),
+            unmodifiable = Collections.unmodifiableList(scheduled_emails);
 
     public static void addScheduledEmail(ScheduledEmail email, boolean saveToDisk) {
         scheduled_emails.add(email);
         if (saveToDisk) {
-            saveScheduledEmail();
+            save();
         }
     }
     public static boolean removeScheduledEmail(long id) {
         boolean res = scheduled_emails.removeIf(e->e.getId() == id);
-        if (res) saveScheduledEmail();
+        if (res) save();
         return res;
     }
     public static void removeAllScheduledEmail(){
         scheduled_emails.clear();
-        saveScheduledEmail();
+        save();
     }
     public static ScheduledEmail getScheduledEmail(long id) {
         for (ScheduledEmail email : scheduled_emails) {
@@ -233,21 +243,18 @@ public class ScheduledEmail implements ISerializable {
     }
 
     public static List<ScheduledEmail> getScheduledEmails() {
-        if (unmodifiable ==null) {
-            unmodifiable = Collections.unmodifiableList(scheduled_emails);
-        }
         return unmodifiable;
     }
 
-    public static void initScheduledEmail() {
+    public static void init() {
         scheduled_emails.clear();
-        updataScheduledEmail();
+        updata();
     }
-    public static void updataScheduledEmail() {
+    public static void updata() {
         try {
             File file = new File(EmailAPI.getGlobalDataPath() + "scheduled_emails.json");
             if (file.exists()) {
-                JsonParser.parse(file).getAsJsonArray().forEach(e->{
+                JsonUtils.parse(file, EmailConfigServer.File_Charset.get()).getAsJsonArray().forEach(e->{
                     try {
                         ScheduledEmail email = new ScheduledEmail();
                         email.readFrom(e);
@@ -261,7 +268,7 @@ public class ScheduledEmail implements ISerializable {
                         t.printStackTrace();
                     }
                 });
-                saveScheduledEmail();
+                save();
             }else {
                 EmailMain.log.info("Not found file ' scheduled_emails.json ', path: {}", file);
             }
@@ -270,12 +277,12 @@ public class ScheduledEmail implements ISerializable {
         }
     }
 
-    public static void saveScheduledEmail() {
+    public static void save() {
         JsonArray array = new JsonArray();
         for (ScheduledEmail email : scheduled_emails) {
             array.add(email.write(new JsonObject()));
         }
-        JsonParser.toJsonFile(EmailAPI.getGlobalDataPath() + "scheduled_emails.json", array, false);
+        JsonUtils.toJsonFile(EmailAPI.getGlobalDataPath() + "scheduled_emails.json", array, false, EmailConfigServer.File_Charset.get());
     }
 
     @SubscribeEvent

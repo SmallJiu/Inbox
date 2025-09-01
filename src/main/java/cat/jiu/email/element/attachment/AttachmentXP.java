@@ -1,5 +1,6 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.api.IData;
 import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
@@ -19,6 +20,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
@@ -38,11 +40,14 @@ public class AttachmentXP implements IAttachment {
     }
 
     public AttachmentXP(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
 
     public AttachmentXP(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentXP(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public int getLevels() {
@@ -74,29 +79,16 @@ public class AttachmentXP implements IAttachment {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
-        json.addProperty("levels", this.getLevels());
-        json.addProperty("points", this.getPoints());
-        return json;
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
+        data.putData("levels", this.getLevels());
+        data.putData("points", this.getPoints());
+        return data;
     }
 
     @Override
-    public void read(JsonObject json) {
-        this.setLevels(json.has("levels") ? json.get("levels").getAsInt() : 0);
-        this.setPoints(json.has("points") ? json.get("points").getAsInt() : 0);
-    }
-
-    @Override
-    public CompoundTag write(CompoundTag nbt) {
-        nbt.putInt("levels", this.getLevels());
-        nbt.putInt("points", this.getPoints());
-        return nbt;
-    }
-
-    @Override
-    public void read(CompoundTag nbt) {
-        this.setLevels(nbt.getInt("levels"));
-        this.setPoints(nbt.getInt("points"));
+    public void read(IData.IMapData<?> data) {
+        this.setLevels(data.getInt("levels"));
+        this.setPoints(data.getInt("points"));
     }
 
     @Override
@@ -128,34 +120,21 @@ public class AttachmentXP implements IAttachment {
         player.giveExperiencePoints(this.getPoints());
     }
 
-    @OnlyIn(Dist.CLIENT)
     @Override
-    public void render(AttachmentEvent.Render event) {
-        if (!this.isEmpty()) {
-            event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
-//            event.addY(event.font.lineHeight + 2);
-
-            int cmd_x = event.x + event.font.width(event.renderSaveTo("info.inbox.xps")) + 2;
-            event.graphics.renderFakeItem(EXPERIENCE_BOTTLE, cmd_x, event.getY());
-            if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, cmd_x, event.getY(), 16, 16)) {
-                event.disableScissor();
-
-                event.graphics.renderComponentTooltip(event.font, List.of(
-                        Component.literal(I18n.get("info.inbox.xp_save_to_email.0", this.getLevels())),
-                        Component.literal(I18n.get("info.inbox.xp_save_to_email.1", this.getPoints()))
-                ), event.mouseX, event.mouseY);
-
-                event.enableScissor();
-            }
-            event.addY(16);
-        }
+    public List<Component> getHoverMessage() {
+        return List.of(
+                Component.literal(I18n.get("info.inbox.xp_save_to_email.0", this.getLevels())),
+                Component.literal(I18n.get("info.inbox.xp_save_to_email.1", this.getPoints()))
+        );
     }
 
-    @OnlyIn(Dist.CLIENT)
     @Override
-    public void getHeight(AttachmentEvent.GetHeight event) {
-        if (!this.isEmpty()) {
-            event.addHeight(16);
-        }
+    public ItemStack getDisplayStack() {
+        return EXPERIENCE_BOTTLE;
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("info.inbox.xps");
     }
 }

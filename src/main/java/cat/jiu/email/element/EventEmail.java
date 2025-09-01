@@ -5,7 +5,7 @@ import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
-import cat.jiu.email.util.JsonParser;
+import cat.jiu.email.configs.EmailConfigServer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -64,7 +64,8 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
     public static void load() {
         REGISTRY.clear();
         try {
-            JsonObject emails = JsonParser.parseThrow(EmailAPI.getGlobalDataPath()+"event_emails.json");if (emails != null) {
+            JsonObject emails = JsonUtils.parseThrow(EmailAPI.getGlobalDataPath()+"event_emails.json", EmailConfigServer.File_Charset.get());
+            if (emails != null) {
                 for (String s : emails.keySet()) {
                     ResourceLocation event = Utils.location(s);
                     for (JsonElement element : emails.getAsJsonArray(s)) {
@@ -90,7 +91,7 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
                 object.add(String.valueOf(event), new JsonArray());
             }
         }
-        JsonParser.toJsonFile(EmailAPI.getGlobalDataPath()+"event_emails.json", object, true);
+        JsonUtils.toJsonFile(EmailAPI.getGlobalDataPath()+"event_emails.json", object, true, EmailConfigServer.File_Charset.get());
     }
 
     protected String emailPath;
@@ -115,7 +116,7 @@ public class EventEmail implements IJsonSerializable, Supplier<String> {
 
     public Email getAsEmail() {
         if (this.email==null) {
-            this.email = new Email(JsonParser.parse(EmailAPI.getGlobalDataPath() + "emails/" + this.get()));
+            this.email = new Email(JsonUtils.parse(EmailAPI.getGlobalDataPath() + "emails/" + this.get(), EmailConfigServer.File_Charset.get()).getAsJsonObject());
         }
         return this.email.setCreateTimeToNow();
     }

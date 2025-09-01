@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import cat.jiu.core.api.element.IText;
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.util.SideProxy;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.element.EmailSenderGroup;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.configs.EmailConfigServer;
@@ -69,7 +71,7 @@ public class MsgSend extends BaseMessage {
 		
 		nbt.putString("addresser", this.addressed);
 		nbt.putInt("group", EmailSenderGroup.getIDByGroup(this.group));
-		nbt.put("email", this.email.writeTo(CompoundTag.class));
+		nbt.put("email", (CompoundTag) this.email.write(NBTData.map()).getData());
 		
 		buf.writeNbt(nbt);
 	}
@@ -162,7 +164,7 @@ public class MsgSend extends BaseMessage {
 		if(this.group.isPlayerSend() && Cooling.isCooling(sender.getName().getString()) || Cooling.isCooling(this.email.getSender().getText())){
 			container.putStack(this.email.getItems());
 			if(lock) container.setLock(false);
-			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.cooling")), sender);
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.cooling")), sender);
 			return;
 		}
 		
@@ -190,9 +192,9 @@ public class MsgSend extends BaseMessage {
 						container.putStack(stacks);
 						if(lock) container.setLock(false);
 					}
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.error.send.to_big", report.slot(), report.size())), msgSender);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.error.send.to_big", report.slot(), report.size())), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, ChatFormatting.RED, "info.inbox.error.send.to_big", report.slot(), report.size());
+					IText.create(msgSender, ChatFormatting.RED, "info.inbox.error.send.to_big", report.slot(), report.size());
 				}
 			}else {
 				EmailMain.log.warn("Email item is to big, please remove some item or nbt. Slot: {}, Size: {} / 2097152 Bytes", report.slot(), report.size());
@@ -218,13 +220,13 @@ public class MsgSend extends BaseMessage {
 					if(EmailConfigServer.Send.Enable_Send_Cooling.get()) {
 						Cooling.cooling(msgSender.getName().getString());
 					}
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.inbox.send.success", addresser)), msgSender);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.inbox.send.success", addresser)), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, ChatFormatting.GREEN, "info.inbox.send.success", addresser);
+					IText.create(msgSender, ChatFormatting.GREEN, "info.inbox.send.success", addresser);
 				}
 				Player player = getOnlinePlayer(addresser, msgSender.getServer());
 				if(player != null) {
-					EmailUtils.sendMessage(player, "info.inbox.from", this.email.getSender());
+					IText.create(player, "info.inbox.from", this.email.getSender());
 				}
 			}
 			sendLog(this.email.getSender().getText(), addresser, EmailUtils.getUUID(addresser));
@@ -234,9 +236,9 @@ public class MsgSend extends BaseMessage {
 					if(msgSender.containerMenu instanceof ContainerEmailSend container) {
 						if(lock) container.setLock(false);
 					}
-					EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail")), msgSender);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail")), msgSender);
 				}else {
-					EmailUtils.sendMessage(msgSender, ChatFormatting.RED, "info.inbox.send.fail");
+					IText.create(msgSender, ChatFormatting.RED, "info.inbox.send.fail");
 				}
 			}else {
 				EmailMain.log.info("Send e-mail fail, check log find the reason.");
@@ -250,9 +252,9 @@ public class MsgSend extends BaseMessage {
 				if(msgSender.containerMenu instanceof ContainerEmailSend container) {
 					if(lock) container.setLock(false);
 				}
-				EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.blacklist")), msgSender);
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.blacklist")), msgSender);
 			}else {
-				EmailUtils.sendMessage(msgSender, ChatFormatting.RED, "info.inbox.send.fail.blacklist");
+				IText.create(msgSender, ChatFormatting.RED, "info.inbox.send.fail.blacklist");
 			}
 		}else {
 			EmailMain.log.info("Send email fail, you have been block by the Addressee!");
@@ -285,7 +287,7 @@ public class MsgSend extends BaseMessage {
 			}else {
 				color = Color.RED;
 			}
-			EmailMain.net.sendMessageToPlayer(new MsgSendRenderText(color, new Text(msg, arg)), sender);
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(color, new Text(msg, arg)), sender);
 		}else {
 			EmailMain.log.log(level, msg.replace("%s", "{}"), arg);
 		}

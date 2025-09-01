@@ -1,5 +1,6 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.api.IData;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
@@ -8,6 +9,7 @@ import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.EmailUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.CommonComponents;
@@ -29,6 +31,8 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
@@ -42,11 +46,14 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     public AttachmentAttribute(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
 
     public AttachmentAttribute(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentAttribute(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public List<AttributeValue> getValue(Attribute attribute, AttributeModifier.Operation operation) {
@@ -69,91 +76,45 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
-        JsonArray attributeObject = new JsonArray();
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
+        IData.IListData<?> attributeObject = data.newList();
         for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> entry : this.attributeMap.entrySet()) {
-            JsonArray array = new JsonArray();
+            IData.IListData<?> array = data.newList();
             for (Map.Entry<AttributeModifier.Operation, List<AttributeValue>> operationEntry : entry.getValue().entrySet()) {
                 for (AttributeValue value : operationEntry.getValue()) {
-                    JsonObject object = new JsonObject();
-                    object.addProperty("operation", operationEntry.getKey().toValue());
-                    object.addProperty("value", value.value);
-                    object.addProperty("temp", value.temp);
-                    array.add(object);
+                    IData.IMapData<?> object = data.newMap();
+                    object.putData("operation", operationEntry.getKey().toValue());
+                    object.putData("value", value.value);
+                    object.putData("temp", value.temp);
+                    array.putData(object);
                 }
             }
-            JsonObject object = new JsonObject();
-            object.addProperty("id", String.valueOf(ForgeRegistries.ATTRIBUTES.getKey(entry.getKey())));
-            object.add("values", array);
-            attributeObject.add(object);
+            IData.IMapData<?> object = data.newMap();
+            object.putData("id", String.valueOf(ForgeRegistries.ATTRIBUTES.getKey(entry.getKey())));
+            object.putData("values", array);
+            attributeObject.putData(object);
         }
-        json.add("attribute", attributeObject);
-        return json;
+        data.putData("attribute", attributeObject);
+        return data;
     }
 
     @Override
-    public void read(JsonObject json) {
-        JsonArray attributes = json.getAsJsonArray("attribute");
-        for (int attributeIndex = 0; attributeIndex < attributes.size(); attributeIndex++) {
-            JsonObject attributeTag = attributes.get(attributeIndex).getAsJsonObject();
-            Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.tryParse(attributeTag.get("id").getAsString()));
-
-            int globOperationID = JsonUtils.get(attributeTag, "operation", -1);
+    public void read(IData.IMapData<?> data) {
+        data.getList("attribute", IData.IMapData.class).foreach((index, value) -> {
+            IData.IMapData<?> attributeTag = value.getAsMap();
+            Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(attributeTag.getLocation("id"));
+            int globOperationID = attributeTag.getInt("operation", -1);
             AttributeModifier.Operation globOperation = globOperationID >= 0 ? AttributeModifier.Operation.fromValue(globOperationID) : null;
 
-            boolean useGlobTemp = attributeTag.has("temp");
-
-            JsonArray values = attributeTag.getAsJsonArray("values");
-            for (int valueIndex = 0; valueIndex < values.size(); valueIndex++) {
-                JsonObject valueTag = values.get(valueIndex).getAsJsonObject();
+            boolean useGlobTemp = attributeTag.containsKey("temp");
+            attributeTag.getList("values", IData.IMapData.class).foreach((i, v)->{
+                IData.IMapData<?> valueTag = v.getAsMap();
                 this.addValue(attribute,
-                        globOperation != null ? globOperation : AttributeModifier.Operation.fromValue(JsonUtils.get(valueTag, "operation", AttributeModifier.Operation.ADDITION.toValue())),
-                        new AttributeValue(valueTag.get("value").getAsDouble(), useGlobTemp ? attributeTag.get("temp").getAsBoolean() : JsonUtils.get(valueTag, "temp", true))
+                        globOperation != null ? globOperation : AttributeModifier.Operation.fromValue(valueTag.getInt("operation", AttributeModifier.Operation.ADDITION.toValue())),
+                        new AttributeValue(valueTag.getDouble("value"), useGlobTemp ? attributeTag.getBoolean("temp") : valueTag.getBoolean("temp", true))
                 );
-            }
-        }
-    }
-
-    @Override
-    public CompoundTag write(CompoundTag nbt) {
-        ListTag attributeObject = new ListTag();
-        for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> entry : this.attributeMap.entrySet()) {
-            ListTag array = new ListTag();
-            for (Map.Entry<AttributeModifier.Operation, List<AttributeValue>> operationEntry : entry.getValue().entrySet()) {
-                for (AttributeValue value : operationEntry.getValue()) {
-                    CompoundTag object = new CompoundTag();
-                    object.putInt("operation", operationEntry.getKey().toValue());
-                    object.putDouble("value", value.value);
-                    object.putBoolean("temp", value.temp);
-                    array.add(object);
-                }
-            }
-            CompoundTag object = new CompoundTag();
-            object.putString("id", String.valueOf(ForgeRegistries.ATTRIBUTES.getKey(entry.getKey())));
-            object.put("values", array);
-
-            attributeObject.add(object);
-        }
-        nbt.put("attribute", attributeObject);
-        return nbt;
-    }
-
-    @Override
-    public void read(CompoundTag nbt) {
-        ListTag attributes = nbt.getList("attribute", 10);
-        for (int attributeIndex = 0; attributeIndex < attributes.size(); attributeIndex++) {
-            CompoundTag attributeTag = attributes.getCompound(attributeIndex);
-
-            Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.tryParse(attributeTag.getString("id")));
-            ListTag values = attributeTag.getList("values", 10);
-            for (int valueIndex = 0; valueIndex < values.size(); valueIndex++) {
-                CompoundTag valueTag = values.getCompound(valueIndex);
-                this.addValue(
-                        attribute, AttributeModifier.Operation.fromValue(valueTag.getInt("operation")),
-                        new AttributeValue(valueTag.getDouble("value"), valueTag.getBoolean("temp"))
-                );
-            }
-        }
+            });
+        });
     }
 
     @Override
@@ -201,12 +162,11 @@ public class AttachmentAttribute implements IAttachment {
     public static void accept(Player player, Attribute attribute, AttributeModifier.Operation operation, AttributeValue value) {
         AttributeInstance instance = Objects.requireNonNull(player.getAttribute(attribute), String.format("not found attribute: %s", attribute));
         AttributeState.Id id = AttributeState.id(attribute, operation, value.temp);
+        instance.removeModifier(id.uid);
         if (value.temp) {
-            instance.removeModifier(id.uid);
             instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, value.value, operation));
         }else {
             double v = AttributeState.get(player.getServer()).add(player.getStringUUID(), attribute, operation, value.value);
-            instance.removeModifier(id.uid);
             instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, v, operation));
         }
     }
@@ -239,39 +199,35 @@ public class AttachmentAttribute implements IAttachment {
         }
     }
 
+    @Override
+    public List<Component> getHoverMessage() {
+        List<Component> tooltips = new ArrayList<>();
+        for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> attributeEntry : this.attributeMap.entrySet()) {
+            for (Map.Entry<AttributeModifier.Operation, List<AttributeValue>> operationEntry : attributeEntry.getValue().entrySet()) {
+                for (AttributeValue value : operationEntry.getValue()) {
+                    tooltips.add(
+                            Component.translatable(attributeEntry.getKey().getDescriptionId())
+                                    .append(CommonComponents.SPACE)
+                                    .append(getMethod(operationEntry.getKey(), value.value))
+                                    .append(value.temp ? Component.translatable("info.inbox.healths.temp") : CommonComponents.EMPTY)
+                    );
+                }
+            }
+        }
+        return tooltips;
+    }
+
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void render(AttachmentEvent.Render event) {
-        if (!this.isEmpty()) {
-            event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
+    public void drawIcon(AttachmentEvent.Render event, int x) {
+        event.graphics.setColor(1.0F, 1.0F, 1.0F, 1);
+        event.graphics.blit(x, event.getY(), 0, 16, 16, AttachmentMaxHealth.Icon.getLuckIcon());
+        event.graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
 
-            int x = event.x + event.font.width(event.renderSaveTo("info.inbox.attribute")) + 2;
-            event.graphics.setColor(1.0F, 1.0F, 1.0F, 1);
-            event.graphics.blit(x, event.getY(), 0, 16, 16, AttachmentMaxHealth.Icon.getLuckIcon());
-            event.graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-            if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, x, event.getY(), 16, 16)) {
-                event.disableScissor();
-
-                List<Component> tooltips = new ArrayList<>();
-                for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> attributeEntry : this.attributeMap.entrySet()) {
-                    for (Map.Entry<AttributeModifier.Operation, List<AttributeValue>> operationEntry : attributeEntry.getValue().entrySet()) {
-                        for (AttributeValue value : operationEntry.getValue()) {
-                            tooltips.add(
-                                    Component.translatable(attributeEntry.getKey().getDescriptionId())
-                                            .append(CommonComponents.SPACE)
-                                            .append(getMethod(operationEntry.getKey(), value.value))
-                                            .append(value.temp ? Component.translatable("info.inbox.healths.temp") : CommonComponents.EMPTY)
-                            );
-                        }
-                    }
-                }
-                event.graphics.renderComponentTooltip(event.font, tooltips, event.mouseX, event.mouseY);
-
-                event.enableScissor();
-            }
-            event.addY(event.font.lineHeight + 2);
-        }
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("info.inbox.attribute");
     }
 
     public static String getMethod(AttributeModifier.Operation operation, double value) {
@@ -300,10 +256,13 @@ public class AttachmentAttribute implements IAttachment {
     public static class AttributeValue {
         public double value;
         /**
-         * 如果此附件是一次性的, 则为true (true if the max health is disposable)
+         * 如果此附件是一次性的, 则为true (true if the attribute on next respawn remove)
          */
         public boolean temp;
 
+        /**
+         * @param temp 如果此附件是一次性的, 则为true (true if the attribute on next respawn remove)
+         */
         public AttributeValue(double value, boolean temp) {
             this.value = value;
             this.temp = temp;
@@ -311,7 +270,7 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     public static class AttributeState extends SavedData {
-        public static final String PATH = EmailMain.MODID + "_attribute";
+        public static final String PATH = EmailMain.MODID + "/attribute";
 
         public final HashMap<String, HashMap<Attribute, EnumMap<AttributeModifier.Operation, Double>>> map;
         public AttributeState() {
@@ -390,6 +349,12 @@ public class AttachmentAttribute implements IAttachment {
             return nbt;
         }
 
+        @Override
+        public void save(File pFile) {
+            pFile.getParentFile().mkdirs();
+            super.save(pFile);
+        }
+
         public static AttributeState fromNbt(CompoundTag nbt) {
             AttributeState state = new AttributeState();
             for (String s : nbt.getAllKeys()) {
@@ -397,7 +362,7 @@ public class AttachmentAttribute implements IAttachment {
                 for (int i = 0; i < list.size(); i++) {
                     CompoundTag tag = list.getCompound(i);
                     state.add(s,
-                            ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.tryParse(tag.getString("attribute"))),
+                            ForgeRegistries.ATTRIBUTES.getValue(Utils.location(tag.getString("attribute"))),
                             AttributeModifier.Operation.fromValue(tag.getInt("operation")),
                             tag.getDouble("value")
                     );
@@ -408,6 +373,16 @@ public class AttachmentAttribute implements IAttachment {
 
         public static AttributeState get(MinecraftServer server) {
             DimensionDataStorage manager = Objects.requireNonNull(server, "not found server").overworld().getDataStorage();
+
+            String oldPath = EmailMain.MODID + "_attribute";
+            File oldFile = new File(manager.dataFolder, oldPath + ".dat");
+            if (oldFile.exists()) {
+                AttributeState state = manager.computeIfAbsent(AttributeState::fromNbt, AttributeState::new, oldPath);
+                manager.cache.remove(oldPath);
+                manager.cache.put(PATH, state);
+                oldFile.delete();
+                return state;
+            }
             return manager.computeIfAbsent(AttributeState::fromNbt, AttributeState::new, PATH);
         }
         public static Id id(Attribute attribute, AttributeModifier.Operation operation, boolean temp) {

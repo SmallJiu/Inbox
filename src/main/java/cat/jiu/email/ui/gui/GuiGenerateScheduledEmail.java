@@ -55,7 +55,7 @@ public class GuiGenerateScheduledEmail extends Screen {
     public GuiGenerateScheduledEmail(Runnable parent) {
         super(Component.nullToEmpty(null));
         this.parent = parent;
-        EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
+        EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class GuiGenerateScheduledEmail extends Screen {
 //                            this.loadImage.visible = true;
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
-                            EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
+                            EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
                         }, ()-> {
                             this.refreshBtn.visible = true;
 //                            this.loadImage.visible = false;
@@ -571,7 +571,7 @@ public class GuiGenerateScheduledEmail extends Screen {
                     email.addCustomAddressee(name);
                 }
             }
-            EmailMain.net.sendMessageToServer(new MsgScheduledEmail.Add(email));
+            EmailMain.NETWORK.sendMessageToServer(new MsgScheduledEmail.Add(email));
 
             this.parent.run();
         }

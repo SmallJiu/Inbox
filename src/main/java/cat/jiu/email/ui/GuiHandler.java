@@ -5,9 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import cat.jiu.core.util.client.Overlay;
+import cat.jiu.core.util.client.config.entry.EnumEntry;
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.configs.EmailConfigClient;
+import cat.jiu.email.element.attachment.AttachmentUndying;
 import cat.jiu.email.ui.gui.*;
 import cat.jiu.email.ui.gui.component.AttachmentInboxIcon;
+import cat.jiu.email.util.RenderCorner;
 import com.google.common.collect.Lists;
 
 import cat.jiu.email.element.Cooling;
@@ -34,14 +39,13 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.network.IContainerFactory;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
-@Mod.EventBusSubscriber(Dist.CLIENT)
 public class GuiHandler {
 	public static final DeferredRegister<MenuType<?>> MENU_TYPE_REGISTER = DeferredRegister.create(ForgeRegistries.MENU_TYPES, EmailMain.MODID);
 	private static final Map<Integer, GuiConsumer<?>> GUIS = new HashMap<>();
@@ -67,6 +71,8 @@ public class GuiHandler {
 		ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class, ()->new ConfigScreenHandler.ConfigScreenFactory((mc, parent)->
 				new cat.jiu.core.util.client.config.GuiConfig(parent, EmailMain.MODID)
 		));
+		Overlay.register(AttachmentUndying.UndyingCountOverlay.INSTANCE);
+		EnumEntry.registerNameGetter(RenderCorner.class, RenderCorner::getName);
 
 		if (ModList.get().isLoaded("attributeslib")) {
 			AttachmentInboxIcon.getIconType();
@@ -131,7 +137,7 @@ public class GuiHandler {
 		}else if (ID == EMAIL_Scheduled) {
 			Minecraft.getInstance().setScreen(new GuiScheduledEmail());
 		}else {
-			EmailMain.net.sendMessageToServer(new MsgOpenGui(ID));
+			EmailMain.NETWORK.sendMessageToServer(new MsgOpenGui(ID));
 		}
 	}
 

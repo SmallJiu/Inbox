@@ -8,17 +8,16 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import cat.jiu.core.api.IData;
+import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.util.SideProxy;
-import cat.jiu.email.util.JsonParser;
+import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.element.data.NBTData;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.*;
 
-import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLValues;
@@ -26,7 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.*;
 import net.minecraft.world.entity.player.Player;
 
-public final class Inbox implements ISerializable {
+public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	private static final HashMap<String, Inbox> inboxCache = Maps.newHashMap();
 	
 	/** all custom value will serialize to string */
@@ -120,7 +119,7 @@ public final class Inbox implements ISerializable {
 	 * @return inbox serialize size, for send network pack
 	 */
 	public long getInboxSize() {
-		CompoundTag nbt = this.writeTo(CompoundTag.class);
+		CompoundTag nbt = (CompoundTag) this.write(NBTData.map()).getData();
 		
 		nbt.remove("historySize");
 		nbt.remove("blacklist");
@@ -316,7 +315,7 @@ public final class Inbox implements ISerializable {
 		this.customValue.clear();
 		this.senderBlacklist.clear();
 		this.dev = false;
-		this.readFrom(json);
+		this.read(JsonData.map(json));
 		return this;
 	}
 	private Inbox readFromDisk(CompoundTag nbt) {
@@ -324,179 +323,90 @@ public final class Inbox implements ISerializable {
 		this.customValue.clear();
 		this.senderBlacklist.clear();
 		this.dev = false;
-		this.readFrom(nbt);
+		this.read(NBTData.map(nbt));
 		return this;
 	}
 	
 	// Serialize start
+
 	@Override
-	public JsonObject write(JsonObject json) {
-		if(json==null) json = new JsonObject();
-		if(this.dev) json.addProperty("dev", true);
-		json.addProperty("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
-		
-		if(!this.senderBlacklist.isEmpty()) {
-			JsonArray list = new JsonArray();
-			this.senderBlacklist.forEach(list::add);
-			json.add("blacklist", list);
-		}
+	public IData.IMapData<?> write(IData.IMapData<?> data) {
+		if(this.dev) data.putData("dev", true);
+
+		data.putData("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
+
 		if(!this.isEmptyInbox()) {
-			JsonObject emails = new JsonObject();
-			for(Entry<Long, Email> email : this.emails.entrySet()) {
-				emails.add(String.valueOf(email.getKey()), email.getValue().write(new JsonObject()));
+			IData.IMapData<?> emails = data.newMap();
+			for (long id : this.getEmailIDs()) {
+				emails.putData(String.valueOf(id), this.getEmail(id).write(data.newMap()));
 			}
-			json.add("emails", emails);
+			data.putData("emails", emails);
 		}
+
 		if(!this.isEmptyCustomValues()) {
-			JsonObject customObj = new JsonObject();
+			IData.IMapData<?> customTag = data.newMap();
 			for(Entry<String, Object> custom : this.customValue.entrySet()) {
 				Object value = custom.getValue();
 				if(value instanceof Integer) {
-					customObj.addProperty(custom.getKey(), (Integer)value);
+					customTag.putData(custom.getKey(), (Integer) value);
 				}else if(value instanceof Boolean) {
-					customObj.addProperty(custom.getKey(), (Boolean)value);
+					customTag.putData(custom.getKey(), (Boolean) value);
 				}else {
-					customObj.addProperty(custom.getKey(), String.valueOf(value));
+					customTag.putData(custom.getKey(), String.valueOf(value));
 				}
 			}
-			json.add("custom", customObj);
+			data.putData("custom", customTag);
 		}
-		return json;
+
+		if(!this.senderBlacklist.isEmpty()) {
+			IData.IListData<?> list = data.newList();
+			list.putData(this.senderBlacklist.toArray(new String[0]));
+			data.putData("blacklist", list);
+		}
+		return data;
 	}
 
 	private static final List<String> old_version_black_key = Arrays.asList("dev", "custom", "historySize", "blacklist");
-
 	@Override
-	public void read(JsonObject json) {
-//		EmailMain.log.error(String.valueOf(json));
-		if(json!=null && json.size()>0) {
-			if(json.has("dev")) this.dev = json.get("dev").getAsBoolean();
-			
-			if(json.has("custom")) {
-				for(Entry<String, JsonElement> custom : json.getAsJsonObject("custom").entrySet()) {
-					JsonElement value = custom.getValue();
-					if(value.isJsonPrimitive()) {
-						JsonPrimitive primitive = value.getAsJsonPrimitive();
-						if(primitive.isBoolean()) {
-							this.customValue.put(custom.getKey(), primitive.getAsBoolean());
-						}else if(primitive.isNumber()) {
-							this.customValue.put(custom.getKey(), primitive.getAsNumber());
-						}else {
-							this.customValue.put(custom.getKey(), primitive.getAsString());
+	public void read(IData.IMapData<?> data) {
+		if(data!=null && !data.isEmpty()) {
+			if(data.containsKey("dev")) this.dev = data.getBoolean("dev");
+
+			if(data.containsKey("custom")) {
+				data.getMap("custom").foreach((key, value) -> {
+					IData.IPrimitiveData<?> primitive = data.getAsPrimitive();
+					if(primitive.isNumber()) {
+						Number number = primitive.getAsNumber();
+						if (number instanceof Byte) {
+							if (primitive.getAsByte() == 1 || primitive.getAsByte() == 0) {
+								this.customValue.put(key, primitive.getAsByte()==1);
+							}else {
+								this.customValue.put(key, primitive.getAsByte());
+							}
+						}else if (number instanceof Integer) {
+							this.customValue.put(key, primitive.getAsInt());
 						}
-					}
-				}
-			}
-			if(json.has("blacklist")) {
-				json.getAsJsonArray("blacklist").forEach(e->{
-					String name = e.getAsString();
-					if(!this.isInSenderBlacklist(name)) {
-						this.addSenderBlacklist(name);
-					}
-				});
-			}
-			
-			if(json.has("emails")) {
-				JsonObject emails = json.getAsJsonObject("emails");
-				for(Entry<String, JsonElement> email : emails.entrySet()) {
-					this.emails.put(Long.valueOf(email.getKey()), new Email(email.getValue().getAsJsonObject()));
-				}
-			}else {// for old version
-				for(Entry<String, JsonElement> emails : json.entrySet()) {
-					if(!old_version_black_key.contains(emails.getKey())) {
-						this.emails.put(Long.valueOf(emails.getKey()), new Email(emails.getValue().getAsJsonObject()));
-					}
-				}
-			}
-			
-			this.emailHistoryCount = this.emails.size();
-			if(json.has("historySize")) {
-				long historySize = json.get("historySize").getAsLong();
-				if(historySize > this.emails.size()) {
-					this.emailHistoryCount = historySize;
-				}
-			}
-			
-			long emailMaxID = 0;
-			for(Entry<Long, Email> id : this.emails.entrySet()) {
-				emailMaxID = Math.max(emailMaxID, id.getKey());
-			}
-			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
-		}
-	}
-
-	@Override
-	public CompoundTag write(CompoundTag nbt) {
-		if(nbt==null) nbt = new CompoundTag();
-		
-		if(this.dev) nbt.putBoolean("dev", true);
-		
-		nbt.putLong("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
-		
-		if(!this.isEmptyInbox()) {
-			CompoundTag emails = new CompoundTag();
-			for(Entry<Long, Email> email : this.emails.entrySet()) {
-				emails.put(String.valueOf(email.getKey()), email.getValue().writeTo(CompoundTag.class));
-			}
-			nbt.put("emails", emails);
-		}
-		
-		if(!this.isEmptyCustomValues()) {
-			CompoundTag customTag = new CompoundTag();
-			for(Entry<String, Object> custom : this.customValue.entrySet()) {
-				Object value = custom.getValue();
-				if(value instanceof Integer) {
-					customTag.putInt(custom.getKey(), (Integer) value);
-				}else if(value instanceof Boolean) {
-					customTag.putBoolean(custom.getKey(), (Boolean) value);
-				}else {
-					customTag.putString(custom.getKey(), String.valueOf(value));
-				}
-			}
-			nbt.put("custom", customTag);
-		}
-		
-		if(!this.senderBlacklist.isEmpty()) {
-			ListTag list = new ListTag();
-			this.senderBlacklist.forEach(s->
-					list.add(StringTag.valueOf(s)));
-			nbt.put("blacklist", list);
-		}
-		
-		return nbt;
-	}
-
-	@Override
-	public void read(CompoundTag nbt) {
-		if(nbt!=null && !nbt.isEmpty()) {
-			if(nbt.contains("dev")) this.dev = nbt.getBoolean("dev");
-			
-			if(nbt.contains("custom")) {
-				CompoundTag customTag = nbt.getCompound("custom");
-				for(String custom : customTag.getAllKeys()) {
-					Tag customValue = customTag.get(custom);
-					if(customValue instanceof ByteTag) {
-						this.customValue.put(custom, ((ByteTag)customValue).getAsByte()==1);
-					}else if(customValue instanceof IntTag) {
-						this.customValue.put(custom, ((IntTag)customValue).getAsInt());
 					}else {
-						this.customValue.put(custom, customValue.toString());
+						this.customValue.put(key, primitive.getAsString());
 					}
-				}
+				});
 			}
-			
-			if(nbt.contains("emails")) {
-				CompoundTag emailTag = nbt.getCompound("emails");
-				if(!emailTag.isEmpty()) {
-					for(String emailKey : emailTag.getAllKeys()) {
-						this.emails.put(Long.valueOf(emailKey), new Email(emailTag.getCompound(emailKey)));
+
+			if(data.containsKey("emails")) {
+				data.getMap("emails").foreach(((key, value) ->
+					this.emails.put(Long.valueOf(key), new Email(value.getAsMap()))
+				));
+			}else {// for old version
+				data.foreach((key, value) -> {
+					if(!old_version_black_key.contains(key)) {
+						this.emails.put(Long.valueOf(key), new Email(value.getAsMap()));
 					}
-				}
+				});
 			}
-			
+
 			this.emailHistoryCount = this.emails.size();
-			if(nbt.contains("historySize")) {
-				long historySize = nbt.getLong("historySize");
+			if(data.containsKey("historySize")) {
+				long historySize = data.getLong("historySize");
 				if(historySize > this.emails.size()) {
 					this.emailHistoryCount = historySize;
 				}
@@ -506,10 +416,10 @@ public final class Inbox implements ISerializable {
 				emailMaxID = Math.max(emailMaxID, id.getKey());
 			}
 			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
-			
-			if(nbt.contains("blacklist")) {
-				nbt.getList("blacklist", 8).forEach(s->{
-					String name = s.getAsString();
+
+			if(data.containsKey("blacklist")) {
+				data.getList("blacklist", String.class).foreach((index, value)->{
+					String name = value.getAsPrimitive().getAsString();
 					if(!this.isInSenderBlacklist(name)) {
 						this.addSenderBlacklist(name);
 					}
@@ -517,19 +427,35 @@ public final class Inbox implements ISerializable {
 			}
 		}
 	}
-	
-	@Override
+
+	public JsonObject write(JsonObject json) {
+		this.write(JsonData.map(json));
+		return json;
+	}
+
+	public void read(JsonObject json) {
+		this.read(JsonData.map(json));
+	}
+
+	public CompoundTag write(CompoundTag data) {
+		this.write(NBTData.map(data));
+		return data;
+	}
+
+	public void read(CompoundTag data) {
+		this.read(NBTData.map(data));
+	}
+
 	public SQLValues write(SQLValues value) {
 		if(value==null) value = new SQLValues();
 		value.put("uuid", "'" + this.getOwner() + "'");
 		value.put("inbox", "'" + this.write(new JsonObject()) + "'");
 		return value;
 	}
-	
-	@Override
+
 	public void read(ResultSet result) throws SQLException {
 		if(result.next()) {
-			this.read(JsonParser.parser.parse(result.getString("inbox")).getAsJsonObject());
+			this.read(JsonParser.parseString(result.getString("inbox")).getAsJsonObject());
 		}
 	}
 	

@@ -1,23 +1,18 @@
 package cat.jiu.email.element.attachment;
 
-import cat.jiu.core.api.serializable.IJsonSerializable;
-import cat.jiu.core.api.serializable.INBTSerializable;
-import cat.jiu.core.util.JsonUtils;
-import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.api.IData;
+import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.util.Utils;
+import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.api.ParameterFunction;
-import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.EmailUtils;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -27,7 +22,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.common.Mod;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,11 +49,14 @@ public class AttachmentCommand implements IAttachment {
     public AttachmentCommand() {}
 
     public AttachmentCommand(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
 
     public AttachmentCommand(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentCommand(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public AttachmentCommand addCommand(String cmd) {
@@ -130,52 +127,31 @@ public class AttachmentCommand implements IAttachment {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
         if (!this.isEmpty()){
-            JsonArray array = new JsonArray();
+            IData.IListData<?> array = data.newList();
             for (Cmd cmd : this.commands) {
-                array.add(cmd.write(new JsonObject()));
+                array.putData(cmd.write(data.newMap()));
             }
-            json.add("commands", array);
+            data.putData("commands", array);
         }
-        return json;
+        return data;
     }
 
     @Override
-    public void read(JsonObject json) {
-        boolean allServerCmd = JsonUtils.get(json, "serverCmd", false);
-        if (json.has("commands")) {
-            for (JsonElement element : json.getAsJsonArray("commands")) {
-                if (element.isJsonObject()) {
-                    JsonObject object = element.getAsJsonObject();
-                    this.addCommand(object.get("cmd").getAsString(),
-                            JsonUtils.get(object, "serverCmd", false) || allServerCmd,
-                            JsonUtils.get(object, "hide", false));
-                }else if (element.isJsonPrimitive()) {
-                    this.addCommand(element.getAsString(), allServerCmd);
+    public void read(IData.IMapData<?> data) {
+        boolean allServerCmd = data.getBoolean("serverCmd", false);
+        if (data.containsKey("commands")) {
+            data.getList("commands", IData.IMapData.class).foreach((index, value)->{
+                if (value.isMap()) {
+                    IData.IMapData<?> object = value.getAsMap();
+                    this.addCommand(object.getString("cmd"),
+                            object.getBoolean("serverCmd", false) || allServerCmd,
+                            object.getBoolean("hide", false));
+                }else if (value.isPrimitive()) {
+                    this.addCommand(value.getAsPrimitive().getAsString(), allServerCmd);
                 }
-            }
-        }
-    }
-
-    @Override
-    public CompoundTag write(CompoundTag nbt) {
-        if (!this.isEmpty()){
-            ListTag array = new ListTag();
-            for (Cmd cmd : this.commands) {
-                array.add(cmd.write(new CompoundTag()));
-            }
-            nbt.put("commands", array);
-        }
-        return nbt;
-    }
-
-    @Override
-    public void read(CompoundTag nbt) {
-        if (nbt.contains("commands")) {
-            for (Tag tag : nbt.getList("commands", 10)) {
-                this.addCommand(Cmd.create((CompoundTag) tag));
-            }
+            });
         }
     }
 
@@ -199,64 +175,54 @@ public class AttachmentCommand implements IAttachment {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void render(AttachmentEvent.Render event) {
-        if (!this.isEmpty()) {
-
-            event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
-
-            int cmd_x = event.x + event.font.width(event.renderSaveTo("info.inbox.commands")) + 2;
-            event.graphics.renderFakeItem(COMMAND_BLOCK, cmd_x, event.getY());
-            if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, cmd_x, event.getY(), 16, 16)) {
-                event.disableScissor();
-
-                List<Component> cmdTooltip = new ArrayList<>();
-                int hideCount = 0;
+    public List<Component> getHoverMessage() {
+        List<Component> cmdTooltip = new ArrayList<>();
+        int hideCount = 0;
+        for (Cmd cmd : this.getCommands()) {
+            if (cmd.isHideInTooltip()) {
+                hideCount++;
+                continue;
+            }
+            String c = cmd.cmd();
+            for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
+                c = entry.getValue().parser(entry.getKey(), c, Minecraft.getInstance().player);
+            }
+            cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.RED : ChatFormatting.GREEN) + c));
+        }
+        if (hideCount > 0) {
+            cmdTooltip.add(Component.translatable("info.inbox.command_save_to_email.hide", hideCount));
+            if (EmailUtils.isOP(Minecraft.getInstance().player)) {
                 for (Cmd cmd : this.getCommands()) {
                     if (cmd.isHideInTooltip()) {
-                        hideCount++;
-                        continue;
-                    }
-                    String c = cmd.cmd();
-                    for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
-                        c = entry.getValue().parser(entry.getKey(), c, Minecraft.getInstance().player);
-                    }
-                    cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.RED : ChatFormatting.GREEN) + c));
-                }
-                if (hideCount > 0) {
-                    cmdTooltip.add(Component.translatable("info.inbox.command_save_to_email.hide", hideCount));
-                    if (EmailUtils.isOP(Minecraft.getInstance().player)) {
-                        for (Cmd cmd : this.getCommands()) {
-                            if (cmd.isHideInTooltip()) {
-                                String c = cmd.cmd();
-                                for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
-                                    c = entry.getValue().parser(entry.getKey(), c, Minecraft.getInstance().player);
-                                }
-                                cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.DARK_RED : ChatFormatting.DARK_GREEN) + c));
-                            }
+                        String c = cmd.cmd();
+                        for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
+                            c = entry.getValue().parser(entry.getKey(), c, Minecraft.getInstance().player);
                         }
+                        cmdTooltip.add(Component.literal((cmd.performer().isServer() ? ChatFormatting.DARK_RED : ChatFormatting.DARK_GREEN) + c));
                     }
                 }
-                event.graphics.renderComponentTooltip(event.font, cmdTooltip, event.mouseX, event.mouseY);
-
-                event.enableScissor();
             }
-            event.addY(event.font.lineHeight + 2);
         }
+        return cmdTooltip;
     }
 
-    @OnlyIn(Dist.CLIENT)
     @Override
-    public void getHeight(AttachmentEvent.GetHeight event) {
-        if (!this.isEmpty()) {
-            event.addHeight(16);
-        }
+    public Component getDisplayName() {
+        return Component.translatable("info.inbox.commands");
     }
 
-    public static class Cmd implements IJsonSerializable, INBTSerializable {
+    @Override
+    public ItemStack getDisplayStack() {
+        return COMMAND_BLOCK;
+    }
+
+    public static class Cmd implements IDataSerializable<IData.IMapData<?>> {
         protected String cmd;
         protected Performer performer;
         protected boolean hideInTooltip = false;
 
+        public Cmd() {
+        }
         public Cmd(String cmd, boolean isServer) {
             this(cmd, Performer.get(isServer));
         }
@@ -293,42 +259,32 @@ public class AttachmentCommand implements IAttachment {
         }
 
         @Override
-        public JsonObject write(JsonObject data) {
-            data.addProperty("cmd", this.cmd());
-            data.addProperty("serverCmd", this.performer().isServer());
-            data.addProperty("hide", this.isHideInTooltip());
+        public IData.IMapData<?> write(IData.IMapData<?> data) {
+            data.putData("cmd", this.cmd());
+            data.putData("serverCmd", this.performer().isServer());
+            data.putData("hide", this.isHideInTooltip());
             return data;
         }
 
         @Override
-        public void read(JsonObject data) {
-            this.setCommand(JsonUtils.get(data, "cmd", ""));
-            this.setPerformer(Performer.get(JsonUtils.get(data, "serverCmd", false)));
-            this.setHideInTooltip(JsonUtils.get(data, "hide", false));
-        }
-
-        @Override
-        public CompoundTag write(CompoundTag data) {
-            data.putString("cmd", this.cmd());
-            data.putBoolean("serverCmd", this.performer().isServer());
-            data.putBoolean("hide", this.isHideInTooltip());
-            return data;
-        }
-
-        @Override
-        public void read(CompoundTag data) {
-            this.setCommand(NBTUtils.get(data, "cmd", ""));
-            this.setPerformer(Performer.get(NBTUtils.get(data, "serverCmd", false)));
-            this.setHideInTooltip(NBTUtils.get(data, "hide", false));
+        public void read(IData.IMapData<?> data) {
+            this.setCommand(data.getString("cmd", ""));
+            this.setPerformer(Performer.get(data.getBoolean("serverCmd", false)));
+            this.setHideInTooltip(data.getBoolean("hide", false));
         }
 
         public static Cmd create(CompoundTag data) {
-            Cmd instance = new Cmd("", false);
-            instance.read(data);
+            Cmd instance = new Cmd();
+            instance.read(NBTData.map(data));
             return instance;
         }
         public static Cmd create(JsonObject data) {
-            Cmd instance = new Cmd("", false);
+            Cmd instance = new Cmd();
+            instance.read(JsonData.map(data));
+            return instance;
+        }
+        public static Cmd create(IData.IMapData<?> data) {
+            Cmd instance = new Cmd();
             instance.read(data);
             return instance;
         }

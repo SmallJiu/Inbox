@@ -6,6 +6,7 @@ import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.client.Minecraft;
@@ -41,7 +42,7 @@ public class MsgSendPlayerMessage extends BaseMessage {
 		CompoundTag nbt = new CompoundTag();
 		
 		if(this.color!=null) nbt.putString("color", this.color.name());
-		nbt.put("text", this.text.writeTo(CompoundTag.class));
+		nbt.put("text", (CompoundTag) this.text.write(NBTData.map()).getData());
 
 		buf.writeNbt(nbt);
 	}

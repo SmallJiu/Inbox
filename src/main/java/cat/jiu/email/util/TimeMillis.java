@@ -3,7 +3,7 @@ package cat.jiu.email.util;
 public class TimeMillis {
 	public final long millis;
 	public TimeMillis(long millis) {
-		this.millis = EmailUtils.parseMillis(0,0,0,0,millis);
+		this.millis = millis;
 	}
 	public TimeMillis(long s, long millis) {
 		this.millis = EmailUtils.parseMillis(0,0,0,s,millis);

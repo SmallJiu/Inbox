@@ -1,5 +1,6 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.api.IData;
 import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
@@ -13,7 +14,6 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -21,7 +21,8 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.awt.*;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 public class AttachmentMaxHealth implements IAttachment {
     public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/health");
@@ -40,11 +41,14 @@ public class AttachmentMaxHealth implements IAttachment {
     }
 
     public AttachmentMaxHealth(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
 
     public AttachmentMaxHealth(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentMaxHealth(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public boolean isTempHealth() {
@@ -82,29 +86,16 @@ public class AttachmentMaxHealth implements IAttachment {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
-        json.addProperty("health", this.getHealth());
-        json.addProperty("temp", this.isTempHealth());
-        return json;
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
+        data.putData("health", this.getHealth());
+        data.putData("temp", this.isTempHealth());
+        return data;
     }
 
     @Override
-    public void read(JsonObject json) {
-        this.setHealth(json.has("health") ? json.get("health").getAsInt() : 0);
-        this.setTempHealth(json.has("temp") ? json.get("temp").getAsBoolean() : true);
-    }
-
-    @Override
-    public CompoundTag write(CompoundTag nbt) {
-        nbt.putInt("health", this.getHealth());
-        nbt.putBoolean("temp", this.isTempHealth());
-        return nbt;
-    }
-
-    @Override
-    public void read(CompoundTag nbt) {
-        this.setHealth(nbt.getInt("health"));
-        this.setTempHealth(nbt.contains("temp") ? nbt.getBoolean("temp") : true);
+    public void read(IData.IMapData<?> data) {
+        this.setHealth(data.getInt("health"));
+        this.setTempHealth(data.getBoolean("temp", true));
     }
 
     @Override
@@ -132,76 +123,34 @@ public class AttachmentMaxHealth implements IAttachment {
     @Override
     public void accept(Player player) {
         if (!player.level().isClientSide()) {
-            AttributeInstance instance = Objects.requireNonNull(player.getAttribute(Attributes.MAX_HEALTH), "not found max health attribute");
-            AttachmentAttribute.AttributeState.Id id = AttachmentAttribute.AttributeState.id(Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, this.isTempHealth());
-
-            double value = this.isTempHealth() ? this.getHealth() : AttachmentAttribute.AttributeState.get(player.getServer()).add(player.getStringUUID(), Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, this.getHealth());
-            instance.removeModifier(id.uid);
-            instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, value, AttributeModifier.Operation.ADDITION));
-//            if (this.isTempHealth()) {
-//                instance.removeModifier(Health_Modifier_UUID_TEMP);
-//                instance.addPermanentModifier(new AttributeModifier(Health_Modifier_UUID_TEMP, ID.toString(), this.getHealth(), AttributeModifier.Operation.ADDITION));
-//            }else {
-//                double v = AttachmentAttribute.AttributeState.get(player.getServer()).add(player.getStringUUID(), Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, this.getHealth());
-//                instance.removeModifier(Health_Modifier_UUID);
-//                instance.addPermanentModifier(new AttributeModifier(Health_Modifier_UUID, ID.toString(), v, AttributeModifier.Operation.ADDITION));
-//            }
-        }
-    }
-
-//    public static void loadHealth(Player player) {
-//        double health = AttachmentAttribute.AttributeState.get(player.getServer()).get(player.getStringUUID(), Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION);
-//        if (health > 0) {
 //            AttributeInstance instance = Objects.requireNonNull(player.getAttribute(Attributes.MAX_HEALTH), "not found max health attribute");
-//            instance.removeModifier(Health_Modifier_UUID);
-//            instance.addPermanentModifier(new AttributeModifier(Health_Modifier_UUID, ID.toString(), health, AttributeModifier.Operation.ADDITION));
-//        }
-//    }
-//
-//    @SubscribeEvent
-//    public static void onPlayerClone(PlayerEvent.Clone event){
-//        if (!event.getEntity().level().isClientSide() && !event.isWasDeath()) {
-//            loadHealth(event.getEntity());
-//        }
-//    }
-//    @SubscribeEvent
-//    public static void onPlayerJoinWorld(EntityJoinLevelEvent event){
-//        if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof Player) {
-//            loadHealth((Player) event.getEntity());
-//        }
-//    }
+//            AttachmentAttribute.AttributeState.Id id = AttachmentAttribute.AttributeState.id(Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, this.isTempHealth());
+//            double value = this.isTempHealth() ? this.getHealth() : AttachmentAttribute.AttributeState.get(player.getServer()).add(player.getStringUUID(), Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, this.getHealth());
+//            instance.removeModifier(id.uid);
+//            instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, value, AttributeModifier.Operation.ADDITION));
 
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void render(AttachmentEvent.Render event) {
-        if (!this.isEmpty()) {
-            event.graphics.drawString(event.font, Component.nullToEmpty(null), event.x, event.getY(), Color.WHITE.getRGB());
-
-            int x = event.x + event.font.width(event.renderSaveTo("info.inbox.healths")) + 2;
-
-            event.graphics.setColor(1.0F, 1.0F, 1.0F, 1);
-            event.graphics.blit(x-4, event.getY()-4, 0, 24, 24, Icon.getHealthIcon());
-            event.graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-            if (event.canSee() && EmailUtils.isInRange(event.mouseX, event.mouseY, x, event.getY(), 16, 16)) {
-                event.disableScissor();
-
-                event.graphics.renderTooltip(event.font,
-                        Component.translatable("info.inbox.healths").append(": " + this.getHealth()).append(this.isTempHealth() ? Component.translatable("info.inbox.healths.temp") : CommonComponents.EMPTY)
-                , event.mouseX, event.mouseY);
-
-                event.enableScissor();
-            }
-            event.addY(event.font.lineHeight + 2);
+            AttachmentAttribute.accept(player, Attributes.MAX_HEALTH, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(this.getHealth(), this.isTempHealth()));
         }
+    }
+
+    @Override
+    public List<Component> getHoverMessage() {
+        return Collections.singletonList(
+                Component.translatable("info.inbox.healths").append(": " + this.getHealth()).append(this.isTempHealth() ? Component.translatable("info.inbox.healths.temp") : CommonComponents.EMPTY)
+        );
     }
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void getHeight(AttachmentEvent.GetHeight event) {
-        if (!this.isEmpty()) {
-            event.addHeight(16);
-        }
+    public void drawIcon(AttachmentEvent.Render event, int x) {
+        event.graphics.setColor(1.0F, 1.0F, 1.0F, 1);
+        event.graphics.blit(x-4, event.getY()-4, 0, 24, 24, Icon.getHealthIcon());
+        event.graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable("info.inbox.healths");
     }
 
     @OnlyIn(Dist.CLIENT)

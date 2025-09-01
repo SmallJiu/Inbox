@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.function.BiConsumer;
 
 public class AttachmentInboxIcon extends ModifierSource<ItemStack> {
+    static final String prefix = AttachmentAttribute.ID.toString();
     static ModifierSourceType<ItemStack> TYPE = null;
 
     public static ModifierSourceType<ItemStack> getIconType() {
@@ -22,7 +23,6 @@ public class AttachmentInboxIcon extends ModifierSource<ItemStack> {
             TYPE = ModifierSourceType.register(new ModifierSourceType<ItemStack>() {
                 @Override
                 public void extract(LivingEntity entity, BiConsumer<AttributeModifier, ModifierSource<?>> consumer) {
-                    String prefix = AttachmentAttribute.ID.toString();
                     for (AttributeInstance value : entity.getAttributes().attributes.values()) {
                         for (AttributeModifier modifier : value.getModifiers()) {
                             String name = modifier.getName();

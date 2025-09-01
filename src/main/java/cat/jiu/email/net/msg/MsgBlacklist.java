@@ -69,7 +69,7 @@ public abstract class MsgBlacklist extends BaseMessage {
 					Inbox inbox = Inbox.get(ctx.get().getSender());
 					inbox.removeSenderBlacklist(this.name);
 					inbox.saveToDisk();
-					EmailMain.net.sendMessageToPlayer(new MsgRefreshBlacklist(inbox.getSenderBlacklist()), ctx.get().getSender());
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgRefreshBlacklist(inbox.getSenderBlacklist()), ctx.get().getSender());
 					ctx.get().getSender().sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.GREEN, "info.inbox.black.remove.success", this.name));
 				});
 			}

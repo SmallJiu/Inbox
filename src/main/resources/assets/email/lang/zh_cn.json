@@ -14,12 +14,12 @@
   "info.inbox.error.to_big.0": "§7邮箱 或 邮件内的物品 或 邮件内的物品NBT 过大，请联系管理员删除.",
   "info.inbox.error.to_big.1": "§7邮件ID: §c%s§7, 槽位: §c%s§7, Size: §c%s §7/ §c2097152 §7Bytes",
 
-  #key
+  //key
   "info.inbox.key.accept": "领取邮件",
   "info.inbox.key.delete": "删除邮件",
   "info.inbox.key.dragging": "按钮拖拽",
 
-  #main
+  //main
   "info.inbox.dispatch": "发送邮件",
   "info.inbox.menu": "菜单",
   "info.inbox.un_read": "未读",
@@ -38,6 +38,7 @@
   "info.inbox.play_sound": "播放",
   "info.inbox.play_sound.stop": "停止",
   "info.inbox.refresh": "刷新邮箱",
+  "info.inbox.refresh.hard": "硬刷新邮箱",
   "info.inbox.refreshing": "刷新中...",
   "info.inbox.refresh.cooling": "冷却中...",
   "info.inbox.email_size": "邮件大小: %s Bytes",
@@ -90,13 +91,14 @@
   "info.inbox.healths": "生命",
   "info.inbox.healths.temp": " (临时的)",
   "info.inbox.attribute": "属性",
+  "info.inbox.undying": "不死之力",
 
-  #gen
+  //gen
   "info.inbox.generate": "生成邮件",
   "info.inbox.generate.sound": "音频",
   "info.inbox.generate.sound.use_mc_sound": "使用原版音频",
 
-  #send
+  //send
   "info.inbox.receiving": "邮箱",
   "info.inbox.addressee": "收件人",
   "info.inbox.title": "标题",
@@ -132,7 +134,7 @@
   "info.inbox.memorize_items.1": "此按钮可记录背包内所有物品到邮件.",
   "info.inbox.memorize_items.2": "按住Shift可清空物品.",
 
-  #blacklist
+  //blacklist
   "info.inbox.black.title": "邮件拒收名单",
   "info.inbox.black.info": "把不喜欢的玩家添加进邮件拒收名单",
   "info.inbox.black.add": "添加",
@@ -141,7 +143,7 @@
   "info.inbox.black.remove": "移除",
   "info.inbox.black.remove.success": "移除 %s 的拒收名单成功",
 
-  #scheduled
+  //scheduled
   "info.inbox.scheduled": "定时邮件",
   "info.inbox.scheduled.expiration_time": "过期时间: %s",
   "info.inbox.scheduled.last_time": "发放倒计时: %s",
@@ -157,13 +159,16 @@
   "info.inbox.scheduled.gen.addressee.1.info": "在线和不在线的玩家.",
   "info.inbox.scheduled.gen.addressee.2": "可选玩家",
   "info.inbox.scheduled.gen.addressee.2.info": "可选填的玩家",
-  "info.inbox.scheduled.gen.addressee.2.custom": "添加选填玩家名单, 使用 ',' 分割.",
+  "info.inbox.scheduled.gen.addressee.2.custom": "添加选填玩家名单, 使用 ' , ' 分割. 类似于 ' player1,player2,player3 '",
   "info.inbox.scheduled.gen.interval": "间隔: ",
   "info.inbox.scheduled.gen.interval.change": "修改",
   "info.inbox.scheduled.gen.interval.change.un": "未修改.",
   "info.inbox.scheduled.gen.note": "备注: ",
+  
+  // command
+  "inbox.command.undying.set": "你的不死之力已被 %2$s 设为 %1$s",
+  "inbox.command.undying.add": "你的不死之力已被 %2$s 增加 %1$s",
 
-  #command
   "inbox.command.send.event": "/email event_reload - 重载事件处理器",
   "inbox.command.send.cooling": "/email cooling_reload - 重载寄送邮件冷却时间",
 
@@ -207,7 +212,7 @@
   "inbox.command.send.no_permission.black": "你有服务器的邮寄黑名单, 请联系管理员删除",
   "inbox.command.send.no_permission.white": "你没有服务器的邮寄白名单, 请联系管理员添加",
 
-  #config
+  //config
   "inbox.config.time.tick": "刻",
   "inbox.config.time.millis": "毫秒",
   "inbox.config.time.second": "秒",
@@ -228,6 +233,9 @@
   "inbox.config.save_to_root_directory": "保存至根目录",
   "inbox.config.save_to_root_directory.0": "保存邮箱至根目录,",
   "inbox.config.save_to_root_directory.1": "否则保存到对应存档下.",
+
+  "inbox.config.file_charset": "存储编码",
+  "inbox.config.file_charset.0": "json文件的存储编码",
 
   "inbox.config.new_player_email": "启用新玩家默认邮件",
   "inbox.config.new_player_email.0": "启用新玩家的默认邮件",
@@ -271,6 +279,13 @@
   "inbox.config.layout.email_list_width": "邮件列表宽度",
   "inbox.config.layout.email_list_width.0": "候选邮件列表宽度",
   "inbox.config.layout.prompt": "未读提醒间隔",
+
+  "inbox.config.layout.corner": "不死次数渲染位置",
+  "inbox.config.layout.corner.0": "更改不死次数渲染的位置",
+  "inbox.config.layout.corner.upper_left": "左上角",
+  "inbox.config.layout.corner.upper_right": "右上角",
+  "inbox.config.layout.corner.lower_left": "左下角",
+  "inbox.config.layout.corner.lower_right": "右下角",
 
   "inbox.config.layout.pos": "组件位置",
   "inbox.config.layout.pos.inbox_btn": "邮箱相关按钮",

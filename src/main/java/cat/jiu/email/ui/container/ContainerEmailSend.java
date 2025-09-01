@@ -39,7 +39,7 @@ public class ContainerEmailSend extends AbstractContainerMenu {
 			if(Cooling.isCooling(mp.getName().getString())) {
 				long m = Cooling.getCoolingTimeMillis(mp.getName().getString());
 				cooling = m;
-				EmailMain.execute(()->EmailMain.net.sendMessageToPlayer(new MsgSendCooling(m), mp));
+				EmailMain.execute(()->EmailMain.NETWORK.sendMessageToPlayer(new MsgSendCooling(m), mp));
 			}
 		}
 		this.addDataSlot(DataSlot.standalone());
@@ -75,7 +75,7 @@ public class ContainerEmailSend extends AbstractContainerMenu {
 	public void cooling(SendEmailCoolingEvent event) {
 		if(this.player.getName().getString().equals(event.name)) {
 			if(!this.player.level().isClientSide()) {
-				EmailMain.net.sendMessageToPlayer(new MsgSendCooling(event.millis), (ServerPlayer) this.player);
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgSendCooling(event.millis), (ServerPlayer) this.player);
 			}
 			cooling = event.millis;
 		}

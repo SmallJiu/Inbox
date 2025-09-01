@@ -2,7 +2,6 @@ package cat.jiu.email;
 
 import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.api.IAttachment;
-import cat.jiu.email.command.EmailCommands;
 import cat.jiu.email.command.EmailEventType;
 import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.configs.EmailConfigClient;
@@ -16,6 +15,7 @@ import cat.jiu.email.ui.GuiHandler;
 import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
+import cat.jiu.email.util.SendDevEmail;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraftforge.api.distmarker.Dist;
@@ -46,7 +46,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.3-a3";
+                                VERSION = "1.20.1-1.1.4";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -57,7 +57,7 @@ public class EmailMain {
         }catch(Exception ignored) {}
         SQLite_INIT = init;
     }
-    public static EmailNetworkHandler net;
+    public static EmailNetworkHandler NETWORK;
     private static final long initTime = System.currentTimeMillis();
     @OnlyIn(Dist.CLIENT)
     public static long getSysTime() {
@@ -90,31 +90,30 @@ public class EmailMain {
         }
     }
 
-    private static int unread = 0;
-    private static int unaccepted = 0;
     public static int getUnread() {
-        return unread;
+        return EmailAPI.getUnread();
     }
     public static int getUnaccepted() {
-        return unaccepted;
+        return EmailAPI.getUnaccepted();
     }
-
     public static void setAccept(int unRead, int unReceived) {
-        unread = unRead;
-        unaccepted = unReceived;
+        EmailAPI.setAccept(unRead, unReceived);
     }
 
     private void setup(final FMLCommonSetupEvent event){
-        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(() -> new EmailFileType(EmailAPI.getGlobalDataPath() + "emails/")));
-        ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
-        event.enqueueWork(()-> net = new EmailNetworkHandler());
+        event.enqueueWork(()-> NETWORK = new EmailNetworkHandler());
+        MinecraftForge.EVENT_BUS.register(SendDevEmail.class);
 
-        IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new, AttachmentItem::new);
-        IAttachment.REGISTRY.register(AttachmentCommand.ID, AttachmentCommand::new, AttachmentCommand::new);
-        IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new, AttachmentXP::new);
-        IAttachment.REGISTRY.register(AttachmentMaxHealth.ID, AttachmentMaxHealth::new, AttachmentMaxHealth::new);
-        IAttachment.REGISTRY.register(AttachmentEffect.ID, AttachmentEffect::new, AttachmentEffect::new);
-        IAttachment.REGISTRY.register(AttachmentAttribute.ID, AttachmentAttribute::new, AttachmentAttribute::new);
+        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
+        ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
+
+        IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new);
+        IAttachment.REGISTRY.register(AttachmentCommand.ID, AttachmentCommand::new);
+        IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new);
+        IAttachment.REGISTRY.register(AttachmentMaxHealth.ID, AttachmentMaxHealth::new);
+        IAttachment.REGISTRY.register(AttachmentEffect.ID, AttachmentEffect::new);
+        IAttachment.REGISTRY.register(AttachmentAttribute.ID, AttachmentAttribute::new);
+        IAttachment.REGISTRY.register(AttachmentUndying.ID, AttachmentUndying::new);
 
         AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }
@@ -122,6 +121,7 @@ public class EmailMain {
     @OnlyIn(Dist.CLIENT)
     void onClientSetup(final FMLClientSetupEvent event) {
         GuiHandler.registerScreen();
+
     }
     @OnlyIn(Dist.CLIENT)
     void onRegisterBindings(RegisterKeyMappingsEvent event) {
@@ -134,14 +134,14 @@ public class EmailMain {
         EmailUtils.initNameAndUUID(event.getServer());
         Cooling.load();
         EventEmail.load();
-        ScheduledEmail.initScheduledEmail();
+        ScheduledEmail.init();
     }
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         Inbox.clearCache();
-        ScheduledEmail.saveScheduledEmail();
-        EmailAPI.setRootPath();
+        ScheduledEmail.save();
         EventEmail.save();
+        EmailAPI.clearEmailPath();
     }
 
     private static final List<Runnable> TASK = new ArrayList<>();
@@ -161,7 +161,7 @@ public class EmailMain {
 
     @SubscribeEvent
     public void onCommandRegister(RegisterCommandsEvent event) {
-        new EmailCommands().register(event.getDispatcher());
+        cat.jiu.email.command.EmailCommands.register().register(event.getDispatcher());
     }
 
     public static void execute(Runnable function) {execute(function, 50);}

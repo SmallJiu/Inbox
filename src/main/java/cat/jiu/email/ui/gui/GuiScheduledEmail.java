@@ -49,7 +49,7 @@ public class GuiScheduledEmail extends Screen {
 
     public GuiScheduledEmail() {
         super(Component.empty());
-        EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
+        EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
     }
 
     @Override
@@ -94,7 +94,7 @@ public class GuiScheduledEmail extends Screen {
                             this.emails.clear();
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
-                            EmailMain.net.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
+                            EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
                         }, ()->
                                 this.refreshBtn.visible = true
                 )
@@ -128,7 +128,7 @@ public class GuiScheduledEmail extends Screen {
                             Component.translatable("info.inbox.delete"),
                             b-> {
                                 if (this.getCurrentScheduledEmail()!=null && EmailUtils.isOP(Minecraft.getInstance().player)) {
-                                    EmailMain.net.sendMessageToServer(new MsgScheduledEmail.Remove(this.getCurrentScheduledEmail().getId()));
+                                    EmailMain.NETWORK.sendMessageToServer(new MsgScheduledEmail.Remove(this.getCurrentScheduledEmail().getId()));
                                     for (int i = 0; i < this.emails.size(); i++) {
                                         if (this.emails.get(i).getId() == this.getCurrentScheduledEmail().getId()) {
                                             this.deleteEmailBtn.visible = false;

@@ -1,9 +1,9 @@
 package cat.jiu.email.element.attachment;
 
-import cat.jiu.core.util.JsonToStackUtil;
-import cat.jiu.core.util.JsonUtils;
-import cat.jiu.core.util.NBTUtils;
-import cat.jiu.core.util.Utils;
+import cat.jiu.core.api.IData;
+import cat.jiu.core.util.*;
+import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
@@ -51,11 +51,14 @@ public class AttachmentEffect implements IAttachment {
     }
 
     public AttachmentEffect(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
 
     public AttachmentEffect(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentEffect(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public List<MobEffectInstance> getEffects() {
@@ -85,39 +88,35 @@ public class AttachmentEffect implements IAttachment {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
-        JsonArray effects = new JsonArray();
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
+        IData.IListData<?> effects = data.newList();
         for (MobEffectInstance effect : this.getEffects()) {
-            effects.add(NBTUtils.toJson(effect.save(new CompoundTag())));
+            IData.IMapData<?> dataEffect = data.newMap();
+            NBTData.map(effect.save(new CompoundTag())).foreach((key, data1) -> {
+                if (!"Amplifier".equalsIgnoreCase(key) && data1.isPrimitive() && data1.getAsPrimitive().isBoolean()) {
+                    dataEffect.putData(key, data1.getAsPrimitive().getAsBoolean());
+                }else {
+                    dataEffect.putData(key, data1);
+                }
+            });
+            effects.putData(dataEffect);
         }
-        json.add("effects", effects);
-        return json;
+        data.putData("effects", effects);
+        return data;
     }
 
     @Override
-    public void read(JsonObject json) {
-        JsonArray effects = json.getAsJsonArray("effects");
-        for (JsonElement effect : effects) {
-            this.addEffect(MobEffectInstance.load(JsonToStackUtil.toNBT(effect.getAsJsonObject())));
-        }
-    }
-
-    @Override
-    public CompoundTag write(CompoundTag nbt) {
-        ListTag effects = new ListTag();
-        for (MobEffectInstance effect : this.getEffects()) {
-            effects.add(effect.save(new CompoundTag()));
-        }
-        nbt.put("effects", effects);
-        return nbt;
-    }
-
-    @Override
-    public void read(CompoundTag nbt) {
-        ListTag effects = nbt.getList("effects", 10);
-        for (int i = 0; i < effects.size(); i++) {
-            this.addEffect(MobEffectInstance.load(effects.getCompound(i)));
-        }
+    public void read(IData.IMapData<?> data) {
+        data.getList("effects", IData.IMapData.class).foreach((index, value)-> {
+            IData.IMapData<?> effect = value.getAsMap();
+            if (effect.containsKey("string") && effect.containsKey("byte")) {
+                if (effect.getData() instanceof JsonObject) {
+                    this.addEffect(MobEffectInstance.load(JsonToStackUtil.toNBT((JsonObject) effect.getData())));
+                    return;
+                }
+            }
+            this.addEffect(DataUtils.loadMobEffect(effect));
+        });
     }
 
     @Override

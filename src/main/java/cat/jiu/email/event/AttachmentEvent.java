@@ -66,12 +66,14 @@ public class AttachmentEvent extends Event {
         }
 
         public void enableScissor() {
+            this.graphics.pose().pushPose();
             double scale = Minecraft.getInstance().getWindow().getGuiScale();
             RenderSystem.enableScissor((int)(this.left * scale), (int)(Minecraft.getInstance().getWindow().getHeight() - (this.bottom * scale)),
                     (int)(this.viewWidth * scale), (int)(this.viewWidth * scale));
         }
         public void disableScissor() {
             RenderSystem.disableScissor();
+            this.graphics.pose().popPose();
         }
 
         public void disableScissorRender(Runnable runnable) {

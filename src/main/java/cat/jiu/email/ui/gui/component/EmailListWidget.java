@@ -86,10 +86,17 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
         this.refreshList(null);
     }
     public void refreshList(Predicate<Email> predicate) {
+        if (this.parent.getInbox().emailCount() > 32) {
+            new Thread(()->this.loadEntry(predicate)).start();
+        }else {
+            this.loadEntry(predicate);
+        }
+    }
+    protected void loadEntry(Predicate<Email> predicate) {
         List<EmailEntry> entries = Lists.newArrayList();
         this.parent.getInbox().getEmailIDs().forEach(id-> {
             Email email = this.parent.getInbox().getEmail(id);
-            if (email!=null && predicate == null || predicate.test(email)) {
+            if (email!=null && (predicate == null || predicate.test(email))) {
                 entries.add(new EmailEntry(this.parent, id, email, this.getWidth()));
             }
         });

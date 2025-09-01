@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.email.configs.EmailConfigServer;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
@@ -13,7 +14,6 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.ui.SendEmailCoolingEvent;
-import cat.jiu.email.util.JsonParser;
 import cat.jiu.email.util.TimeMillis;
 
 import net.minecraftforge.common.MinecraftForge;
@@ -86,7 +86,7 @@ public class Cooling {
 		File jsonFile = new File(EmailAPI.globalEmailListPath);
 		JsonObject json = new JsonObject();
 		if(jsonFile.exists()) {
-			JsonElement e = JsonParser.parse(jsonFile);
+			JsonElement e = JsonUtils.parse(jsonFile, EmailConfigServer.File_Charset.get());
 			if(e != null && e.isJsonObject()) {
 				json = e.getAsJsonObject();
 			}
@@ -105,14 +105,14 @@ public class Cooling {
 		}
 		
 		json.add("Cooling", list);
-		JsonParser.toJsonFile(EmailAPI.globalEmailListPath, json, false);
+		JsonUtils.toJsonFile(EmailAPI.globalEmailListPath, json, false, EmailConfigServer.File_Charset.get());
 	}
 	
 	public static void load() {
 		cooling.clear();
 		File jsonFile = new File(EmailAPI.globalEmailListPath);
 		if(jsonFile.exists()) {
-			JsonElement e = JsonParser.parse(jsonFile);
+			JsonElement e = JsonUtils.parse(jsonFile, EmailConfigServer.File_Charset.get());
 			if(e != null && e.isJsonObject() && e.getAsJsonObject().has("Cooling")) {
 				for(Entry<String, JsonElement> cooling : e.getAsJsonObject().getAsJsonObject("Cooling").entrySet()) {
 					Cooling.cooling.put(cooling.getKey(), cooling.getValue().getAsLong());

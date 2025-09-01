@@ -6,46 +6,40 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import cat.jiu.core.util.JsonUtils;
-import cat.jiu.core.util.NBTUtils;
-import cat.jiu.core.util.Utils;
+import cat.jiu.core.api.IData;
+import cat.jiu.core.api.serializable.IDataSerializable;
+import cat.jiu.core.util.*;
 import cat.jiu.core.util.client.AudioSystem;
+import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.element.data.NBTData;
+import cat.jiu.core.util.element.sound.SoundJmp123;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.element.attachment.*;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 import cat.jiu.core.api.element.ISound;
 import cat.jiu.core.api.element.IText;
-import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.core.util.JsonToStackUtil;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 
 import net.minecraft.nbt.*;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 @SuppressWarnings("unused")
-public class Email implements ISerializable {
+public class Email implements IDataSerializable<IData.IMapData<?>> {
 	protected IText title;
 	protected IText sender;
 
@@ -63,9 +57,7 @@ public class Email implements ISerializable {
 
 	protected Map<ResourceLocation, IAttachment> attachments;
 
-	protected ISound mc_sound;
-	protected AudioSystem.Audio external_sound;
-	protected boolean isExternalSound;
+	protected ISound sound;
 
 	public Email(@Nonnull IText title, @Nonnull IText sender) {
 		this.title = title;
@@ -75,16 +67,16 @@ public class Email implements ISerializable {
 	/**
 	 * @param title 邮件标题
 	 * @param sender 邮件发送者
-	 * @param mc_sound 邮件附带的音效
+	 * @param sound 邮件附带的音效
 	 * @param items 邮件附带的物品
 	 * @param messages 邮件附带的消息
 	 *
 	 * @author small_jiu
 	 */
-	public Email(@Nonnull IText title, @Nonnull IText sender, ISound mc_sound, List<ItemStack> items, List<IText> messages) {
+	public Email(@Nonnull IText title, @Nonnull IText sender, ISound sound, List<ItemStack> items, List<IText> messages) {
 		this.title = title;
 		this.sender = sender;
-		this.mc_sound = mc_sound;
+		this.sound = sound;
 		if (items!=null && !items.isEmpty()) {
 			this.addItems(items);
 		}
@@ -103,8 +95,7 @@ public class Email implements ISerializable {
 	public Email(@Nonnull IText title, @Nonnull IText sender, AudioSystem.Audio external_sound, List<ItemStack> items, List<IText> messages) {
 		this.title = title;
 		this.sender = sender;
-		this.external_sound = external_sound;
-		this.isExternalSound = true;
+		this.setExternalSound(external_sound);
 		if (items!=null && !items.isEmpty()) {
 			this.addItems(items);
 		}
@@ -116,6 +107,8 @@ public class Email implements ISerializable {
 	}
 	public Email(JsonObject json) {
 		this.read(json);
+	}public Email(IData.IMapData<?> data) {
+		this.read(data);
 	}
 
 	public boolean isDeletable() {
@@ -165,7 +158,7 @@ public class Email implements ISerializable {
 	 * @return 邮件附带的声音(音效)
 	 */
 	@Nullable
-	public ISound getSound() {return mc_sound;}
+	public ISound getSound() {return sound;}
 	/**
 	 * @return 邮件是否已读
 	 */
@@ -207,13 +200,15 @@ public class Email implements ISerializable {
 	 * 添加一种附件，已有同一种附件的情况下，会合并到已有附件内
 	 */
 	public Email addAttachment(IAttachment attachment) {
-		if (this.attachments==null) {
-			this.attachments = new ConcurrentHashMap<>();
-		}
-		if (this.hasAttachments(attachment.getID())) {
-			this.getAttachment(attachment.getID()).merge(attachment);
-		}else {
-			this.attachments.put(attachment.getID(), attachment);
+		if (attachment!=null){
+			if (this.attachments == null) {
+				this.attachments = new ConcurrentHashMap<>();
+			}
+			if (this.hasAttachments(attachment.getID())) {
+				this.getAttachment(attachment.getID()).merge(attachment);
+			} else {
+				this.attachments.put(attachment.getID(), attachment);
+			}
 		}
 		return this;
 	}
@@ -258,7 +253,7 @@ public class Email implements ISerializable {
 	 */
 	public long getEmailNetworkSize() {
 		if(this.networkSize == -404) {
-			this.networkSize = EmailUtils.getSize(this.writeTo(CompoundTag.class));
+			this.networkSize = EmailUtils.getSize((CompoundTag) this.write(NBTData.map()).getData());
 		}
 		return this.networkSize;
 	}
@@ -283,28 +278,39 @@ public class Email implements ISerializable {
 	public Email setAccept(boolean receive) {return this.setReceive(receive);}
 
 	public void setMcSound(ISound mc_sound) {
-		this.mc_sound = mc_sound;
+		this.setSound(mc_sound);
+	}
+	public Email setSound(ISound sound) {
+		this.sound = sound;
+		return this;
 	}
 
+	/**
+	 * @deprecated {@link Email#getExternalSound()}
+	 */
 	@Deprecated
 	public AudioSystem.Audio getNetworkOrLocalSound(){
 		return this.getExternalSound();
 	}
 
 	public AudioSystem.Audio getExternalSound(){
-		return external_sound;
+		return ((SoundJmp123)this.sound).getAudio();
 	}
 
+	/**
+	 * @deprecated {@link Email#isExternalSound()}
+	 */
 	@Deprecated
 	public boolean isNetworkOrLocalSound() {
 		return this.isExternalSound();
 	}
 	public boolean isExternalSound() {
-		return isExternalSound;
+		return this.sound instanceof SoundJmp123;
 	}
 
 	/**
 	 * NetworkOrLocalSound
+	 * @deprecated {@link Email#setExternalSound(AudioSystem.Audio)}
 	 * @param external_sound 本地或网络音效
 	 */
 	@Deprecated
@@ -312,8 +318,7 @@ public class Email implements ISerializable {
 		return this.setExternalSound(external_sound);
 	}
 	public Email setExternalSound(AudioSystem.Audio external_sound) {
-		this.external_sound = external_sound;
-		this.setIsExternalSound(true);
+		this.sound = new SoundJmp123(external_sound);
 		return this;
 	}
 
@@ -321,8 +326,8 @@ public class Email implements ISerializable {
 	 *
 	 * @param externalSound 是否是本地或网络音效
 	 */
+	@Deprecated
 	public Email setIsExternalSound(boolean externalSound) {
-		isExternalSound = externalSound;
 		return this;
 	}
 	@Deprecated
@@ -367,6 +372,14 @@ public class Email implements ISerializable {
 	/**
 	 * 设置邮件的新的创建时间为系统当前时间
 	 */
+	public Email setCreateTime(long time) {
+		this.create_time = time;
+		this.create_time_s = null;
+		return this;
+	}
+	/**
+	 * 设置邮件的新的创建时间为系统当前时间
+	 */
 	public Email setCreateTimeToNow() {
 		this.create_time = System.currentTimeMillis();
 		this.create_time_s = null;
@@ -377,9 +390,7 @@ public class Email implements ISerializable {
 	 * @param expiration_time 邮件的新的过期时间
 	 */
 	public Email setExpirationTime(TimeMillis expiration_time) {
-		if(this.expiration_time == null || this.expiration_time.millis == 0) {
-			this.expiration_time = expiration_time;
-		}
+		this.expiration_time = expiration_time;
 		return this;
 	}
 	/**
@@ -403,7 +414,7 @@ public class Email implements ISerializable {
 	}
 	/**
 	 * @param time 时间戳
-	 * @return 邮件是否已对提供的时间戳过期
+	 * @return 邮件是否对提供的时间戳过期
 	 */
 	public boolean isExpiration(long time) {
 		return this.getExpirationTime()!=null && time >= this.getExpirationTimeAsTimestamp();
@@ -681,7 +692,7 @@ public class Email implements ISerializable {
 	 * @return 是否带有附加的声音(音效)
 	 */
 	public boolean hasSound() {
-		return (this.mc_sound !=null && this.mc_sound.getAudioFile()!=null) || (this.external_sound != null && !this.external_sound.getFile().isEmpty());
+		return this.sound !=null && this.sound.getAudioFile()!=null;
 	}
 	/**
 	 * @return 是否带有附加的物品
@@ -708,11 +719,7 @@ public class Email implements ISerializable {
 	public Email copy() {
 		Email copy = new Email(this.getTitle().copy(), this.getSender().copy());
 		if(this.hasSound()) {
-			if (this.isExternalSound()) {
-				copy.external_sound = this.external_sound;
-			}else {
-				copy.mc_sound = this.getSound().copy();
-			}
+			copy.sound = this.getSound().copy();
 		}
 		if(this.attachments!=null) {
 			this.attachments.forEach((k,v)->copy.addAttachment(v.copy()));
@@ -734,293 +741,162 @@ public class Email implements ISerializable {
 	}
 
 	@Override
-	public JsonObject write(JsonObject json) {
-		if(json==null) json = new JsonObject();
-
-		json.add("title", this.title.write(new JsonObject()));
-		json.addProperty("time", this.create_time);
+	public IData.IMapData<?> write(IData.IMapData<?> data) {
+		data.putData("title", this.title.dynamicWrite(data));
+		data.putData("sender", this.sender.dynamicWrite(data));
+		data.putData("time", this.create_time);
 		if(this.expiration_time!=null) {
-			json.addProperty("expiration", this.expiration_time.millis);
+			data.putData("expiration", this.expiration_time.millis);
 		}
 
-		json.add("sender", this.sender.write(new JsonObject()));
-
-		if(this.isRead()) json.addProperty("read", true);
-		if(this.isReceived()) json.addProperty("receive", true);
-		json.addProperty("deletable", this.isDeletable());
+		if(this.isRead()) data.putData("read", true);
+		if(this.isReceived()) data.putData("receive", true);
+		data.putData("deletable", this.isDeletable());
 
 		if(this.hasSound()) {
-			if (this.isExternalSound()) {
-				JsonObject sound_obj = new JsonObject();
-				sound_obj.addProperty("file", this.getExternalSound().getFile());
-				sound_obj.addProperty("category", this.getExternalSound().getCategory().getName());
-				json.add("sound", sound_obj);
-				json.addProperty("external_sound", true);
-			}else if(this.mc_sound != null) {
-				json.add("sound", this.mc_sound.write(new JsonObject()));
-			}
+			data.putData("sound", this.sound.write(data.newMap()));
 		}
 
 		if (this.attachments!=null && !this.attachments.isEmpty()) {
-			JsonArray attachments = new JsonArray();
+			IData.IListData<?> attachments = data.newList();
 			this.attachments.forEach((k,v)->{
-				JsonObject object = v.write(new JsonObject());
-				object.addProperty("id", String.valueOf(k));
-				attachments.add(object);
+				IData.IMapData<?> object = v.write(data.newMap());
+				object.putData("id", String.valueOf(k));
+				attachments.putData(object);
 			});
-			json.add("attachments", attachments);
+			data.putData("attachments", attachments);
 		}
 
 		if(this.hasMessages()) {
-			JsonObject msgs = new JsonObject();
+			IData.IListData<?> msgs = data.newList();
+			boolean anyType = msgs.getData() instanceof JsonArray;
 			for (IText msg : this.messages) {
-				if (msg.getParameters() != null && msg.getParameters().length > 0) {
-					msgs.add(msg.getText(), msg.writeArgs(new JsonArray()));
-				} else {
-					msgs.add(msg.getText(), JsonNull.INSTANCE);
+				if (anyType) {
+					msgs.putData(msg.dynamicWrite(data));
+				}else {
+					msgs.putData(msg.write(data.newMap()));
 				}
 			}
-			json.add("msgs", msgs);
+			data.putData("msgs", msgs);
 		}
-		return json;
+		return data;
 	}
 
 	public static final SimpleDateFormat old_dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 	@Override
-	public void read(JsonObject json) {
-		if(json!=null && json.size()>0) {
-			if(json.has("title") && json.get("title").isJsonObject()) {
-				this.title = new Text(json.getAsJsonObject("title"));
-			}else if(json.has("title") && json.get("title").isJsonPrimitive()) {
-				this.title = new Text(json.get("title").getAsString());
-			}
+	public void read(IData.IMapData<?> data) {
+		this.title = IText.create(data.getData("title", data.newPrimitive().setData("")));
+		this.sender = IText.create(data.getData("sender", data.newPrimitive().setData("")));
 
-			if(json.has("sender") && json.get("sender").isJsonObject()) {
-				this.sender = new Text(json.getAsJsonObject("sender"));
-			}else if(json.has("sender") && json.get("sender").isJsonPrimitive()) {
-				this.sender = new Text(json.get("sender").getAsString());
-			}
-
-			if(json.has("time")) {
-				JsonElement time = json.get("time");
-				if (time.isJsonPrimitive()) {
-					JsonPrimitive p = time.getAsJsonPrimitive();
-					if(p.isString()) {
-						try {
-							this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
-						}catch(Exception e) {
-							e.printStackTrace();
-							this.create_time = System.currentTimeMillis();
-						}
-					}else if(p.isNumber()) {
-						this.create_time = p.getAsLong();
+		if(data.containsKey("time")) {
+			IData<?> time = data.getData("time", data.nullData());
+			if (time.isPrimitive()) {
+				IData.IPrimitiveData<?> p = time.getAsPrimitive();
+				if(p.isString()) {
+					try {
+						this.create_time = old_dateFormat.parse(p.getAsString()).getTime();
+					}catch(Exception e) {
+						e.printStackTrace();
+						this.create_time = System.currentTimeMillis();
 					}
-				}
-			}
-			if(json.has("expiration")) {
-				this.expiration_time = new TimeMillis(json.get("expiration").getAsLong());
-				this.expiration_time_l = -404;
-			}
-
-			if(json.has("read")) this.read = json.get("read").getAsBoolean();
-
-			if(json.has("accept")) {
-				this.receive = json.get("accept").getAsBoolean();
-			}else if(json.has("receive")) {
-				this.receive = json.get("receive").getAsBoolean();
-			}
-			this.setDeletable(JsonUtils.get(json, "deletable", true));
-
-			if(json.has("sound")) {
-				if (JsonUtils.get(json, "network_local_sound", false)
-				 || JsonUtils.get(json, "external_sound", false)) {
-					JsonObject network_local = json.getAsJsonObject("sound");
-					this
-							.setExternalSound(new AudioSystem.Audio(
-									network_local.get("file").getAsString(),
-									network_local.has("category") ?
-											EmailUtils.getSoundSource(network_local.get("category").getAsString())
-											: SoundSource.PLAYERS
-							));
-				}else {
-					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, json.getAsJsonObject("sound"));
-				}
-			}
-
-			if(json.has("items")) {
-				this.addItems(JsonToStackUtil.toStacks(json.get("items")));
-			}
-
-			if (json.has("attachments")) {
-				for (JsonElement element : json.getAsJsonArray("attachments")) {
-					JsonObject object = element.getAsJsonObject();
-					this.addAttachment(IAttachment.REGISTRY.get(Utils.location(object.get("id").getAsString()), object));
-				}
-			}
-
-			if(json.has("msgs")) {
-				this.messages = Lists.newArrayList();
-				JsonElement msgElement = json.get("msgs");
-				if(msgElement.isJsonObject()) {
-					JsonObject msgs = msgElement.getAsJsonObject();
-					for(Entry<String, JsonElement> msg : msgs.entrySet()) {
-						if(msg.getValue().isJsonArray()) {
-							this.messages.add(new Text(msg.getKey(), IText.readArgs(msg.getValue().getAsJsonArray())));
-						}else {
-							this.messages.add(new Text(msg.getKey()));
-						}
-					}
-				}else if(msgElement.isJsonArray()) {
-					JsonArray msgs = msgElement.getAsJsonArray();
-					for(int i = 0; i < msgs.size(); i++) {
-						JsonElement msg = msgs.get(i);
-						if(msg.isJsonObject()) {
-							JsonObject object = msg.getAsJsonObject();
-							this.messages.add(new Text(object.get("text").getAsString(), IText.readArgs(object.getAsJsonArray("parameters"))));
-						} else if (msg.isJsonNull()) {
-							this.messages.add(new Text(msg.getAsString()));
-						}
-					}
+				}else if(p.isNumber()) {
+					this.create_time = p.getAsLong();
 				}
 			}
 		}
-	}
-
-	protected static Tag emptyTag = null;
-	public static Tag getEmptyTag() {
-		if(emptyTag==null) {
-			emptyTag = ByteTag.valueOf((byte)0);
+		if(data.containsKey("expiration")) {
+			this.expiration_time = new TimeMillis(data.getLong("expiration"));
+			this.expiration_time_l = -404;
 		}
-		return emptyTag;
-	}
 
-	@Override
-	public CompoundTag write(CompoundTag nbt) {
-		if(nbt==null) nbt = new CompoundTag();
+		if(data.containsKey("read")) this.read = data.getBoolean("read");
 
-		nbt.put("title", this.title.writeTo(CompoundTag.class));
-		nbt.putLong("time", this.create_time);
-		if(this.expiration_time!=null) {
-			nbt.putLong("expiration", this.expiration_time.millis);
+		if(data.containsKey("accept")) {
+			this.receive = data.getBoolean("accept");
+		}else if(data.containsKey("receive")) {
+			this.receive = data.getBoolean("receive");
 		}
-		nbt.put("sender", this.sender.writeTo(CompoundTag.class));
-		if(this.isRead()) nbt.putBoolean("read", this.isRead());
-		if(this.isReceived()) nbt.putBoolean("receive", this.isReceived());
-		if (!this.isDeletable()) nbt.putBoolean("deletable", this.isDeletable());
-		if(this.hasSound()) {
-			if (this.isExternalSound()) {
-				CompoundTag sound_obj = new CompoundTag();
-				sound_obj.putString("file", this.getExternalSound().getFile());
-				sound_obj.putString("category", this.getExternalSound().getCategory().getName());
-				nbt.put("sound", sound_obj);
-				nbt.putBoolean("external_sound", true);
-			}else if(this.mc_sound != null) {
-				nbt.put("sound", this.mc_sound.write(new CompoundTag()));
+		this.setDeletable(data.getBoolean("deletable", true));
+
+		if(data.containsKey("sound")) {
+			if (data.getBoolean("network_local_sound", false)
+					|| data.getBoolean("external_sound", false)
+					|| data.getMap("sound").getBoolean("external_sound", false)) {
+				IData.IMapData<?> external_sound = data.getMap("sound");
+
+				if (external_sound.containsKey("category")) {
+					external_sound.putData("channel", external_sound.getString("category"));
+				}
+				this.setExternalSound(AudioSystem.Audio.create(external_sound));
+			}else {
+				this.sound = ISound.REGISTRY.get(data.getMap("sound"));
 			}
 		}
 
-		if (this.attachments!=null && !this.attachments.isEmpty()) {
-			ListTag attachments = new ListTag();
-			this.attachments.forEach((k,v)->{
-				CompoundTag object = v.writeTo(CompoundTag.class);
-				object.putString("id", String.valueOf(k));
-				attachments.add(object);
+		if(data.containsKey("items")) {
+			this.addItems(DataUtils.toStack(data.getList("items", IData.IMapData.class)));
+		}
+
+		if (data.containsKey("attachments")) {
+			data.getList("attachments", IData.IMapData.class).foreach((i,element)->{
+				IData.IMapData<?> object = element.getAsMap();
+				this.addAttachment(IAttachment.REGISTRY.get(object.getLocation("id"), object));
 			});
-			nbt.put("attachments", attachments);
 		}
 
-		if(this.hasMessages()) {
-			CompoundTag msgs = new CompoundTag();
-			for(int i = 0; i < this.messages.size(); i++) {
-				IText msg = this.messages.get(i);
-				Tag msgNBT;
-				if(msg.getParameters()!=null && msg.getParameters().length>0) {
-					msgNBT = msg.write(new CompoundTag());
-				}else if(!"".equals(msg.getText())) {
-					msgNBT = StringTag.valueOf(msg.getText());
-				}else {
-					msgNBT = getEmptyTag();
-				}
-				msgs.put(String.valueOf(i), msgNBT);
-			}
-			nbt.put("msgs", msgs);
-		}
-
-		return nbt;
-	}
-
-	@Override
-	public void read(CompoundTag nbt) {
-		if(nbt!=null && !nbt.isEmpty()) {
-			this.title = new Text(nbt.getCompound("title"));
-			this.create_time = nbt.getLong("time");
-			if(nbt.contains("expiration")) {
-				this.expiration_time = new TimeMillis(nbt.getLong("expiration"));
-				this.expiration_time_l = -404;
-			}
-			this.sender = new Text(nbt.getCompound("sender"));
-			if(nbt.contains("read")) this.read = nbt.getBoolean("read");
-			if(nbt.contains("receive")) this.receive = nbt.getBoolean("receive");
-			this.setDeletable(NBTUtils.get(nbt, "deletable", true));
-			if(nbt.contains("sound")) {
-				if (nbt.contains("external_sound") && nbt.getBoolean("external_sound")) {
-					CompoundTag network_local = nbt.getCompound("sound");
-					this
-							.setExternalSound(new AudioSystem.Audio(
-									network_local.getString("file"),
-									network_local.contains("category") ?
-											EmailUtils.getSoundSource(network_local.getString("category"))
-											: SoundSource.PLAYERS
-							));
-				}else {
-					this.mc_sound = ISound.REGISTRY.get(SoundMC.ID, nbt.getCompound("sound"));
-				}
-			}
-
-			if(nbt.contains("items")) {
-				CompoundTag items = nbt.getCompound("items");
-				for(String item : items.getAllKeys()) {
-					this.addItem(ItemStack.of(items.getCompound(item)));
-				}
-			}
-
-			if (nbt.contains("attachments")) {
-				ListTag attachments = nbt.getList("attachments", 10);
-				for (int i = 0; i < attachments.size(); i++) {
-					CompoundTag object = attachments.getCompound(i);
-					this.addAttachment(IAttachment.REGISTRY.get(Utils.location(object.get("id").getAsString()), object));
-				}
-			}
-
-			if(nbt.contains("msgs")) {
-				this.messages = Lists.newArrayList();
-				CompoundTag msgs = nbt.getCompound("msgs");
-				List<String> keys = msgs.getAllKeys().stream().sorted(Comparator.comparing(Integer::valueOf)).collect(Collectors.toList());
-				keys.forEach(key->{
-					Tag msg = msgs.get(key);
-					if(msg instanceof StringTag) {
-						this.messages.add(new Text(msg.getAsString()));
-					}else if(msg instanceof CompoundTag text) {
-						this.messages.add(new Text(text.getString("text"), IText.readArgs(text.getList("args", 8))));
-					}else if(msg instanceof ByteTag) {
-						this.messages.add(Text.empty);
+		if(data.containsKey("msgs")) {
+			IData<?> msgElement = data.getData("msgs", data.nullData());
+			if(msgElement.isMap()) {
+				msgElement.getAsMap().foreach((k,v)->{
+					if(v.isList()) {
+						this.addMessage(new Text(k, IText.readArgs(v.getAsList())));
+					}else if (v.isMap()){
+						IText text = new Text(k);
+						text.read(v.getAsMap());
+						this.addMessage(text);
+					}else if (v.isPrimitive()) {
+						this.addMessage(new Text(v.getAsPrimitive().getAsString()));
+					}else if (v.isNull()) {
+						this.addMessage(Text.empty);
 					}
 				});
+			}else if(msgElement.isList()) {
+				msgElement.getAsList().foreach((k,v)->
+					this.addMessage(IText.create(v))
+				);
+			}else if (msgElement.isPrimitive()) {
+				this.addMessage(new Text(msgElement.getAsPrimitive().getAsString()));
+			}else if (msgElement.isNull()) {
+				this.addMessage(Text.empty);
 			}
 		}
 	}
 
-	@Override
+	public JsonObject write(JsonObject data) {
+		this.write(JsonData.map(data));
+		return data;
+	}
+	public void read(JsonObject data) {
+		this.read(JsonData.map(data));
+	}
+
+	public CompoundTag write(CompoundTag data) {
+		this.write(NBTData.map(data));
+		return data;
+	}
+	public void read(CompoundTag data) {
+		this.read(NBTData.map(data));
+	}
+
 	public SQLValues write(SQLValues value) {
 		return value;
 	}
 
-	@Override
 	public void read(ResultSet result) throws SQLException {}
 
 	@Override
 	public String toString() {
-		return this.writeTo(JsonObject.class).toString();
+		return this.write(JsonData.map()).asString();
 	}
 
 	@Override

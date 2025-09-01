@@ -18,6 +18,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -28,13 +29,12 @@ public class GuiAddBlacklist extends Screen {
 	protected EditBox name;
 	protected int leftPos, topPos, xSize, ySize;
 	public GuiAddBlacklist(List<String> blacklist) {
-		super(Component.nullToEmpty(null));
+		super(CommonComponents.EMPTY);
 		this.blacklist = blacklist;
 	}
 
 	@Override
 	public void init() {
-		super.init();
 		this.leftPos = (this.width + this.xSize) / 2;
 		this.topPos = (this.height + this.ySize) / 2;
 
@@ -48,7 +48,7 @@ public class GuiAddBlacklist extends Screen {
 			String name = this.name.getValue();
 			if(!name.isEmpty() && (blacklist == null || !blacklist.contains(name))) {
 				if(!EmailAPI.isInBlockReceiveWhitelist(name)) {
-					EmailMain.net.sendMessageToServer(new MsgBlacklist.Add(name));
+					EmailMain.NETWORK.sendMessageToServer(new MsgBlacklist.Add(name));
 				}else {
 					Minecraft.getInstance().player.sendSystemMessage(EmailUtils.createTextComponent(ChatFormatting.YELLOW, "info.inbox.black.add.fail.whitelist"));
 				}

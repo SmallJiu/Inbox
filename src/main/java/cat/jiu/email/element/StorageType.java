@@ -42,10 +42,18 @@ public class StorageType implements Supplier<String> {
         this.read = read;
     }
 
+    public JsonObject read(String owner) throws Exception {
+        return this.read.apply(owner);
+    }
+    public void write(Inbox inbox) throws Exception {
+        this.write.accept(inbox);
+    }
+
     @Override
     public String get(){
         return this.name;
     }
+
     public StorageType register(){
         REGISTRY.register(this);
         return this;
@@ -57,7 +65,7 @@ public class StorageType implements Supplier<String> {
             owner->{
                 File email = new File(EmailAPI.getSaveInboxPath() + owner + ".json");
                 if(email.exists()) {
-                    JsonElement file = JsonUtils.parseThrow(email);
+                    JsonElement file = JsonUtils.parseThrow(email, EmailConfigServer.File_Charset.get());
                     if(file != null && file.isJsonObject()) {
                         return file.getAsJsonObject();
                     }
@@ -68,7 +76,7 @@ public class StorageType implements Supplier<String> {
     ).register();
 
     static void writeJson(Inbox inbox, boolean format) throws Exception {
-        JsonUtils.toJsonFileThrow(EmailAPI.getSaveInboxPath() + inbox.getOwner() + ".json", inbox.write(new JsonObject()), format);
+        JsonUtils.toJsonFileThrow(EmailAPI.getSaveInboxPath() + inbox.getOwner() + ".json", inbox.write(new JsonObject()), format, EmailConfigServer.File_Charset.get());
     }
 
     public static final StorageType JSON_FORMAT = new StorageType(
@@ -94,7 +102,6 @@ public class StorageType implements Supplier<String> {
             inbox->DBParser.write(DBParser.getDBUrl(), inbox),
             owner->DBParser.read(DBParser.getDBUrl(), owner)
     ).register();
-
 
     @FunctionalInterface
     public interface Consumer_WithExceptions<T, E extends Exception> {

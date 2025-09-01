@@ -13,8 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.client.RenderUtils;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.StorageType;
@@ -129,22 +131,19 @@ public class EmailUtils {
 		return isOP;
 	}
 
-	
+
+	@Deprecated
 	public static void sendMessage(Player player, ChatFormatting color, String key, Object... args) {
-		player.sendSystemMessage(new Text(key, formatArgsTextToComponent(args)).toTextComponent(color));
+		IText.create(player, color, key, args);
 	}
-	
+
+	@Deprecated
 	public static void sendMessage(Player player, String key, Object... args) {
-		player.sendSystemMessage(new Text(key, formatArgsTextToComponent(args)).toTextComponent());
+		IText.create(player, key, args);
 	}
 
 	public static Object[] formatArgsTextToComponent(Object... args) {
-		for (int i = 0; i < args.length; i++) {
-			if(args[i] instanceof IText){
-				args[i] = ((IText)args[i]).toTextComponent();
-			}
-		}
-		return args;
+		return IText.format(args);
 	}
 	
 	public static boolean saveInboxToDisk(Inbox inbox) {
@@ -222,7 +221,7 @@ public class EmailUtils {
 				}
 			}
 		}
-		long size = getSize(email.writeTo(CompoundTag.class));
+		long size = getSize((CompoundTag) email.write(NBTData.map()).getData());
 		return size >= 2097152L ? new SizeReport(-1, -1, size) : SizeReport.SUCCESS;
 	}
 
@@ -236,7 +235,7 @@ public class EmailUtils {
 				inbox.deleteEmail(id);
 				continue;
 			}
-			long emailSize = getSize(email.writeTo(CompoundTag.class));
+			long emailSize = getSize((CompoundTag) email.write(NBTData.map()).getData());
 			if(emailSize >= 2097152L) {
 				SizeReport report = checkEmailSize(email);
 				if(report.slot()>=0){
@@ -292,7 +291,7 @@ public class EmailUtils {
 
 		if(USERID_CACHE_FILE.exists()) {
 			try(FileInputStream in = new FileInputStream(USERID_CACHE_FILE)) {
-				JsonArray array = JsonParser.parse(in);
+				JsonArray array = JsonUtils.parse(in, EmailConfigServer.File_Charset.get());
 				NameToUUID.clear();
 				UUIDToName.clear();
 				for(int i = 0; i < array.size(); i++) {

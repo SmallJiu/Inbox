@@ -1,5 +1,6 @@
 package cat.jiu.email.util;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -7,10 +8,7 @@ import cat.jiu.email.EmailAPI;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EventEmail;
-import cat.jiu.email.element.attachment.AttachmentAttribute;
-import cat.jiu.email.element.attachment.AttachmentCommand;
-import cat.jiu.email.element.attachment.AttachmentEffect;
-import cat.jiu.email.element.attachment.AttachmentMaxHealth;
+import cat.jiu.email.element.attachment.*;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;
 import com.google.common.collect.Lists;
@@ -42,12 +40,11 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
-@EventBusSubscriber
 public class SendDevEmail {
 	static final Email devEmail;
 	static {
+		File default_sound = new File("./assets/jiu/inbox", "default_sound.mp3");
 		List<IText> msgs = Lists.newArrayList();
 		for(int i = 0; i < 14; i++) {
 			msgs.add(new Text("inbox.dev_message."+i));
@@ -60,28 +57,37 @@ public class SendDevEmail {
 		));
 		devEmail = new Email(new Text("inbox.dev_message.title"), EmailAPI.SYSTEM)
 //				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
+				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
 				.addMessages(msgs)
+				.setExternalSound(new AudioSystem.Audio(default_sound, default_sound.exists() ? null : EmailMain.class.getResourceAsStream("/assets/email/sounds/default.mp3"), SoundSource.PLAYERS).setRetryFile("https://raw.githubusercontent.com/SmallJiu/Document/refs/heads/master/mods/Inbox/default.mp3")
+						.setCanLopping(true)
+						.setInfiniteLopping(true)
+						.setLoopDelay(500)
+				)
+				.addItem(
+						new ItemStack(Items.DIAMOND, 9),
+						new ItemStack(Items.DIAMOND, 9),
+						new ItemStack(Items.DIAMOND, 8)
+				)
+				.setExperience(9980, 9980)
+				.addAttachment(new AttachmentMaxHealth(2))
+				.addAttachment(new AttachmentUndying(9))
 				.addCommands(
 						new AttachmentCommand.Cmd("/say this command is ' server ' command, use ' server console permission ' to execute.", true),
 						new AttachmentCommand.Cmd("/me this command is ' player ' command, use ' player permission ' to execute.", false),
 						new AttachmentCommand.Cmd("/say this command is hide in tooltip, you cant see this command.", true).setHideInTooltip(true),
 						new AttachmentCommand.Cmd("/me this command is hide in tooltip, you cant see this command.", false).setHideInTooltip(true)
 				)
-				.setExperience(9980, 9980)
-				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
-				.setExternalSound(new AudioSystem.Audio("E:/application/tools/ffmpeg/bin/inbox_dev_sound.mp3", SoundSource.PLAYERS))
 				.addAttachment(new AttachmentEffect()
 						.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 1000))
 						.addEffect(new MobEffectInstance(MobEffects.HEAL, 1000))
 						.addEffect(new MobEffectInstance(MobEffects.JUMP, 1000))
 						.addEffect(new MobEffectInstance(MobEffects.LUCK, 1000))
 				)
-				.addAttachment(new AttachmentMaxHealth(2))
-				.addItem(new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 9), new ItemStack(Items.DIAMOND, 8))
 				.addAttachment(new AttachmentAttribute()
 						.addValue(Attributes.LUCK, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
-						.addValue(Attributes.ATTACK_DAMAGE, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
-						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.ADDITION, new AttachmentAttribute.AttributeValue(20, false))
+						.addValue(Attributes.ATTACK_DAMAGE, AttributeModifier.Operation.MULTIPLY_BASE, new AttachmentAttribute.AttributeValue(20, false))
+						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.MULTIPLY_TOTAL, new AttachmentAttribute.AttributeValue(20, false))
 				)
 				.setReceive(true);
 	}
@@ -94,7 +100,7 @@ public class SendDevEmail {
 	public static void onJoin(PlayerEvent.PlayerLoggedInEvent event) {
 		if(event.getEntity() instanceof ServerPlayer player) {
 			Inbox inbox = Inbox.get(player);
-			
+
 			player.getServer().getPlayerList().sendPlayerPermissionLevel(player);
 			
 			if(!inbox.isSendDevMsg()) {
@@ -117,7 +123,7 @@ public class SendDevEmail {
 			reminds.remove(player.getName().getString());
 			Un un = Un.getInstance(player);
 			if(un.unread > 0 || un.unReceived > 0) {
-				EmailMain.net.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), player);
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), player);
 			}
 		}
 	}
@@ -134,7 +140,7 @@ public class SendDevEmail {
 				if(un.unread != delay.unread || un.unReceived != delay.unReceived) {
 					delay.unread = un.unread;
 					delay.unReceived = un.unReceived;
-					EmailMain.net.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), player);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgUnaccepted(un.unread, un.unReceived), player);
 				}
 				delay.net = 0;
 			}else {

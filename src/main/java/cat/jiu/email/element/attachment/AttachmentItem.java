@@ -1,43 +1,40 @@
 package cat.jiu.email.element.attachment;
 
+import cat.jiu.core.api.IData;
+import cat.jiu.core.util.DataUtils;
 import cat.jiu.core.util.Utils;
-import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.util.EmailUtils;
-import cat.jiu.core.util.JsonToStackUtil;
 import com.google.gson.JsonObject;
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.common.Mod;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@Mod.EventBusSubscriber
 public class AttachmentItem implements IAttachment {
     public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/item");
 
-    protected List<ItemStack> items, unmodifiable;
+    protected List<ItemStack> items;
 
     public AttachmentItem() {}
 
     public AttachmentItem(CompoundTag tag) {
-        this.readFrom(tag);
+        this.read(tag);
     }
     public AttachmentItem(JsonObject json) {
-        this.readFrom(json);
+        this.read(json);
+    }
+    public AttachmentItem(IData.IMapData<?> data) {
+        this.read(data);
     }
 
     public AttachmentItem addStack(ItemStack... stacks) {
@@ -75,6 +72,10 @@ public class AttachmentItem implements IAttachment {
         }
     }
 
+    public List<ItemStack> getItems() {
+        return this.items;
+    }
+
     @Override
     public void merge(IAttachment other) {
         if (other instanceof AttachmentItem attachment && !attachment.isEmpty()) {
@@ -82,12 +83,6 @@ public class AttachmentItem implements IAttachment {
         }
     }
 
-    public List<ItemStack> getItems() {
-        if (this.unmodifiable==null) {
-            this.unmodifiable = Collections.unmodifiableList(this.items);
-        }
-        return this.unmodifiable;
-    }
 
     @Override
     public boolean isEmpty() {
@@ -95,40 +90,16 @@ public class AttachmentItem implements IAttachment {
     }
 
     @Override
-    public CompoundTag write(CompoundTag nbt) {
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
         if (!this.isEmpty()) {
-            ListTag list = new ListTag();
-            for (ItemStack item : this.items) {
-                list.add(item.save(new CompoundTag()));
-            }
-            nbt.put("items", list);
+            data.putData("items", DataUtils.toData(this.getItems(), data.newList()));
         }
-        return nbt;
+        return data;
     }
 
     @Override
-    public void read(CompoundTag nbt) {
-        if (nbt.contains("items")) {
-            ListTag list = nbt.getList("items", 10);
-            for (int i = 0; i < list.size(); i++) {
-                this.addStack(ItemStack.of(list.getCompound(i)));
-            }
-        }
-    }
-
-    @Override
-    public JsonObject write(JsonObject json) {
-        if (!this.isEmpty()) {
-            json.add("items", JsonToStackUtil.toJsonArray(this.items, false));
-        }
-        return json;
-    }
-
-    @Override
-    public void read(JsonObject json) {
-        if (json.has("items")) {
-            this.items = JsonToStackUtil.toStacks(json.get("items"));
-        }
+    public void read(IData.IMapData<?> data) {
+        this.items = DataUtils.toStack(data.getList("items", IData.IMapData.class));
     }
 
     @Override

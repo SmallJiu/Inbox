@@ -71,6 +71,8 @@ public class EmailNetworkHandler {
 				.register(MsgRefreshScheduledEmail.Send.class, NetworkDirection.PLAY_TO_CLIENT)
 				.register(MsgRefreshScheduledEmail.RefreshMap.class, NetworkDirection.PLAY_TO_SERVER)
 				.register(MsgRefreshScheduledEmail.SendMap.class, NetworkDirection.PLAY_TO_CLIENT)
+
+				.register(MsgUndying.class, NetworkDirection.PLAY_TO_CLIENT)
 		;
 	}
 

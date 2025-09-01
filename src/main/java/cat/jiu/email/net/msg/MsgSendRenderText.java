@@ -7,6 +7,7 @@ import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.ui.container.ContainerEmailSend;
 import cat.jiu.email.util.EmailUtils;
 
@@ -45,7 +46,7 @@ public class MsgSendRenderText extends BaseMessage {
 	public void toBytes(FriendlyByteBuf buf) {
 		CompoundTag nbt = new CompoundTag();
 		
-		nbt.put("text", this.text.writeTo(CompoundTag.class));
+		nbt.put("text", (CompoundTag) this.text.write(NBTData.map()).getData());
 		nbt.putInt("color", this.color.getRGB());
 		nbt.putLong("ticks", this.renderTicks);
 		

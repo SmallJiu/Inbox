@@ -19,20 +19,19 @@ Date date = new Date()
 base {
     archivesName = mod_name
 }
-
-tasks.named('processResources', ProcessResources).configure {
-    var replaceProperties = [
-            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
-            loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
-    ]
-    inputs.properties replaceProperties
-
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
-    }
+java {
+    withSourcesJar()
+}
+sourcesJar {
+    from sourceSets.main.java // 只包含 Java 源文件
+    include '**/*.java' // 确保只包括 .java 文件
+    exclude(
+            '**/.cache/**', // 排除 .cache 文件夹
+            '**/assets/**', // 排除 assets 文件夹
+            '**/data/**' // 排除 data 文件夹
+    )
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE // 排除重复的文件
+    archiveClassifier.set('sources') // 设置源代码 JAR 文件的后缀
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -139,8 +138,10 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:placebo-283644:6274231")
     implementation fg.deobf("curse.maven:apothic-attributes-898963:5634071")
 
-    implementation fg.deobf("local.libs:JiuCore-1.20.1:0.0.1-all")
-    jarJar("local.libs:JiuCore-1.20.1:[0.0.1-all,)")
+    compileOnly("blank:jmp123-all:1.0.0")
+    implementation fg.deobf(jarJar("blank:jiucore-1.20.1:[0.0.1,)") {
+        jarJar.pin(it, "0.0.1")
+    })
 }
 
 mixin {
@@ -166,11 +167,6 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-import org.apache.commons.io.FileUtils
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
-
-File archiveFile1
 tasks.named('jar', Jar).configure {
     manifest {
         attributes([
@@ -183,64 +179,24 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Timestamp': date.format("yyyy/MM/dd_HH:mm:ss")
         ])
     }
-
-    if(is_mixin == "true") {
-        manifest.attributes.put('MixinConfigs', mixin_file)
-    }
-    finalizedBy 'reobfJar'
-
-    String date1 = "_" + date.format("HH.mm.ss")
-    String name = mod_id + "-" + mod_version + date1
-
-    archiveFileName.set(name + ".jar")
-
-    doLast {
-        archiveFile1 = archiveFile.get().getAsFile()
-    }
 }
-
-build {
-    doLast {
-        File root = archiveFile1.getParentFile().getParentFile().getParentFile()
-        File tempDir = new File(root, "build/tmp/source/")
-        String name = archiveFile1.getName().substring(0, archiveFile1.getName().lastIndexOf('.'))
-        File sourceJar = new File(archiveFile1.getParent(), name + "-source.jar")
-        println()
-        println("file name: " + archiveFile1.getName())
-        println("source name: " + name + "-source.jar")
-        if (tempDir.exists()) {
-            tempDir.delete()
-        }
-        copy(new File(root, "build/resources/main"), tempDir)
-        FileUtils.copyFile(new File(root, "build/tmp/jar/MANIFEST.MF"), new File(tempDir, "META-INF/MANIFEST.MF"))
-        copy(new File(root, "src/main/java"), tempDir)
-
-        try(ZipOutputStream os = new ZipOutputStream(new FileOutputStream(sourceJar))) {
-            for (File f : tempDir.listFiles()) {
-                zip(os, f)
-            }
-        }
-    }
-}
-
-static void copy(File src, File to) {
-    for (File c : src.listFiles()) {
-        if (c.isFile()) {
-            FileUtils.copyFile(c, new File(to, c.getName()))
-        }else {
-            copy(c, new File(to, c.getName()))
-        }
-    }
-}
-static void zip(ZipOutputStream os, File f) {
-    if (f.isFile()) {
-        String s = f.toString().replace('\\', '/')
-        os.putNextEntry(new ZipEntry(s.substring(s.indexOf("/build/tmp/source/") + "/build/tmp/source/".length())))
-        os.write(f.bytes)
-        os.closeEntry()
-    }else {
-        for (File f1 : f.listFiles()) {
-            zip(os, f1)
-        }
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version:       minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_version:           forge_version,
+            forge_version_range:     forge_version_range,
+            loader_version_range:    loader_version_range,
+            mod_id:                  mod_id,
+            mod_name:                mod_name,
+            mod_license:             mod_license,
+            mod_version:             mod_version,
+            mod_authors:             mod_authors,
+            mod_description:         mod_description,
+            core_version:            core_version
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
     }
 }

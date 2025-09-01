@@ -1,9 +1,11 @@
 package cat.jiu.email.ui.gui;
 
 import cat.jiu.core.api.element.IText;
+import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.Text;
+import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.core.util.timer.Timer;
 import cat.jiu.email.EmailAPI;
@@ -26,6 +28,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -241,7 +244,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			this.getMenu().setLock(true);
 			String filename = email.getTitle().format() + "-" + System.currentTimeMillis() + ".json";
 
-			JsonObject object = email.writeTo(JsonObject.class);
+			JsonObject object = (JsonObject) email.write(JsonData.map()).getData();
 			object.remove("time");
 			if (!email.hasAttachment()) {
 				JsonArray array = new JsonArray();
@@ -253,7 +256,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			}
 
 			File file = new File(EmailAPI.getGlobalDataPath(), "emails/"+filename);
-			JsonParser.toJsonFile(file, object, true);
+			JsonUtils.toJsonFile(file, object, true, EmailConfigServer.File_Charset.get());
 
 			this.getMenu().setLock(false);
 			try {

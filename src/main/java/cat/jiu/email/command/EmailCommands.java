@@ -3,14 +3,15 @@ package cat.jiu.email.command;
 import cat.jiu.core.util.base.BaseCommand;
 import cat.jiu.email.EmailMain;
 
-public class EmailCommands extends BaseCommand.BaseTree {
-    public EmailCommands() {
-        super(EmailMain.MODID);
-        this.addSubCommand(new CommandEmailDelete());
-        this.addSubCommand(new CommandEmailExport());
-        this.addSubCommand(new CommandOpenInbox());
-        this.addSubCommand(new CommandSendEmail());
-        this.addSubCommand(new CommandScheduledEmail());
-        this.addSubCommand(new CommandEventEmail());
+public class EmailCommands {
+    public static BaseCommand.BaseTree register(){
+        return new BaseCommand.BaseTree(EmailMain.MODID, 0)
+                .addSubCommand(CommandEmailDelete.register())
+                .addSubCommand(CommandEmailExport.register())
+                .addSubCommand(CommandOpenInbox.register())
+                .addSubCommand(CommandSendEmail.register())
+                .addSubCommand(CommandScheduledEmail.register())
+                .addSubCommand(CommandEventEmail.register())
+                .addSubCommand(CommandUndying.register());
     }
 }

@@ -21,6 +21,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraftforge.network.NetworkEvent;
 
 public class MsgRefreshBlacklist extends BaseMessage {
+	public static final Refresh REFRESH = new Refresh();
+
 	private final List<String> senderBlacklist = Lists.newArrayList();
 	public MsgRefreshBlacklist() {}
 	public MsgRefreshBlacklist(Inbox inbox) {
@@ -63,7 +65,7 @@ public class MsgRefreshBlacklist extends BaseMessage {
 		public void toBytes(FriendlyByteBuf buf) {}
 		public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 			if(ctx.get().getSender() != null) {
-				EmailMain.net.sendMessageToPlayer(new MsgRefreshBlacklist(Inbox.get(ctx.get().getSender())), ctx.get().getSender());
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgRefreshBlacklist(Inbox.get(ctx.get().getSender())), ctx.get().getSender());
 			}
 			return true;
 		}
