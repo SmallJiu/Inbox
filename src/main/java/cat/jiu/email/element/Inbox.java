@@ -359,7 +359,9 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		}
 
 		if(!this.senderBlacklist.isEmpty()) {
-			data.putData("blacklist", this.senderBlacklist.toArray(new String[0]));
+			IData.IListData<?> list = data.newList();
+			list.putData(this.senderBlacklist.toArray(new String[0]));
+			data.putData("blacklist", list);
 		}
 		return data;
 	}
@@ -415,12 +417,14 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 			}
 			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
 
-			data.getList("blacklist", String.class).foreach((index, value)->{
-				String name = value.getAsPrimitive().getAsString();
-				if(!this.isInSenderBlacklist(name)) {
-					this.addSenderBlacklist(name);
-				}
-			});
+			if(data.containsKey("blacklist")) {
+				data.getList("blacklist", String.class).foreach((index, value)->{
+					String name = value.getAsPrimitive().getAsString();
+					if(!this.isInSenderBlacklist(name)) {
+						this.addSenderBlacklist(name);
+					}
+				});
+			}
 		}
 	}
 

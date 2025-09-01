@@ -148,7 +148,7 @@ public class MsgSend extends BaseMessage {
 			container = (ContainerEmailSend) sender.containerMenu;
 			if(lock) container.setLock(true);
 			stacks = container.toItemList(false);
-			if (container.isEmpty()) {
+			if (!container.isEmpty()) {
 				this.email.addItems(stacks);
 			}
 		}
@@ -162,19 +162,23 @@ public class MsgSend extends BaseMessage {
 		}
 
 		if(this.group.isPlayerSend() && Cooling.isCooling(sender.getName().getString()) || Cooling.isCooling(this.email.getSender().getText())){
-			container.putStack(this.email.getItems());
+			if (this.email.hasItems()) {
+				container.putStack(this.email.getItems());
+			}
 			if(lock) container.setLock(false);
 			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.cooling")), sender);
 			return;
 		}
 		
 		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, this.group, addresses, this.email))) return;
-		
+
 		if(!inbox.isInSenderBlacklist(sender.getName().getString())) {
 			this.sendMessage(addresses, inbox.addEmail(this.email, true), sender, lock);
 		}else {
 			if(this.group.isPlayerSend()) {
-				container.putStack(this.email.getItems());
+				if (this.email.hasItems()) {
+					container.putStack(this.email.getItems());
+				}
 				if(lock) container.setLock(false);
 			}
 			this.sendIsBlackMessage(sender, lock);

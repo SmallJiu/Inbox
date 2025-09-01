@@ -38,7 +38,7 @@ public class MsgSendRenderText extends BaseMessage {
 	public void fromBytes(FriendlyByteBuf buf) {
 		CompoundTag nbt = buf.readNbt();
 
-		this.text = new Text(nbt.getCompound("text"));
+		this.text = new Text(NBTData.map(nbt.getCompound("text")));
 		this.color = new Color(nbt.getInt("color"));
 		this.renderTicks = nbt.getLong("ticks");
 	}
