@@ -65,6 +65,29 @@ public class EmailUtils {
 		return dateFormat.format(new Date());
 	}
 
+	public static String getSize(double size) {
+		if (size < 1024) {
+			return String.format("%.2f Byte", size);
+		}
+		size /= 1024;
+		if (size < 1024) {
+			return String.format("%.2f KB", size);
+		}
+		size /= 1024;
+		if (size < 1024) {
+			return String.format("%.2f MB", size);
+		}
+		size /= 1024;
+		if (size < 1024) {
+			return String.format("%.2f GB", size);
+		}
+		size /= 1024;
+		if (size < 1024) {
+			return String.format("%.2f TB", size);
+		}
+		return String.format("%.2f", size);
+	}
+	
 	public static ServerPlayer getPlayer(MinecraftServer server, String name){
 		EmailUtils.initNameAndUUID(server);
 		ServerPlayer player = server.getPlayerList().getPlayerByName(name);

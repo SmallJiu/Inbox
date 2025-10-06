@@ -29,6 +29,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.locale.Language;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -44,7 +45,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GuiGenerateScheduledEmail extends Screen {
-    private final Runnable parent;
+    private final Screen parent;
     private final HashMap<String, Email> pathMap = new HashMap<>();
     private EmailPathList emailList;
     private ScheduledEmailInfo emailInfo;
@@ -52,8 +53,8 @@ public class GuiGenerateScheduledEmail extends Screen {
     private Button refreshBtn, confirmBtn;
 //    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
 
-    public GuiGenerateScheduledEmail(Runnable parent) {
-        super(Component.nullToEmpty(null));
+    public GuiGenerateScheduledEmail(Screen parent) {
+        super(CommonComponents.EMPTY);
         this.parent = parent;
         EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAP);
     }
@@ -106,7 +107,7 @@ public class GuiGenerateScheduledEmail extends Screen {
         int width = RenderUtils.getFontRenderer().width(Component.translatable("info.inbox.black.back"));
         Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                         Component.translatable("info.inbox.black.back"),
-                        b-> this.parent.run()
+                        b-> Minecraft.getInstance().setScreen(this.parent)
                 )
                 .pos(this.emailInfo.getRight() - width - 6, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
@@ -244,7 +245,7 @@ public class GuiGenerateScheduledEmail extends Screen {
     @Override
     public void onClose() {
         super.onClose();
-        this.parent.run();
+        Minecraft.getInstance().setScreen(this.parent);
     }
 
     @Override
@@ -501,13 +502,13 @@ public class GuiGenerateScheduledEmail extends Screen {
         private final Runnable parent;
         private final String path;
         private int leftPos, topPos;
-        private final GuiTime time = new GuiTime(this, false);
+        private final GuiTime time = new GuiTime(false, true, true, true, true, false);
         private EditBox note, custom_addressee;
         private Button timeBtn, addresseeBtn;
         private int currentAddressee = 0;
 
         public ConfirmPanel(Runnable parent) {
-            super(Component.nullToEmpty(null));
+            super(CommonComponents.EMPTY);
             this.parent = parent;
             this.path = GuiGenerateScheduledEmail.this.getCurrentPath() + ".json";
         }
@@ -517,10 +518,14 @@ public class GuiGenerateScheduledEmail extends Screen {
             super.init();
             this.leftPos = (this.width - 176) / 2;
             this.topPos = (this.height - 166) / 2;
+            this.time.setEnable(false);
 
             int
                     x = this.leftPos + 29,
                     y = this.topPos + 20 + RenderUtils.getFontRenderer().lineHeight + 2;
+
+            this.time.setRenderPos(x + 156, y - 26);
+
 
             int width = RenderUtils.width(Component.translatable("info.inbox.scheduled.gen.interval.change")) + 4;
             this.timeBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.inbox.scheduled.gen.interval.change"), btn->this.time.setEnable(!this.time.isEnable()))

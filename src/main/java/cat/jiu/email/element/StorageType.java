@@ -1,5 +1,6 @@
 package cat.jiu.email.element;
 
+import cat.jiu.core.api.Lambdas;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.registry.StaticRegistry;
 import cat.jiu.email.EmailAPI;
@@ -29,13 +30,13 @@ public class StorageType implements Supplier<String> {
     }
 
     public final String name;
-    public final Function_WithExceptions<String, JsonObject, Exception> read;
-    public final Consumer_WithExceptions<Inbox, Exception> write;
+    public final Lambdas.Consumer_WithException<Inbox, Exception> write;
+    public final Lambdas.Function_WithException<String, JsonObject, Exception> read;
 
     public StorageType(
             String name,
-            Consumer_WithExceptions<Inbox, Exception> write,
-            Function_WithExceptions<String, JsonObject, Exception> read
+            Lambdas.Consumer_WithException<Inbox, Exception> write,
+            Lambdas.Function_WithException<String, JsonObject, Exception> read
     ) {
         this.name = name;
         this.write = write;
@@ -81,7 +82,8 @@ public class StorageType implements Supplier<String> {
 
     public static final StorageType JSON_FORMAT = new StorageType(
             "json_format",
-            inbox->StorageType.writeJson(inbox, true), JSON.read
+            inbox->StorageType.writeJson(inbox, true),
+            JSON.read
     ).register();
 
     public static final StorageType NBT = new StorageType(
@@ -102,14 +104,4 @@ public class StorageType implements Supplier<String> {
             inbox->DBParser.write(DBParser.getDBUrl(), inbox),
             owner->DBParser.read(DBParser.getDBUrl(), owner)
     ).register();
-
-    @FunctionalInterface
-    public interface Consumer_WithExceptions<T, E extends Exception> {
-        void accept(T t) throws E;
-    }
-
-    @FunctionalInterface
-    public interface Function_WithExceptions<T, R, E extends Exception> {
-        R apply(T t) throws E;
-    }
 }

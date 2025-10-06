@@ -1,7 +1,6 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
-import cat.jiu.email.EmailAPI;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailDeleteEvent;
@@ -35,11 +34,11 @@ public class MsgDeleteEmail {
 								inbox.getEmail(this.msgID).receive(player);
 							}
 							inbox.deleteEmail(msgID);
+							MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, this.msgID, false, false));
 						}
 					}
 					EmailUtils.saveInboxToDisk(inbox);
 //					EmailAPI.sendInboxToClient(inbox, player);
-					MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, this.msgID, false, false));
 				});
 			}
 			return true;
@@ -59,13 +58,13 @@ public class MsgDeleteEmail {
 					boolean changed = false;
 					for(long i : inbox.getEmailIDs()) {
 						Email email = inbox.getEmail(i);
-						if(email.isRead() && !email.hasAttachment()) {
+						if(email.isRead() && !email.hasAttachments()) {
 							if(!MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Pre(inbox, i, true, false))) {
 								inbox.deleteEmail(i);
 								changed = true;
+								MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, true, false));
 							}
 						}
-						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, true, false));
 					}
 					if(changed){
 						EmailUtils.saveInboxToDisk(inbox);
@@ -95,9 +94,9 @@ public class MsgDeleteEmail {
 								email.receive(player);
 							}
 							inbox.deleteEmail(i);
+							MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));
 							changed = true;
 						}
-						MinecraftForge.EVENT_BUS.post(new EmailDeleteEvent.Post(inbox, i, false, true));
 					}
 					if(changed){
 						EmailUtils.saveInboxToDisk(inbox);

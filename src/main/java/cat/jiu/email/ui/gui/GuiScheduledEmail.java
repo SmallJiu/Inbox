@@ -3,6 +3,7 @@ package cat.jiu.email.ui.gui;
 import cat.jiu.core.api.ITimer;
 import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.client.RenderUtils;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.configs.EmailConfigClient;
@@ -27,6 +28,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.locale.Language;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -40,6 +42,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class GuiScheduledEmail extends Screen {
+    protected final Screen parent;
     private EditBox currentEmailTitle, currentEmailLastTime;
     private ScheduledEmailList emailList;
     private ScheduledEmailInfo emailInfo;
@@ -47,8 +50,9 @@ public class GuiScheduledEmail extends Screen {
 //    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
     private final List<ScheduledEmail> emails = new ArrayList<>();
 
-    public GuiScheduledEmail() {
-        super(Component.empty());
+    public GuiScheduledEmail(Screen parent) {
+        super(CommonComponents.EMPTY);
+        this.parent = parent;
         EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
     }
 
@@ -106,7 +110,7 @@ public class GuiScheduledEmail extends Screen {
         int width = RenderUtils.getFontRenderer().width(Component.translatable("info.inbox.black.back"));
         Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                         Component.translatable("info.inbox.black.back"),
-                        b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)
+                        b-> Minecraft.getInstance().setScreen(this.parent)
                 )
                 .pos(this.emailInfo.getRight() - width - 6, this.emailInfo.getBottom() + 2)
                 .size(width + 6, this.font.lineHeight + 6)
@@ -117,7 +121,7 @@ public class GuiScheduledEmail extends Screen {
             this.addBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                             Component.translatable("info.inbox.black.add"),
                             b->
-                                    Minecraft.getInstance().setScreen(new GuiGenerateScheduledEmail(()->GuiHandler.openGui(GuiHandler.EMAIL_Scheduled)))
+                                    Minecraft.getInstance().setScreen(new GuiGenerateScheduledEmail(this))
                     )
                     .pos(btn.getX() - width - 8, this.emailInfo.getBottom() + 2)
                     .size(width + 6, this.font.lineHeight + 6)
@@ -216,7 +220,7 @@ public class GuiScheduledEmail extends Screen {
                 tip.add("");
                 tip.add("ID: " + entry.email.getId());
 
-                graphics.renderComponentTooltip(RenderUtils.getFontRenderer(), tip.stream().map(Component::literal).collect(Collectors.toList()), pX, pY);
+                RenderUtils.drawStringTooltip(graphics, pX, pY, tip);
                 break;
             }
         }
@@ -326,7 +330,7 @@ public class GuiScheduledEmail extends Screen {
     @Override
     public void onClose() {
         super.onClose();
-        GuiHandler.openGui(GuiHandler.EMAIL_MAIN);
+        Minecraft.getInstance().setScreen(this.parent);
     }
 
     private static class ScheduledEmailInfo extends ScrollPanel {

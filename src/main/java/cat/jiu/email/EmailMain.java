@@ -1,11 +1,11 @@
 package cat.jiu.email;
 
 import cat.jiu.core.util.client.config.ConfigWriteEvent;
+import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.command.EmailEventType;
 import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.configs.EmailConfigClient;
-import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.Inbox;
 import cat.jiu.email.element.ScheduledEmail;
@@ -46,7 +46,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.1.4";
+                                VERSION = "1.20.1-1.2.0";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -72,7 +72,6 @@ public class EmailMain {
             bus.addListener(this::onClientSetup);
             bus.addListener(this::onRegisterBindings);
         }
-        GuiHandler.MENU_TYPE_REGISTER.register(bus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, EmailConfigServer.CONFIG_MAIN, "jiu/inbox/configs-server.toml");
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, EmailConfigClient.CONFIG_MAIN, "jiu/inbox/configs-client.toml");
         MinecraftForge.EVENT_BUS.register(this);
@@ -101,12 +100,13 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
-        event.enqueueWork(()-> NETWORK = new EmailNetworkHandler());
+        event.enqueueWork(()-> NETWORK = EmailNetworkHandler.getInstance());
         MinecraftForge.EVENT_BUS.register(SendDevEmail.class);
 
         ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
         ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
 
+        // register email attachment
         IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new);
         IAttachment.REGISTRY.register(AttachmentCommand.ID, AttachmentCommand::new);
         IAttachment.REGISTRY.register(AttachmentXP.ID, AttachmentXP::new);
@@ -122,6 +122,13 @@ public class EmailMain {
     void onClientSetup(final FMLClientSetupEvent event) {
         GuiHandler.registerScreen();
 
+        // regsiter email attachment send screen widget
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentItem.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentUndying.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentXP.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentCommand.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentAttribute.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentEffect.Widget.INSTANCE);
     }
     @OnlyIn(Dist.CLIENT)
     void onRegisterBindings(RegisterKeyMappingsEvent event) {
@@ -132,7 +139,6 @@ public class EmailMain {
     @SubscribeEvent
     public void onServerStarting(ServerStartedEvent event) {
         EmailUtils.initNameAndUUID(event.getServer());
-        Cooling.load();
         EventEmail.load();
         ScheduledEmail.init();
     }
@@ -161,7 +167,7 @@ public class EmailMain {
 
     @SubscribeEvent
     public void onCommandRegister(RegisterCommandsEvent event) {
-        cat.jiu.email.command.EmailCommands.register().register(event.getDispatcher());
+        cat.jiu.email.command.EmailCommands.register().register(event);
     }
 
     public static void execute(Runnable function) {execute(function, 50);}

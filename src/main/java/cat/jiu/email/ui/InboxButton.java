@@ -1,6 +1,7 @@
 package cat.jiu.email.ui;
 
 import cat.jiu.core.util.Utils;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.ui.gui.component.GuiImageButton;
@@ -100,7 +101,7 @@ public class InboxButton {
 		protected Component displayText, displayText1;
 
 		public Button(Screen gui, EmailConfigServer.Pos pos, ForgeConfigSpec.DoubleValue size, String buttonText) {
-			super(gui, 0, 0, 20, 13, buttonText, 23, 15, 23, 15, b-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN));
+			super(gui, 0, 0, 20, 13, buttonText, 23, 15, 23, 15, b-> EmailAPI.openInbox());
 			this.gui = gui;
 			this.pos = pos;
 			this.size = size;

@@ -28,7 +28,6 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -52,7 +51,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 	public static final ResourceLocation BackGround = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_generate.png");
     private EditBox titleField, localSound;
     private final EditBox[] textFields = new EditBox[5];
-    private final GuiTime expiration = new GuiTime(this, false);
+    private final GuiTime expiration = new GuiTime(false);
 	private final GuiButtonPopupMenu mcSounds = new GuiButtonPopupMenu();
 	private GuiCheckbox useMCSound;
 	private GuiButton mcSoundBtn;
@@ -173,6 +172,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 				));
 			}
 		}
+		this.addRenderableWidget(this.mcSounds);
 	}
 
 	void generate(){
@@ -293,10 +293,8 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 		this.setRenderText(text, color, EmailUtils.parseTick(0,0,0,25, 0));
 	}
 	public void setRenderText(String text, Color color, long ticks) {
-		super.getMenu().setRenderText(text, color, ticks);
 	}
 	public void clearRenderText() {
-		super.getMenu().clearRenderText();
 	}
 
 	@Override
@@ -305,7 +303,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			if (this.useMCSound.mouseClicked(mouseX, mouseY, mouseButton)) {
 				return true;
 			}
-			if (this.mcSounds.mouseClicked(this.getMinecraft(), (int) mouseX, (int) mouseY, mouseButton)) {
+			if (this.mcSounds.mouseClicked((int) mouseX, (int) mouseY, mouseButton)) {
 				return true;
 			}
 			return super.mouseClicked(mouseX, mouseY, mouseButton);
@@ -367,7 +365,7 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 
 	@Override
 	public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
-		if (this.mcSounds.scroll((int) pMouseX, (int) pMouseY, (int)pDelta)) {
+		if (this.mcSounds.mouseScrolled(pMouseX, pMouseY, pDelta)) {
 			return true;
 		}
 		return super.mouseScrolled(pMouseX, pMouseY, pDelta);
@@ -395,7 +393,6 @@ public class GuiEmailGenerate extends AbstractContainerScreen<ContainerEmailGene
 			graphics.drawString(this.font, tf.getValue().length()+"/"+tf.getMaxLength(), tf.getX() +tf.getWidth()+13, tf.getY() +2, (tf.isMouseOver(mouseX, mouseY) ? Color.CYAN : Color.WHITE).getRGB(), false);
 		}
 		this.expiration.render(graphics, this.leftPos + 149 + 22 + 10, this.topPos + 20 + 80, partialTicks);
-		this.mcSounds.drawPopupMenu(graphics, mouseX, mouseY, partialTicks);
 	}
 
 	@Override

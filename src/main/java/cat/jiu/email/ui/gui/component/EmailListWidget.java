@@ -11,7 +11,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -124,14 +123,14 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
             this.email = email;
             this.width = width;
             Component title = email.getTitle().toTextComponent();
-            if (email.getTitle().getStringWidth(this.parent.getFont()) >= this.width - this.parent.getFont().width("...")) {
-                title = Component.literal(parent.getFont().plainSubstrByWidth(email.getTitle().format(), this.width - 3 - 9 - this.parent.getFont().width("..."))).append("...");
+            if (email.getTitle().getStringWidth(RenderUtils.getFontRenderer()) >= this.width - RenderUtils.width("...")) {
+                title = Component.literal(parent.getFont().plainSubstrByWidth(email.getTitle().format(), this.width - 3 - 9 - RenderUtils.width("..."))).append("...");
             }
             this.title = title;
 
             String sender = ChatFormatting.GRAY + I18n.get("info.inbox.main.from", this.email.getSender().format());
-            if (RenderUtils.width(sender) >= this.width - this.parent.getFont().width("...")) {
-                sender = parent.getFont().plainSubstrByWidth(sender, this.width - 3 - 9 - this.parent.getFont().width("...")) + "...";
+            if (RenderUtils.width(sender) >= this.width - RenderUtils.width("...")) {
+                sender = parent.getFont().plainSubstrByWidth(sender, this.width - 3 - 9 - RenderUtils.width("...")) + "...";
             }
             this.sender = Component.literal(sender);
         }
@@ -143,9 +142,7 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
 
         @Override
         public void render(@NotNull GuiGraphics graphics, int index, int pTop, int pLeft, int pWidth, int pHeight, int pMouseX, int pMouseY, boolean pHovering, float pPartialTick) {
-            graphics.drawString(this.parent.getFont(), this.title, pLeft + 2, pTop + 4, Color.WHITE.getRGB());
-//            graphics.drawString(this.parent.getFont(), this.time, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB());
-//            EmailUtils.drawAlignRightString(graphics, this.parent.getFont(), this.state, pLeft + pWidth - 9 - 3, pTop + 4, 0, true);
+            RenderUtils.drawComponent(graphics, this.title, pLeft + 2, pTop + 4, Color.WHITE.getRGB(), true);
 
             boolean showSender = true;
             if (this.email.hasExpirationTime()) {
@@ -160,14 +157,14 @@ public class EmailListWidget extends ObjectSelectionList<EmailListWidget.EmailEn
                 RenderUtils.draw(graphics, GuiInbox.ICON, x, y, 3, RenderUtils.getFontHeight(), 189, 122, 14, 38, 256, 256);
                 x -= 1;
             }
-            if (this.email.hasAttachment()) {
+            if (this.email.hasAttachments()) {
                 x -= RenderUtils.getFontHeight();
                 RenderUtils.draw(graphics, GuiInbox.ICON, x, y, RenderUtils.getFontHeight(), RenderUtils.getFontHeight(), 176 + (!this.email.isReceived() ? 40 : 0), 41, 40, 40, 256, 256);
                 x -= 1;
             }
 
             if (showSender) {
-                graphics.drawString(this.parent.getFont(), this.sender, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB());
+                RenderUtils.drawComponent(graphics, this.sender, pLeft + 2, pTop + this.parent.getFont().lineHeight + 2 + 3, Color.WHITE.getRGB(), true);
             }
         }
 

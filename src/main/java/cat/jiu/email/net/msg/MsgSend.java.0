@@ -1,6 +1,5 @@
 package cat.jiu.email.net.msg;
 
-import java.awt.Color;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,7 +24,6 @@ import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.network.NetworkEvent;
-import org.apache.logging.log4j.Level;
 
 import cat.jiu.email.element.Cooling;
 import cat.jiu.email.element.Email;
@@ -83,12 +81,12 @@ public class MsgSend extends BaseMessage {
 			ServerPlayer sender = ctx.get().getSender();
 
 			if(this.group.isPlayerSend() && this.addressed.equals(sender.getName().getString()) && !EmailConfigServer.Send.Enable_Send_To_Self.get()) {
-				this.sendMessage(sender, Level.ERROR, "info.inbox.error.send_self");
+				this.sendMessage(sender, "info.inbox.error.send_self");
 				return;
 			}
 
 			if(!EmailUtils.hasName(this.addressed) && !("@a".equals(this.addressed) || "@p".equals(this.addressed))) {
-				this.sendMessage(sender, Level.ERROR, "info.inbox.error.not_found_player", this.addressed);
+				this.sendMessage(sender, "info.inbox.error.not_found_player", this.addressed);
 				return;
 			}
 
@@ -122,9 +120,9 @@ public class MsgSend extends BaseMessage {
 								}
 							}
 
-							this.sendMessage(sender, Level.INFO, "info.inbox.send.abs", sended, System.currentTimeMillis() - time);
+							this.sendMessage(sender, "info.inbox.send.abs", sended, System.currentTimeMillis() - time);
 						}else {
-							this.sendMessage(sender, Level.ERROR, "info.inbox.send.not_op.abs", this.addressed);
+							this.sendMessage(sender, "info.inbox.send.not_op.abs", this.addressed);
 						}
 					}).start();
 				}
@@ -138,7 +136,7 @@ public class MsgSend extends BaseMessage {
 	
 	private void sendEmail(ServerPlayer sender, String addresses, boolean lock) {
 		if(this.email.getExpirationTime()!=null && this.email.getExpirationTime().millis>0 && !EmailUtils.isOP(sender)) {
-			this.sendMessage(sender, Level.ERROR, "info.inbox.send.not_op.expiration");
+			this.sendMessage(sender, "info.inbox.send.not_op.expiration");
 			return;
 		}
 		Inbox inbox = Inbox.get(addresses);
@@ -166,7 +164,7 @@ public class MsgSend extends BaseMessage {
 				container.putStack(this.email.getItems());
 			}
 			if(lock) container.setLock(false);
-			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.cooling")), sender);
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.send.fail.cooling")), sender);
 			return;
 		}
 		
@@ -224,7 +222,7 @@ public class MsgSend extends BaseMessage {
 					if(EmailConfigServer.Send.Enable_Send_Cooling.get()) {
 						Cooling.cooling(msgSender.getName().getString());
 					}
-					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.GREEN, new Text("info.inbox.send.success", addresser)), msgSender);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.send.success", addresser)), msgSender);
 				}else {
 					IText.create(msgSender, ChatFormatting.GREEN, "info.inbox.send.success", addresser);
 				}
@@ -240,7 +238,7 @@ public class MsgSend extends BaseMessage {
 					if(msgSender.containerMenu instanceof ContainerEmailSend container) {
 						if(lock) container.setLock(false);
 					}
-					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail")), msgSender);
+					EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.send.fail")), msgSender);
 				}else {
 					IText.create(msgSender, ChatFormatting.RED, "info.inbox.send.fail");
 				}
@@ -256,7 +254,7 @@ public class MsgSend extends BaseMessage {
 				if(msgSender.containerMenu instanceof ContainerEmailSend container) {
 					if(lock) container.setLock(false);
 				}
-				EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(Color.RED, new Text("info.inbox.send.fail.blacklist")), msgSender);
+				EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text("info.inbox.send.fail.blacklist")), msgSender);
 			}else {
 				IText.create(msgSender, ChatFormatting.RED, "info.inbox.send.fail.blacklist");
 			}
@@ -281,19 +279,11 @@ public class MsgSend extends BaseMessage {
 		return player;
 	}
 	
-	private void sendMessage(ServerPlayer sender, Level level, String msg, Object... arg) {
+	private void sendMessage(ServerPlayer sender, String msg, Object... arg) {
 		if(this.group.isPlayerSend()) {
-			Color color;
-			if(level == Level.INFO) {
-				color = Color.GREEN;
-			}else if(level == Level.WARN) {
-				color = Color.YELLOW;
-			}else {
-				color = Color.RED;
-			}
-			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(color, new Text(msg, arg)), sender);
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendRenderText(new Text(msg, arg)), sender);
 		}else {
-			EmailMain.log.log(level, msg.replace("%s", "{}"), arg);
+			EmailMain.log.info(msg.replace("%s", "{}"), arg);
 		}
 	}
 	

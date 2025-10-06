@@ -4,61 +4,62 @@ import java.awt.Color;
 import java.util.Arrays;
 
 import cat.jiu.core.util.Utils;
-import cat.jiu.email.ui.GuiHandler;
+import cat.jiu.core.util.client.RenderUtils;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.ui.gui.component.GuiButton;
-import cat.jiu.email.ui.gui.component.GuiImageButton;
 
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.net.msg.MsgBlacklist;
 import cat.jiu.email.net.msg.refresh.MsgRefreshBlacklist;
-import cat.jiu.email.ui.container.ContainerInboxBlacklist;
 import cat.jiu.email.util.EmailUtils;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.MinecraftForge;
 import org.lwjgl.glfw.GLFW;
 
 @OnlyIn(Dist.CLIENT)
-public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklist> {
+public class GuiBlacklist extends Screen {
 	public static final ResourceLocation bg = Utils.location(EmailMain.MODID, "textures/gui/container/blacklist.png");
 
+	protected final Screen parent;
 	protected int[] nameIndex;
+	protected int leftPos;
+	protected int topPos;
 	
-	public GuiBlacklist(ContainerInboxBlacklist container, Inventory inventory) {
-		super(container, inventory, Component.translatable("info.inbox.black.info"));
-		this.imageWidth = 160;
-		this.imageHeight = 176;
+	public GuiBlacklist(Screen parent) {
+		super(Component.translatable("info.inbox.black.info"));
+		this.parent = parent;
 		this.goName(0);
 	}
 	
 	@Override
 	public void init() {
-		super.init();
 		EmailMain.NETWORK.sendMessageToServer(MsgRefreshBlacklist.REFRESH);
 
-		this.addRenderableWidget(new GuiButton(this.leftPos + 6, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.back"), btn-> GuiHandler.openGui(GuiHandler.EMAIL_MAIN)));
-		this.addRenderableWidget(new GuiButton(this.leftPos + 6 + 75, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.add"), btn-> getMinecraft().setScreen(new GuiAddBlacklist(this.getMenu().getBlacklist()))));
-		this.addRenderableWidget(new GuiButton(this.leftPos + this.width - 12 - 2, this.topPos + 3,
-				11, this.font.lineHeight + 2, Component.nullToEmpty("R"), btn-> {
-			if(this.getMenu().getBlacklist()!=null) {
-				this.getMenu().getBlacklist().clear();
-				currentShowName = null;
-			}
+		this.leftPos = (this.width - 160) / 2;
+		this.topPos = (this.height - 176) / 2;
+
+		this.addRenderableWidget(new GuiButton(this.leftPos + 6, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.back"), btn-> Minecraft.getInstance().setScreen(this.parent)));
+		this.addRenderableWidget(new GuiButton(this.leftPos + 6 + 75, this.topPos + 159, 75, this.font.lineHeight + 4, Component.translatable("info.inbox.black.add"), btn-> getMinecraft().setScreen(new GuiAddBlacklist(this, GuiInbox.INBOX.getSenderBlacklist()))));
+		this.addRenderableWidget(new GuiButton(this.leftPos + 160 - 12 - 2, this.topPos + 3,
+				11, RenderUtils.fontHeight() + 2, Component.literal("R"), btn-> {
+			
+			GuiInbox.INBOX.getSenderBlacklist().clear();
+			currentShowName = null;
+			
 			EmailMain.NETWORK.sendMessageToServer(MsgRefreshBlacklist.REFRESH);
-			btn.visible = false;
+			btn.active = false;
 			new Thread(()->{
 				try {
 					Thread.sleep(1000);
-					btn.visible = true;
+					btn.active = true;
 				}catch(Exception ignored) {}
 			}).start();
 		}));
@@ -66,42 +67,39 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	}
 
 	@Override
-	protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
 		super.renderBackground(graphics);
-		graphics.blit(bg, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+		RenderUtils.draw(graphics, bg, this.leftPos, this.topPos, 160, 176, 0, 0);
+		super.render(graphics, mouseX, mouseY, partialTicks);
 
-		graphics.drawString(this.font, I18n.get("info.inbox.black.title"),
+		RenderUtils.drawString(graphics, I18n.get("info.inbox.black.title"),
 				this.leftPos + 5,
-				this.topPos + 4, Color.WHITE.getRGB());
-		super.renderTooltip(graphics, mouseX, mouseY);
-	}
+				this.topPos + 4, Color.WHITE.getRGB(), true);
+        try {
+            this.renderLabels(graphics, mouseX, mouseY);
+        } catch (Exception ignored) {}
+    }
 
-	@Override
 	protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-		this.children().forEach(listener -> {
-			if(listener instanceof Button button && !(button instanceof GuiImageButton) && button.visible){
-				graphics.hLine(button.getX() - this.leftPos, button.getX() + button.getWidth() - 2 - this.leftPos, button.getY() + button.getHeight()-1 - this.topPos, (button.isHovered() ? Color.WHITE : Color.BLACK).getRGB());
-			}
-		});
-		if(this.getMenu().getBlacklist()==null || this.getMenu().getBlacklist().isEmpty()) return;
+		if(GuiInbox.INBOX.getSenderBlacklist().isEmpty()) return;
 		if(this.currentShowName==null) {
 			this.goName(0);
 			if(this.currentShowName==null) {
 				return;
 			}
 		}
-		
-		int x = 8;
-		int oriY = 7 + 9;
+
+		int x = this.leftPos + 8;
+		int oriY = this.topPos + 7 + 9;
 		{
 			int y = oriY;
 			for(int i = 0; i < this.currentShowName.length; i++) {
-				String name = this.getMenu().getBlacklist().get(this.currentShowName[i]);
-				if(this.font.width(name) >= 130) {
+				String name = GuiInbox.INBOX.getSenderBlacklist().get(this.currentShowName[i]);
+				if(RenderUtils.width(name) >= 130) {
 					name = this.font.plainSubstrByWidth(name, 130) + "...";
 				}
-				graphics.drawString(this.font, name, x, y, Color.RED.getRGB());
-				graphics.drawString(this.font, "x", x + 140, y, Color.RED.getRGB());
+				RenderUtils.drawString(graphics, name, x, y, Color.RED.getRGB(), false);
+				RenderUtils.drawString(graphics, "X", x + 140, y, Color.RED.getRGB(), false);
 				y += this.font.lineHeight + 3;
 			}
 		}
@@ -109,15 +107,15 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 			int y = oriY;
 			for(int i = 0; i < this.currentShowName.length; i++) {
 				boolean remove = false;
-				if(EmailUtils.isInRange(mouseX, mouseY, this.leftPos + x + 138, this.topPos + y, 9, 9)) {
-					graphics.hLine(x + 138, x + 138 + 9, y-1, Color.RED.getRGB());
-					graphics.hLine(x + 138, x + 138 + 9, y-1 + 9, Color.RED.getRGB());
-					graphics.vLine(x + 137 + 1, y-1, y+9, Color.RED.getRGB());
-					graphics.vLine(x + 137 + 1 + 9, y-1, y+9, Color.RED.getRGB());
+				if(EmailUtils.isInRange(mouseX, mouseY, x + 138, y, 9, 9)) {
+					RenderUtils.hLine(graphics, x + 138, y-1, 9, Color.RED.getRGB());
+					RenderUtils.hLine(graphics, x + 138, y-1+9, 9, Color.RED.getRGB());
+					RenderUtils.vLine(graphics, x + 138, y-1, 9, Color.RED.getRGB());
+					RenderUtils.vLine(graphics, x + 138 + 9, y-1, 9, Color.RED.getRGB());
 					remove = true;
 				}
-				if(EmailUtils.isInRange(mouseX, mouseY, this.leftPos + x, this.topPos + y - 2, 150, 12)) {
-					graphics.renderTooltip(this.font, Component.nullToEmpty(remove ? I18n.get("info.inbox.black.remove") : this.getMenu().getBlacklist().get(this.currentShowName[i])), mouseX - this.leftPos, mouseY - this.topPos);
+				if(EmailUtils.isInRange(mouseX, mouseY, x, y - 2, 150, 12)) {
+					RenderUtils.drawComponentTooltip(graphics, mouseX, mouseY, Component.nullToEmpty(remove ? I18n.get("info.inbox.black.remove") : GuiInbox.INBOX.getSenderBlacklist().get(this.currentShowName[i])));
 					break;
 				}
 				y += this.font.lineHeight + 3;
@@ -148,17 +146,17 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	protected int[] currentShowName;
 	
 	public void goName(int page) {
-		if(this.getMenu().getBlacklist()==null || this.getMenu().getBlacklist().isEmpty()) return;
+		if(GuiInbox.INBOX.getSenderBlacklist().isEmpty()) return;
 		
-		this.nameIndex = new int[this.getMenu().getBlacklist().size()];
+		this.nameIndex = new int[GuiInbox.INBOX.getSenderBlacklist().size()];
 		for(int i = 0; i < this.nameIndex.length; i++) {
 			this.nameIndex[i] = i;
 		}
-		if(this.getMenu().getBlacklist().size() > 12) {
+		if(GuiInbox.INBOX.getSenderBlacklist().size() > 12) {
 			this.namePage += page;
-			if(this.namePage > this.getMenu().getBlacklist().size()) this.namePage = this.getMenu().getBlacklist().size();
+			if(this.namePage > GuiInbox.INBOX.getSenderBlacklist().size()) this.namePage = GuiInbox.INBOX.getSenderBlacklist().size();
 			if(this.namePage < 0) this.namePage = 0;
-			int maxPage = this.getMenu().getBlacklist().size() - 12;
+			int maxPage = GuiInbox.INBOX.getSenderBlacklist().size() - 12;
 			if(this.namePage > maxPage) this.namePage = maxPage;
 			
 			this.currentShowName = Arrays.copyOfRange(this.nameIndex, this.namePage, 12 + this.namePage);
@@ -170,7 +168,7 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
-		if(this.getMenu().getBlacklist()==null || this.getMenu().getBlacklist().isEmpty()) return false;
+		if(GuiInbox.INBOX.getSenderBlacklist().isEmpty()) return false;
 
 		int y = 15;
 		for (int j : this.currentShowName) {
@@ -184,17 +182,22 @@ public class GuiBlacklist extends AbstractContainerScreen<ContainerInboxBlacklis
 	}
 
 	protected void removeBlacklist(int index) {
-		if(this.getMenu().getBlacklist()==null) return;
-		EmailMain.NETWORK.sendMessageToServer(new MsgBlacklist.Remove(this.getMenu().getBlacklist().get(index)));
+		EmailMain.NETWORK.sendMessageToServer(new MsgBlacklist.Remove(GuiInbox.INBOX.getSenderBlacklist().get(index)));
 	}
 	
 	@Override
 	public boolean charTyped(char typedChar, int keyCode) {
 		if (keyCode == 1 || this.getMinecraft().options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, keyCode))) {
-			GuiHandler.openGui(GuiHandler.EMAIL_MAIN);
+			Minecraft.getInstance().setScreen(this.parent);
 			return true;
         }else {
         	return super.charTyped(typedChar, keyCode);
         }
+	}
+
+	@Override
+	public void onClose() {
+		super.onClose();
+		Minecraft.getInstance().setScreen(this.parent);
 	}
 }

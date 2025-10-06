@@ -55,7 +55,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 	private EditBox nameField, titleField;
     private final EditBox[] textFields = new EditBox[5];
 	private LockIconButton lockBtn;
-    private final GuiTime expiration = new GuiTime(this, false);
+    private final GuiTime expiration = new GuiTime(false);
 	private final GuiButtonPopupMenu addresseeHistory = new GuiButtonPopupMenu();
 	private GuiImageButton addresseeHistoryBtn;
 	private final Inventory playerInventory;
@@ -161,6 +161,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 				));
 			}
 		}
+		this.addRenderableWidget(this.addresseeHistory);
 	}
 
 	public void addAddresseeHistory(String name, boolean writeToFile) {
@@ -288,7 +289,7 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
 		if (!this.addresseeHistoryBtn.isMouseOver(mouseX, mouseY)) {
-			if (this.addresseeHistory.mouseClicked(this.getMinecraft(), (int) mouseX - this.getGuiLeft(), (int) mouseY - this.getGuiTop(), mouseButton)){
+			if (this.addresseeHistory.mouseClicked((int) mouseX - this.getGuiLeft(), (int) mouseY - this.getGuiTop(), mouseButton)){
 				this.addresseeHistory.setVisible(false);
 				return true;
 			}
@@ -425,7 +426,6 @@ public class GuiEmailSend extends AbstractContainerScreen<ContainerEmailSend> {
 		if(!this.addresseeHistory.isVisible() && this.textsIsEmpty()) {
 			graphics.drawString(this.font, I18n.get("info.inbox.default_msg"), 10, 34, Color.WHITE.getRGB());
 		}
-		this.addresseeHistory.drawPopupMenu(graphics, mouseX - this.getGuiLeft(), mouseY - this.getGuiTop(), 0);
 		if (StringUtil.isNullOrEmpty(this.nameField.getValue()) && this.nameField.isMouseOver(mouseX, mouseY)) {
 			graphics.renderTooltip(getMinecraft().font, Component.translatable("info.inbox.send.name"), mouseX - this.getGuiLeft(), mouseY - this.getGuiTop());
 		}

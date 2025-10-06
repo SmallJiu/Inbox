@@ -3,16 +3,25 @@ package cat.jiu.email.element.attachment;
 import cat.jiu.core.api.IData;
 import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.util.Utils;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.api.ParameterFunction;
+import cat.jiu.email.ui.gui.component.GuiCheckbox;
+import cat.jiu.email.ui.gui.component.GuiFilterTextField;
 import cat.jiu.email.util.EmailUtils;
 import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Checkbox;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.commands.Commands;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -22,10 +31,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
@@ -38,7 +44,6 @@ public class AttachmentCommand implements IAttachment {
         if (addStartEnd) {
             key = PARAMETER_START + key + PARAMETER_END;
         }
-
         if (!PARAMETERS_PARSER.containsKey(key)) {
             PARAMETERS_PARSER.put(key, parser);
         }
@@ -115,13 +120,6 @@ public class AttachmentCommand implements IAttachment {
     }
 
     @Override
-    public void merge(IAttachment other) {
-        if (other instanceof AttachmentCommand attachment && !attachment.isEmpty()) {
-            attachment.getCommands().forEach(this::addCommand);
-        }
-    }
-
-    @Override
     public boolean isEmpty() {
         return this.commands ==null || this.commands.isEmpty();
     }
@@ -161,14 +159,21 @@ public class AttachmentCommand implements IAttachment {
     }
 
     @Override
+    public void merge(IAttachment other) {
+        if (other instanceof AttachmentCommand attachment && !attachment.isEmpty()) {
+            attachment.getCommands().forEach(this::addCommand);
+        }
+    }
+    @Override
     public void accept(Player player) {
         if (!this.isEmpty() && player.getServer()!=null) {
+            Commands commands = player.getServer().getCommands();
             for (Cmd cmd : this.commands) {
                 String c = cmd.cmd();
                 for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
                     c = entry.getValue().parser(entry.getKey(), c, player);
                 }
-                player.getServer().getServerResources().managers().getCommands().performPrefixedCommand(cmd.performer().isServer() ? player.getServer().createCommandSourceStack() : player.createCommandSourceStack(), c);
+                commands.performPrefixedCommand(cmd.performer().isServer() ? player.getServer().createCommandSourceStack() : player.createCommandSourceStack(), c);
             }
         }
     }
@@ -209,6 +214,11 @@ public class AttachmentCommand implements IAttachment {
     @Override
     public Component getDisplayName() {
         return Component.translatable("info.inbox.commands");
+    }
+
+    @Override
+    public String getName() {
+        return "info.inbox.commands";
     }
 
     @Override
@@ -289,7 +299,6 @@ public class AttachmentCommand implements IAttachment {
             return instance;
         }
     }
-
     public enum Performer {
         SERVER, PLAYER;
         public boolean isServer(){
@@ -297,6 +306,88 @@ public class AttachmentCommand implements IAttachment {
         }
         public static Performer get(boolean isServer) {
             return isServer ? SERVER : PLAYER;
+        }
+    }
+    @OnlyIn(Dist.CLIENT)
+    public static class Widget extends AttachmentSendScreenWidget {
+        public static final WidgetEntry INSTANCE = new WidgetEntry(ID, false, Widget::new);
+
+        public final SubWidget commands;
+        public final Button add;
+        private Widget() {
+            super(Component.translatable("info.inbox.commands"));
+            this.initSubWiget(false);
+            this.commands = this.addSubWidget(
+                    new SubWidget(false),
+                    1, 4, 0, 0
+            ).cast();
+
+            this.add = this.addSubWidget(Button.builder(Component.literal("++++++  ").append(Component.translatable("info.inbox.commands")).append("  ++++++"), b->{
+                                UUID uuid = UUID.randomUUID();
+                                this.commands.addWiget(new CommandBox(uuid, ()->
+                                    this.commands.widgets.removeIf(wiget -> {
+                                        if (wiget.widget instanceof CommandBox) {
+                                            return ((CommandBox) wiget.widget).uuid.equals(uuid);
+                                        }
+                                        return false;
+                                    })
+                                ),0, 3, 0, 0);
+                    })
+                            .size(350, 15)
+                    .build(),0, 0, 0, 0)
+                    .setConsumerEvent(false, true, false, false).cast();
+        }
+
+        @Override
+        public IAttachment newAttachmentInstance() {
+            AttachmentCommand attachment = new AttachmentCommand();
+            for (SubWidget.PositionWiget widget : this.commands.widgets) {
+                if (widget.widget instanceof CommandBox) {
+                    CommandBox box = (CommandBox) widget.widget;
+                    attachment.addCommand(box.command.getValue(), box.performer.selected(), box.hide.selected());
+                }
+            }
+            return attachment;
+        }
+
+        public static class CommandBox extends SubWidget {
+            public final UUID uuid;
+            public final EditBox command;
+            public final Checkbox performer, hide;
+            public CommandBox(UUID uid, Runnable delete) {
+                super(true, CommonComponents.EMPTY);
+                this.uuid = uid;
+                this.command = this.addWiget(
+                        new GuiFilterTextField("/", 0, 0, 250, RenderUtils.fontHeight() + 4),
+                        0, 0, 0, 2
+                ).cast();
+
+                this.performer = this.addWiget(
+                        new GuiCheckbox(0, 0, RenderUtils.fontHeight(), RenderUtils.fontHeight(), Component.translatable("info.inbox.generate.attachment.commands.op_permission"), false, null).messageToTooltip(),
+                        1, 0, 0, 2
+                ).setConsumerEvent(false, true, false, false).cast();
+
+                this.hide = this.addWiget(
+                        new GuiCheckbox(0, 0, RenderUtils.fontHeight(), RenderUtils.fontHeight(), Component.translatable("info.inbox.generate.attachment.commands.hide_on_tooltip"), false, null).messageToTooltip(),
+                        1, 0, 0, 2
+                ).setConsumerEvent(false, true, false, false).cast();
+
+                this.addWiget(Button.builder(Component.literal("X"), b0->
+                                delete.run()
+                        )
+                                .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
+                                .build(), 0, 0, 10, 0
+                        ).setConsumerEvent(false, true, false, false);
+            }
+
+            @Override
+            public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+                if (this.command.isFocused()) {
+                    super.keyPressed(pKeyCode, pScanCode, pModifiers);
+                    return true;
+                }
+                return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+            }
         }
     }
 }

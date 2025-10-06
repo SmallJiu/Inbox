@@ -2,38 +2,44 @@ package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.api.IData;
 import cat.jiu.core.util.*;
-import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
+import cat.jiu.email.ui.gui.component.GuiCheckbox;
+import cat.jiu.email.ui.gui.component.GuiFilterTextField;
+import cat.jiu.email.ui.gui.component.GuiTime;
 import cat.jiu.email.util.EmailUtils;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.extensions.common.IClientMobEffectExtensions;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class AttachmentEffect implements IAttachment {
@@ -125,22 +131,21 @@ public class AttachmentEffect implements IAttachment {
     }
 
     @Override
-    public void merge(IAttachment other) {
-        if (other instanceof AttachmentEffect attachment && !attachment.isEmpty()) {
-            this.addEffects(attachment.getEffects());
-        }
-    }
-
-    @Override
     public boolean isEmpty() {
         return this.getEffects() == null || this.getEffects().isEmpty();
     }
 
     @Override
     public String getName() {
-        return "effect";
+        return "info.inbox.effects";
     }
 
+    @Override
+    public void merge(IAttachment other) {
+        if (other instanceof AttachmentEffect attachment && !attachment.isEmpty()) {
+            this.addEffects(attachment.getEffects());
+        }
+    }
     @Override
     public void accept(Player player) {
         for (MobEffectInstance effect : this.getEffects()) {
@@ -210,6 +215,201 @@ public class AttachmentEffect implements IAttachment {
                     itemX = 0;
                 }
                 itemX += 24;
+            }
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static class Widget extends AttachmentSendScreenWidget {
+        public static final WidgetEntry INSTANCE = new WidgetEntry(ID, false, Widget::new);
+        public static final List<ResourceLocation> EFFECTS = Collections.unmodifiableList(new ArrayList<>(ForgeRegistries.MOB_EFFECTS.getKeys()));
+
+        public final SubWidget effects;
+        public final Button add;
+        private Widget() {
+            super(Component.translatable("info.inbox.effects"));
+            this.initSubWiget(false);
+            this.effects = this.addSubWidget(
+                    new SubWidget(false),
+                    3, 4, 0, 0
+            ).cast();
+
+            this.add = this.addSubWidget(Button.builder(Component.literal("++++++  ").append(Component.translatable("info.inbox.effects")).append("  ++++++"), b->{
+                UUID uuid = UUID.randomUUID();
+                this.effects.addWiget(new EffectWidget(uuid, ()->
+                        this.effects.widgets.removeIf(wiget -> {
+                            if (wiget.widget instanceof EffectWidget) {
+                                return ((EffectWidget) wiget.widget).uuid.equals(uuid);
+                            }
+                            return false;
+                        })
+                ),0, 2, 0, 0);
+            }).size(350, 15)
+                    .build(), 0, 0, 0, 0).cast();
+        }
+
+        @Override
+        public int getHeight() {
+            return super.getHeight();
+        }
+
+        @Override
+        public IAttachment newAttachmentInstance() {
+            AttachmentEffect attachment = new AttachmentEffect();
+            for (SubWidget.PositionWiget widget : this.effects.widgets) {
+                if (widget.widget instanceof EffectWidget) {
+                    EffectWidget effect =  (EffectWidget) widget.widget;
+                    MobEffect mobEffect = ForgeRegistries.MOB_EFFECTS.getValue(Utils.location(effect.effect.getValue()));
+                    if (mobEffect != null) {
+                        MobEffectInstance instance = new MobEffectInstance(
+                                mobEffect, effect.infinite.selected() ? -1 : (int)effect.time.getTimeOfTicks(), effect.level.getAsNumber().intValue(),
+                                effect.beaconAdd.selected(), effect.showParticles.selected(), effect.showIcon.selected()
+                        );
+                        if (effect.setMainhandItemToCurativeItem.selected() && !Minecraft.getInstance().player.getMainHandItem().isEmpty()) {
+                            instance.getCurativeItems().add(Minecraft.getInstance().player.getMainHandItem());
+                        }
+                        attachment.addEffect(instance);
+                    }
+                }
+            }
+            return attachment;
+        }
+
+        public static class EffectWidget extends SubWidget {
+            public final UUID uuid;
+            public final EditBox effect;
+            public ModifierWidget effectModifier;
+            public final GuiTime time;
+            public final GuiFilterTextField level;
+            public final GuiCheckbox infinite, beaconAdd, showIcon, showParticles, setMainhandItemToCurativeItem;
+
+            public EffectWidget(UUID uuid, Runnable onRemove) {
+                super(true);
+                this.uuid = uuid;
+                this.effect = this.addWiget(new EditBox(
+                        RenderUtils.getFontRenderer(), 0, 0, 200, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
+                )).cast();
+                EffectIcon icon = this.addWiget(new EffectIcon(), -4, 0, 2, 0).cast();
+                icon.effect = MobEffects.MOVEMENT_SPEED;
+                this.effect.setValue("minecraft:speed");
+                this.effect.setResponder(s-> {
+                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(Utils.location(s));
+
+                    icon.effect = effectInstance;
+                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
+                    this.effect.setTooltip(effectName);
+                    icon.setTooltip(effectName);
+                    this.effectModifier.setTooltip(effectName);
+                });
+
+                AtomicInteger effectIndex = new AtomicInteger(0);
+                this.effectModifier = this.addWiget(new ModifierWidget(false, ()-> {
+                    effectIndex.set(effectIndex.get() + 1);
+                    if (effectIndex.get() >= EFFECTS.size()) {
+                        effectIndex.set(0);
+                    }
+                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(EFFECTS.get(effectIndex.get()));
+                    this.effect.setValue(String.valueOf(EFFECTS.get(effectIndex.get())));
+
+                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
+                    this.effect.setTooltip(effectName);
+                    icon.setTooltip(effectName);
+                    this.effectModifier.setTooltip(effectName);
+                }, ()->{
+                    effectIndex.set(effectIndex.get() - 1);
+                    if (effectIndex.get() < 0) {
+                        effectIndex.set(EFFECTS.size()-1);
+                    }
+                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(EFFECTS.get(effectIndex.get()));
+                    this.effect.setValue(String.valueOf(EFFECTS.get(effectIndex.get())));
+
+                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
+                    this.effect.setTooltip(effectName);
+                    icon.setTooltip(effectName);
+                    this.effectModifier.setTooltip(effectName);
+                }), 0, 0, 2, 2).cast();
+
+                Tooltip effectName = Tooltip.create(Component.translatable(MobEffects.MOVEMENT_SPEED.getDescriptionId()));
+                this.effect.setTooltip(effectName);
+                icon.setTooltip(effectName);
+                this.effectModifier.setTooltip(effectName);
+
+                this.time = this.addWiget(
+                        new GuiTime(false).setRenderBackgroubd(false),
+                        -4, 0, 0, 0
+                ).cast();
+
+                this.level = this.addWiget(new GuiFilterTextField(
+                        "0", false, 0, 0, 20, RenderUtils.fontHeight()+4
+                ), 0, 0, 3, 0).cast();
+                this.level.setMaxLength(2);
+                this.addWiget(new ModifierWidget(false, ()->
+                    this.level.setValue(String.valueOf(this.level.getAsNumber().intValue()+1))
+                , ()->{
+                    this.level.setValue(String.valueOf(this.level.getAsNumber().intValue()-1));
+                    if (this.level.getAsNumber().intValue() < 0) {
+                        this.level.setValue("0");
+                    }
+                }), 0, 0, 6, 2).cast().setTooltip(Tooltip.create(Component.translatable("info.inbox.generate.attachment.effect.amplifier")));
+                this.level.setTooltip(Tooltip.create(Component.translatable("info.inbox.generate.attachment.effect.amplifier")));
+
+                this.infinite = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.infinite"), false, null),
+                        0, 0, 4, 2).setConsumerEvent(false, true, false, false).cast();
+                this.beaconAdd = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.beacon"), false, null),
+                        0, 0, 4, 2).setConsumerEvent(false, true, false, false).cast();
+                this.showIcon = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.show_icon"), true, null),
+                        0, 0, 4, 2).setConsumerEvent(false, true, false, false).cast();
+                this.showParticles = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.show_particles"), true, null),
+                        0, 0, 4, 6).setConsumerEvent(false, true, false, false).cast();
+                this.setMainhandItemToCurativeItem = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.mainhand_to_curative"), false, null))
+                        .setConsumerEvent(false, true, false, false).cast();
+
+                this.addWiget(Button.builder(Component.literal("X"), b->
+                                onRemove.run()
+                        ).size(RenderUtils.fontHeight(), RenderUtils.fontHeight()).build(), 0, 0, 10, 0)
+                        .setConsumerEvent(false, true, false, false);
+            }
+
+            @Override
+            public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+                if (this.effect.isFocused()) {
+                    super.keyPressed(pKeyCode, pScanCode, pModifiers);
+                    return true;
+                }
+                return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+            }
+
+            public static class EffectIcon extends AbstractWidget {
+                public MobEffect effect;
+                public EffectIcon() {
+                    super(0, 0, 24, 24, CommonComponents.EMPTY);
+                }
+
+                @Override
+                protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+                    int x = this.getX(), y = this.getY();
+                    RenderUtils.draw(graphics, AbstractContainerScreen.INVENTORY_LOCATION, x, y, 24, 24, 141, 166);
+
+                    if (this.effect != null) {
+                        graphics.setColor(1.0F, 1.0F, 1.0F, 1);
+                        graphics.blit(x + 3, y + 3, 0, 18, 18, Minecraft.getInstance().getMobEffectTextures().get(this.effect));
+                        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    }
+                }
+
+                @Override
+                public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+                    return false;
+                }
+
+                @Override
+                protected void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {}
+            }
+
+            public static GuiCheckbox createCheckbox(Component tooltip, boolean defaultSelected, Runnable selected){
+                GuiCheckbox checkbox = new GuiCheckbox(0, 0, RenderUtils.fontHeight(), RenderUtils.fontHeight(), CommonComponents.EMPTY, defaultSelected, selected);
+                checkbox.setTooltip(Tooltip.create(tooltip));
+                return checkbox;
             }
         }
     }

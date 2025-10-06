@@ -2,8 +2,8 @@ package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
 import cat.jiu.core.util.SideProxy;
-import cat.jiu.email.ui.container.ContainerEmailSend;
 
+import cat.jiu.email.ui.gui.GuiInbox;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
@@ -27,9 +27,7 @@ public class MsgSendCooling extends BaseMessage {
 	}
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(SideProxy.isClient()){
-			if(Minecraft.getInstance().player.containerMenu instanceof ContainerEmailSend container) {
-				container.setCooling(this.millis);
-			}
+			GuiInbox.INBOX.setSendCooling(this.millis);
 		}
 		return true;
 	}

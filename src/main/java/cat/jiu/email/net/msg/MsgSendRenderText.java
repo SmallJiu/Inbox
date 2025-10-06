@@ -1,6 +1,5 @@
 package cat.jiu.email.net.msg;
 
-import java.awt.Color;
 import java.util.function.Supplier;
 
 import cat.jiu.core.net.BaseMessage;
@@ -8,7 +7,7 @@ import cat.jiu.core.api.element.IText;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.Text;
 import cat.jiu.core.util.element.data.NBTData;
-import cat.jiu.email.ui.container.ContainerEmailSend;
+import cat.jiu.email.ui.gui.GuiGenerateEmail;
 import cat.jiu.email.util.EmailUtils;
 
 import net.minecraft.client.Minecraft;
@@ -20,26 +19,20 @@ public class MsgSendRenderText extends BaseMessage {
 	public static final Object[] empty = new Object[0];
 	protected IText text;
 	protected Object[] args;
-	protected Color color;
 	protected long renderTicks;
 	
 	public MsgSendRenderText() {}
 	public MsgSendRenderText(IText text) {
-		this(Color.RED, EmailUtils.parseTick(0,0,0,15, 0), text);
+		this(EmailUtils.parseTick(0,0,0,5, 0), text);
 	}
-	public MsgSendRenderText(Color color, IText text) {
-		this(color, EmailUtils.parseTick(0,0,0,15, 0), text);
-	}
-	public MsgSendRenderText(Color color, long renderTicks, IText text) {
+	public MsgSendRenderText(long renderTicks, IText text) {
 		this.text = text;
-		this.color = color;
 		this.renderTicks = renderTicks;
 	}
 	public void fromBytes(FriendlyByteBuf buf) {
 		CompoundTag nbt = buf.readNbt();
 
 		this.text = new Text(NBTData.map(nbt.getCompound("text")));
-		this.color = new Color(nbt.getInt("color"));
 		this.renderTicks = nbt.getLong("ticks");
 	}
 
@@ -47,7 +40,6 @@ public class MsgSendRenderText extends BaseMessage {
 		CompoundTag nbt = new CompoundTag();
 		
 		nbt.put("text", (CompoundTag) this.text.write(NBTData.map()).getData());
-		nbt.putInt("color", this.color.getRGB());
 		nbt.putLong("ticks", this.renderTicks);
 		
 		buf.writeNbt(nbt);
@@ -55,8 +47,8 @@ public class MsgSendRenderText extends BaseMessage {
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
 		if(SideProxy.isClient()) {
-			if(Minecraft.getInstance().player.containerMenu instanceof ContainerEmailSend container){
-				container.setRenderText(this.text.format(), this.color, this.renderTicks);
+			if(Minecraft.getInstance().screen instanceof GuiGenerateEmail){
+				((GuiGenerateEmail) Minecraft.getInstance().screen).setMessage(this.text.toTextComponent(), this.renderTicks * 50);
 			}
 		}
 		return true;

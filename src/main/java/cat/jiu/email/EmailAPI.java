@@ -3,7 +3,6 @@ package cat.jiu.email;
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 
 import java.util.Set;
 import java.util.UUID;
@@ -23,7 +22,6 @@ import cat.jiu.email.net.msg.*;
 import cat.jiu.email.ui.gui.GuiInbox;
 import cat.jiu.email.util.*;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -71,7 +69,7 @@ public class EmailAPI {
 	 */
 	public static void sendEmail(Player player, EmailSenderGroup group, String addresser, Email email) {
 		if(player.level().isClientSide()) {
-			EmailMain.NETWORK.sendMessageToServer(new MsgSend(group, addresser, email));
+			EmailMain.NETWORK.sendMessageToServer(new MsgSend0(group, addresser, email));
 		}else {
 			sendEmail(group, addresser, email);
 		}
@@ -82,7 +80,7 @@ public class EmailAPI {
 		Inbox inbox = Inbox.get(address);
 		
 		if(!EmailConfigServer.isInfiniteSize()
-		&& email.hasAttachment() && !SizeReport.SUCCESS.equals(EmailUtils.checkEmailSize(email))) {
+		&& email.hasAttachments() && !SizeReport.SUCCESS.equals(EmailUtils.checkEmailSize(email))) {
 			return false;
 		}
 
@@ -352,17 +350,17 @@ public class EmailAPI {
 		}
 	}
 
-	private static String onServerOrSaveName;
+	private static String onServerIPOrSaveName;
 	@OnlyIn(Dist.CLIENT)
 	@SubscribeEvent
 	public static void onPlayerLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
 		if (Minecraft.getInstance().isLocalServer()) {
-			onServerOrSaveName = new File(String.valueOf(SideProxy.getServer().getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParentFile().getName();
+			onServerIPOrSaveName = new File(String.valueOf(SideProxy.getServer().getWorldPath(LevelResource.LEVEL_DATA_FILE))).getParentFile().getName();
 		}else {
-			onServerOrSaveName = Minecraft.getInstance().getCurrentServer().ip.replace(':', '-');
+			onServerIPOrSaveName = Minecraft.getInstance().getCurrentServer().ip.replace(':', '-');
 		}
         try {
-            GuiInbox.INBOX.read(NBTData.readMap(new File("./inbox", onServerOrSaveName+".dat"), true));
+            GuiInbox.INBOX.read(NBTData.readMap(new File("./inbox", onServerIPOrSaveName +".dat"), true));
         } catch (Exception e) {
 			e.printStackTrace();
         }
@@ -370,17 +368,18 @@ public class EmailAPI {
 	@OnlyIn(Dist.CLIENT)
 	@SubscribeEvent
 	public static void onPlayerLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
-		if (onServerOrSaveName != null) {
+		if (onServerIPOrSaveName != null) {
 			try {
 				IData.IMapData<?> data = NBTData.map();
 				GuiInbox.INBOX.write(data);
-				data.writeToFile(new File("./inbox", onServerOrSaveName+".dat"), true, "UTF-8");
+				data.writeToFile(new File("./inbox", onServerIPOrSaveName +".dat"), true, "UTF-8");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+		EmailAPI.setAccept(0, 0);
         GuiInbox.INBOX.deleteAllEmail();
-		onServerOrSaveName = null;
+		onServerIPOrSaveName = null;
 	}
 
 	@OnlyIn(Dist.CLIENT)

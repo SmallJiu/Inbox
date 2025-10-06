@@ -4,10 +4,14 @@ import cat.jiu.core.util.base.BaseConfig;
 import cat.jiu.email.element.StorageType;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLDatabaseDriver;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.*;
 
 public class EmailConfigServer {
+	public static final ForgeConfigSpec CONFIG_MAIN;
+
+	public static final BooleanValue Totem_To_Undiying;
 	public static final BooleanValue Save_To_Minecraft_Root_Directory;
 	public static final BooleanValue Enable_New_Player_Email;
 	public static final ConfigValue<String> Custom_Inbox_Path;
@@ -15,6 +19,59 @@ public class EmailConfigServer {
 	public static final ConfigValue<String> File_Charset;
 	public static final SQLProperties SQL_PROPERTIES;
 	public static final Send Send;
+
+	static {
+		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+
+		Save_To_Minecraft_Root_Directory = builder
+				.worldRestart()
+				.translation("inbox.config.save_to_root_directory")
+				.comment("inbox.config.save_to_root_directory.0",
+						"inbox.config.save_to_root_directory.1")
+				.define("Save_To_Minecraft_Root_Directory", false);
+
+		Enable_New_Player_Email = builder
+				.translation("inbox.config.new_player_email")
+				.comment("inbox.config.new_player_email.0",
+						"inbox.config.new_player_email.1")
+				.define("Enable_New_Player_Email", true);
+
+		Totem_To_Undiying = builder
+				.translation("inbox.config.totem_to_undiying")
+				.comment("inbox.config.totem_to_undiying.0")
+				.define("Totem_To_Undiying", false);
+
+		Storage_Inbox_Types = builder
+				.translation("inbox.config.storage_type")
+				.comment(
+						"inbox.config.storage_type.0",
+						"inbox.config.storage_type.1",
+						"inbox.config.storage_type.2",
+						"inbox.config.storage_type.3",
+						"Deafult Allowed Values: json, json_format, nbt, sql"
+				)
+				.define("storage_types", "json"::toString, k->StorageType.REGISTRY.registered(String.valueOf(k)));
+
+		Custom_Inbox_Path = builder
+				.worldRestart()
+				.translation("inbox.config.custom_inbox_path")
+				.comment("inbox.config.custom_inbox_path.0",
+						"inbox.config.custom_inbox_path.1",
+						"inbox.config.custom_inbox_path.2",
+						"inbox.config.custom_inbox_path.3",
+						"inbox.config.custom_inbox_path.4")
+				.define("inbox_path", "");
+
+		File_Charset = builder
+				.translation("inbox.config.file_charset")
+				.comment("inbox.config.file_charset.0")
+				.define("file_charset", "UTF-8");
+
+		Send = new Send(builder);
+		SQL_PROPERTIES = new SQLProperties(builder);
+
+		CONFIG_MAIN = builder.build();
+	}
 
 	public static class Send extends BaseConfig {
 		public final BooleanValue Enable_Send_BlackList;
@@ -84,56 +141,6 @@ public class EmailConfigServer {
 
 			builder.pop();
 		}
-	}
-
-	public static final ForgeConfigSpec CONFIG_MAIN;
-
-	static {
-		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-
-		Save_To_Minecraft_Root_Directory = builder
-				.worldRestart()
-				.translation("inbox.config.save_to_root_directory")
-				.comment("inbox.config.save_to_root_directory.0",
-						"inbox.config.save_to_root_directory.1")
-				.define("Save_To_Minecraft_Root_Directory", false);
-
-		Enable_New_Player_Email = builder
-				.translation("inbox.config.new_player_email")
-				.comment("inbox.config.new_player_email.0",
-						"inbox.config.new_player_email.1")
-				.define("Enable_New_Player_Email", true);
-
-		Storage_Inbox_Types = builder
-				.translation("inbox.config.storage_type")
-				.comment(
-						"inbox.config.storage_type.0",
-						"inbox.config.storage_type.1",
-						"inbox.config.storage_type.2",
-						"inbox.config.storage_type.3",
-						"Deafult Allowed Values: json, json_format, nbt, sql"
-				)
-				.define("storage_types", "json"::toString, k->StorageType.REGISTRY.registered(String.valueOf(k)));
-
-		Custom_Inbox_Path = builder
-				.worldRestart()
-				.translation("inbox.config.custom_inbox_path")
-				.comment("inbox.config.custom_inbox_path.0",
-						"inbox.config.custom_inbox_path.1",
-						"inbox.config.custom_inbox_path.2",
-						"inbox.config.custom_inbox_path.3",
-						"inbox.config.custom_inbox_path.4")
-				.define("inbox_path", "");
-
-		File_Charset = builder
-				.translation("inbox.config.file_charset")
-				.comment("inbox.config.file_charset.0")
-				.define("file_charset", "UTF-8");
-
-		Send = new Send(builder);
-		SQL_PROPERTIES = new SQLProperties(builder);
-
-		CONFIG_MAIN = builder.build();
 	}
 
 	public static class Pos extends BaseConfig {

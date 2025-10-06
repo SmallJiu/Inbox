@@ -3,6 +3,7 @@ package cat.jiu.email.ui.gui.component;
 import java.awt.Color;
 import java.util.function.Supplier;
 
+import cat.jiu.core.util.client.RenderUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -134,11 +135,12 @@ public class GuiImageButton extends Button {
 	@Override
 	protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float pPartialTick) {
 		if(this.visible) {
-			graphics.blit(this.background.get(), this.getX(), this.getY(), this.width, this.height, this.u, this.v, this.uWidth, this.uHeight, this.tileWidth, this.tileHeight);
+			RenderUtils.draw(graphics, this.background.get(), this.getX(), this.getY(), this.width, this.height, this.u, this.v, this.uWidth, this.uHeight, this.tileWidth, this.tileHeight);
 
 			if(this.isHovered()) {
 				graphics.fillGradient(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height, this.hoveredColor, this.hoveredColor);
-				if (this.getMessage()!=null && !this.getMessage().getString().isEmpty()) {
+				Component component = this.getMessage();
+				if (component != null && !component.getString().isEmpty()) {
 					graphics.renderTooltip(gui.getMinecraft().font, this.getMessage(), mouseX, mouseY);
 				}
 			}

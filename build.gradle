@@ -28,10 +28,15 @@ sourcesJar {
     exclude(
             '**/.cache/**', // 排除 .cache 文件夹
             '**/assets/**', // 排除 assets 文件夹
-            '**/data/**' // 排除 data 文件夹
+            '**/data/**'    // 排除 data 文件夹
     )
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE // 排除重复的文件
     archiveClassifier.set('sources') // 设置源代码 JAR 文件的后缀
+}
+build {
+    doLast {
+        println("Jar: " + archivesBaseName + "-" + version + ".jar")
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -139,8 +144,8 @@ dependencies {
     implementation fg.deobf("curse.maven:apothic-attributes-898963:5634071")
 
     compileOnly("blank:jmp123-all:1.0.0")
-    implementation fg.deobf(jarJar("blank:jiucore-1.20.1:[0.0.1,)") {
-        jarJar.pin(it, "0.0.1")
+    implementation fg.deobf(jarJar("blank:jiucore-1.20.1:[${core_version_min},${core_version_max})") {
+        jarJar.pin(it, "${core_version_min}")
     })
 }
 
@@ -193,7 +198,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_version:             mod_version,
             mod_authors:             mod_authors,
             mod_description:         mod_description,
-            core_version:            core_version
+            core_version_range:      "[${core_version_min},${core_version_max})"
     ]
     inputs.properties replaceProperties
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {

@@ -1,21 +1,25 @@
 package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.api.IData;
-import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.Utils;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
-import cat.jiu.email.util.EmailUtils;
-import com.google.gson.JsonArray;
+import cat.jiu.email.ui.gui.component.GuiCheckbox;
+import cat.jiu.email.ui.gui.component.GuiFilterTextField;
 import com.google.gson.JsonObject;
-import net.minecraft.SharedConstants;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -30,9 +34,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
@@ -62,8 +64,10 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     public AttachmentAttribute addValue(Attribute attribute, AttributeModifier.Operation operation, AttributeValue value) {
-        this.check(attribute, operation);
-        this.attributeMap.get(attribute).get(operation).add(value);
+        if (attribute != null){
+            this.check(attribute, operation);
+            this.attributeMap.get(attribute).get(operation).add(value);
+        }
         return this;
     }
     protected void check(Attribute attribute, AttributeModifier.Operation operation) {
@@ -142,11 +146,6 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     @Override
-    public String getName() {
-        return "attribute";
-    }
-
-    @Override
     public void accept(Player player) {
         if (!player.level().isClientSide()) {
             for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> attributeEntry : this.attributeMap.entrySet()) {
@@ -159,24 +158,27 @@ public class AttachmentAttribute implements IAttachment {
         }
     }
 
-    public static void accept(Player player, Attribute attribute, AttributeModifier.Operation operation, AttributeValue value) {
-        AttributeInstance instance = Objects.requireNonNull(player.getAttribute(attribute), String.format("not found attribute: %s", attribute));
+    public static void accept(LivingEntity entity, Attribute attribute, AttributeModifier.Operation operation, AttributeValue value) {
+        AttributeInstance instance = Objects.requireNonNull(entity.getAttribute(attribute), String.format("not found attribute: %s", attribute));
         AttributeState.Id id = AttributeState.id(attribute, operation, value.temp);
         instance.removeModifier(id.uid);
         if (value.temp) {
             instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, value.value, operation));
         }else {
-            double v = AttributeState.get(player.getServer()).add(player.getStringUUID(), attribute, operation, value.value);
+            double v = AttributeState.get(entity.getServer()).add(entity.getStringUUID(), attribute, operation, value.value);
             instance.addPermanentModifier(new AttributeModifier(id.uid, id.id, v, operation));
         }
     }
 
-    public static void loadAttribute(Player player) {
-        AttributeState state = AttributeState.get(player.getServer());
-        for (Attribute attribute : state.getEffectAttribute(player.getStringUUID())) {
-            AttributeInstance instance = Objects.requireNonNull(player.getAttribute(attribute), String.format("not found attribute: %s", attribute));
-            for (AttributeModifier.Operation operation : state.getEffectOperation(player.getStringUUID(), attribute)) {
-                double value = state.get(player.getStringUUID(), attribute, operation);
+    public static void loadAttribute(LivingEntity entity) {
+        AttributeState state = AttributeState.get(entity.getServer());
+        for (Attribute attribute : state.getEffectAttribute(entity.getStringUUID())) {
+            AttributeInstance instance = entity.getAttribute(attribute);
+            if (instance == null) {
+                continue;
+            }
+            for (AttributeModifier.Operation operation : state.getEffectOperation(entity.getStringUUID(), attribute)) {
+                double value = state.get(entity.getStringUUID(), attribute, operation);
                 if (value > 0) {
                     AttributeState.Id id = AttributeState.id(attribute, operation, false);
                     instance.removeModifier(id.uid);
@@ -194,8 +196,8 @@ public class AttachmentAttribute implements IAttachment {
     }
     @SubscribeEvent
     public static void onPlayerJoinWorld(EntityJoinLevelEvent event){
-        if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof Player) {
-            loadAttribute((Player) event.getEntity());
+        if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof LivingEntity) {
+            loadAttribute((LivingEntity) event.getEntity());
         }
     }
 
@@ -228,6 +230,11 @@ public class AttachmentAttribute implements IAttachment {
     @Override
     public Component getDisplayName() {
         return Component.translatable("info.inbox.attribute");
+    }
+
+    @Override
+    public String getName() {
+        return "info.inbox.attribute";
     }
 
     public static String getMethod(AttributeModifier.Operation operation, double value) {
@@ -407,6 +414,165 @@ public class AttachmentAttribute implements IAttachment {
             public Id(UUID uid, String id) {
                 this.uid = uid;
                 this.id = id;
+            }
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static class Widget extends AttachmentSendScreenWidget {
+        public static final WidgetEntry INSTANCE = new WidgetEntry(ID, false, Widget::new);
+        public static final List<ResourceLocation> ATTRIBUTES = Collections.unmodifiableList(new ArrayList<>(ForgeRegistries.ATTRIBUTES.getKeys()));
+
+        public final SubWidget attributes;
+        public final Button add;
+        private Widget() {
+            super(Component.translatable("info.inbox.attribute"));
+            this.initSubWiget(false);
+
+            this.attributes = this.addSubWidget(
+                    new SubWidget(false, this.getMessage()),
+                    0, 4, 0, 0
+            ).cast();
+
+            this.add = this.addSubWidget(Button.builder(Component.literal("++++++  ").append(Component.translatable("info.inbox.attribute")).append("  ++++++"), b->{
+                                UUID uuid = UUID.randomUUID();
+                                this.attributes.addWiget(new AttributeWidget(uuid, ()->
+                                    this.attributes.widgets.removeIf(wiget -> {
+                                        if (wiget.widget instanceof AttributeWidget) {
+                                            return ((AttributeWidget) wiget.widget).uuid.equals(uuid);
+                                        }
+                                        return false;
+                                    })
+                                ),0, 8, 0, 0);
+                            })
+                            .size(350, 15)
+                            .build(),0, 0, 0, 0)
+                    .setConsumerEvent(false, true, false, false).cast();
+        }
+
+        @Override
+        public IAttachment newAttachmentInstance() {
+            AttachmentAttribute attachment = new AttachmentAttribute();
+            for (SubWidget.PositionWiget widget : this.attributes.widgets) {
+                if (widget.widget instanceof AttributeWidget) {
+                    AttributeWidget attribute =  (AttributeWidget) widget.widget;
+                    attachment.addValue(
+                            ForgeRegistries.ATTRIBUTES.getValue(Utils.location(attribute.attribute.getValue())),
+                            attribute.operation,
+                            new AttributeValue(attribute.value.getAsNumber().doubleValue(), attribute.isTemp.selected())
+                    );
+                }
+            }
+            return attachment;
+        }
+
+        public static class AttributeWidget extends SubWidget {
+            public final UUID uuid;
+            public final EditBox attribute;
+            public int attributeIndex = 0;
+            public AttributeModifier.Operation operation = AttributeModifier.Operation.ADDITION;
+            public final GuiFilterTextField value;
+            public final GuiCheckbox isTemp;
+
+            protected ModifierWidget operationModifier, attributeModifier;
+
+            public AttributeWidget(UUID uuid, Runnable onRemove) {
+                super(true);
+                this.uuid = uuid;
+
+                this.attribute = this.addWiget(new EditBox(
+                        RenderUtils.getFontRenderer(), 0, 0, 200, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
+                )).cast();
+                this.attribute.setValue(ATTRIBUTES.get(0).toString());
+                this.attribute.setResponder(s->{
+                    ResourceLocation id = Utils.location(this.attribute.getValue());
+                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(id);
+                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
+                            value == null ? "Not found attribute." : value.getDescriptionId()
+                    )));
+                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
+                    if (value != null) {
+                        this.attributeIndex = ATTRIBUTES.indexOf(id);
+                    }
+                });
+
+                this.attributeModifier = this.addWiget(new ModifierWidget(false, ()->{
+                    this.attributeIndex--;
+                    if (this.attributeIndex < 0) {
+                        this.attributeIndex = ATTRIBUTES.size() - 1;
+                    }
+                    this.attribute.setValue(ATTRIBUTES.get(this.attributeIndex).toString());
+
+                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(this.attributeIndex));
+                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
+                            value == null ? "Not found attribute." : value.getDescriptionId()
+                    )));
+                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
+                }, ()->{
+                    this.attributeIndex++;
+                    if (this.attributeIndex >= ATTRIBUTES.size()) {
+                        this.attributeIndex = 0;
+                    }
+                    this.attribute.setValue(ATTRIBUTES.get(this.attributeIndex).toString());
+
+                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(this.attributeIndex));
+                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
+                            value == null ? "Not found attribute." : value.getDescriptionId()
+                    )));
+                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
+                }), 0, 0, 2, 3).cast();
+
+                this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
+                        ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(0)).getDescriptionId()
+                )));
+                this.attribute.setTooltip(this.attributeModifier.getTooltip());
+
+                this.value = this.addWiget(new GuiFilterTextField(
+                        "0", true, 0, 0, 30, RenderUtils.fontHeight()+4
+                )).cast();
+                this.value.setResponder(s->{
+                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                    this.value.setTooltip(this.operationModifier.getTooltip());
+                });
+                this.operationModifier = this.addWiget(new ModifierWidget(false, ()->{
+                    int index = this.operation.toValue() - 1;
+                    if (index < 0) {
+                        index = 2;
+                    }
+                    this.operation = AttributeModifier.Operation.fromValue(index);
+                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                    this.value.setTooltip(this.operationModifier.getTooltip());
+                }, ()->{
+                    int index = this.operation.toValue() + 1;
+                    if (index > 2) {
+                        index = 0;
+                    }
+                    this.operation = AttributeModifier.Operation.fromValue(index);
+                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                    this.value.setTooltip(this.operationModifier.getTooltip());
+                }), 0, 0, 2, 3).cast();
+
+                this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                this.value.setTooltip(this.operationModifier.getTooltip());
+
+                this.isTemp = this.addWiget(new GuiCheckbox(
+                        0, 0, RenderUtils.fontHeight(), RenderUtils.fontHeight(), CommonComponents.EMPTY, true, null
+                )).cast();
+                this.isTemp.setTooltip(Tooltip.create(Component.translatable("info.inbox.healths.temp")));
+
+                this.addWiget(Button.builder(Component.literal("X"), b->
+                    onRemove.run()
+                ).size(RenderUtils.fontHeight(), RenderUtils.fontHeight()).build(), 0, 0, 10, 0)
+                        .setConsumerEvent(false, true, false, false);
+            }
+
+            @Override
+            public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+                if (this.attribute.isFocused()) {
+                    super.keyPressed(pKeyCode, pScanCode, pModifiers);
+                    return true;
+                }
+                return super.keyPressed(pKeyCode, pScanCode, pModifiers);
             }
         }
     }

@@ -4,15 +4,15 @@ import cat.jiu.email.util.EmailUtils;
 import com.google.common.collect.Lists;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.network.chat.CommonComponents;
 import org.lwjgl.glfw.GLFW;
 
-import java.awt.Color;
 import java.util.List;
 
-public class GuiButtonPopupMenu extends Screen {
+public class GuiButtonPopupMenu extends AbstractWidget {
     protected boolean visible = false,
                     resetBtnWeight = true;
     public final Scroll<List<Button>> scroll;
@@ -23,7 +23,7 @@ public class GuiButtonPopupMenu extends Screen {
     }
 
     public GuiButtonPopupMenu(List<Button> buttons) {
-        super(Component.empty());
+        super(0, 0, 0, 0, CommonComponents.EMPTY);
         this.scroll = new Scroll<>(buttons);
     }
 
@@ -36,6 +36,12 @@ public class GuiButtonPopupMenu extends Screen {
         this.event = event;
         return this;
     }
+    public void setSize(int width, int height) {
+        for (Button button : this.scroll.collection) {
+            button.setWidth(width);
+            button.setHeight(height);
+        }
+    }
 
     int createX = 0;
     int createY = 0;
@@ -43,23 +49,28 @@ public class GuiButtonPopupMenu extends Screen {
     public void setCreatePoint(int createX, int createY) {
         this.createX = createX;
         this.createY = createY;
+        this.reloadPosition();
     }
 
     public void setVisible(boolean visible) {
         this.visible = visible;
-
         if (visible) {
-            int btnY = this.createY;
-            int width = getWidth();
-            for (Button btn : this.scroll.collection) {
-                btn.visible = visible;
-                if (this.resetBtnWeight) {
-                    btn.setWidth(width);
-                }
-                btn.setX(this.createX);
-                btn.setY(btnY);
-                btnY += btn.getHeight();
+            this.reloadPosition();
+        }
+    }
+
+    public void reloadPosition() {
+        int btnY = this.createY;
+        int width = getWidth();
+        for (Button btn : this.scroll.collection) {
+            btn.visible = visible;
+            btn.active = visible;
+            if (this.resetBtnWeight) {
+                btn.setWidth(width);
             }
+            btn.setX(this.createX);
+            btn.setY(btnY);
+            btnY += btn.getHeight();
         }
     }
 
@@ -67,13 +78,16 @@ public class GuiButtonPopupMenu extends Screen {
         return visible && !this.scroll.collection.isEmpty();
     }
 
-    public void drawPopupMenu(GuiGraphics graphics, int x, int y, float partialTicks) {
+    @Override
+    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (this.isVisible()) {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 8000);
             int btnY = this.createY;
             for (int i : this.scroll.getShows()) {
                 Button btn = this.scroll.collection.get(i);
                 btn.setY(btnY);
-                btn.render(graphics, x, y, partialTicks);
+                btn.render(graphics, mouseX, mouseY, partialTick);
                 if (this.event != null) {
                     this.event.draw(btn);
                 }
@@ -84,17 +98,18 @@ public class GuiButtonPopupMenu extends Screen {
 //                    graphics.vLine(btn.getX()+btn.getWidth()-2, btn.getY(), btn.getY()+btn.getHeight(), Color.WHITE.getRGB());
 //                }
 
-                btnY += btn.getHeight()-1;
+                btnY += btn.getHeight() + 2;
             }
 //            Button btn1 = this.scroll.collection.get(this.scroll.getShows()[this.scroll.getShows().length - 1]);
 //            graphics.hLine(btn1.getX(), btn1.getX() + btn1.getWidth() - 1, btn1.getY() + btn1.getHeight()-1, Color.BLACK.getRGB());
 
-            for (int i : this.scroll.getShows()) {
-                Button btn = this.scroll.collection.get(i);
-                if (isInRange(x,y, btn.getX(), btn.getY(), btn.getWidth(), btn.getHeight())) {
-                    graphics.hLine(btn.getX(), btn.getX()+btn.getWidth()-1, btn.getY()+btn.getHeight()-1, Color.WHITE.getRGB());
-                }
-            }
+//            for (int i : this.scroll.getShows()) {
+//                Button btn = this.scroll.collection.get(i);
+//                if (isInRange(mouseX, mouseY, btn.getX(), btn.getY(), btn.getWidth(), btn.getHeight())) {
+//                    graphics.hLine(btn.getX(), btn.getX()+btn.getWidth()-1, btn.getY()+btn.getHeight()-1, Color.WHITE.getRGB());
+//                }
+//            }
+            graphics.pose().popPose();
         }
     }
 
@@ -114,28 +129,29 @@ public class GuiButtonPopupMenu extends Screen {
         return width;
     }
 
-    public boolean mouseClicked(Minecraft mc, int mouseX, int mouseY, int mouseButton) {
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
         boolean flag = false;
         if (mouseButton == 0 && this.isVisible()) {
             for (Button btn : this.scroll.collection) {
                 if (isInRange(mouseX, mouseY, btn.getX(), btn.getY(), btn.getWidth(), btn.getHeight())) {
-                    btn.playDownSound(mc.getSoundManager());
+                    btn.playDownSound(Minecraft.getInstance().getSoundManager());
                     btn.onClick(mouseX, mouseY);
                     flag = true;
                 }
             }
         }
-//			this.setVisible(false);
         return flag;
     }
 
-    public  <T extends Button> T addButton(T buttonIn) {
+    public <T extends Button> T addButton(T buttonIn) {
         this.scroll.collection.add(buttonIn);
         this.scroll.init();
         return buttonIn;
     }
 
-    public boolean scroll(int mouseX, int mouseY, int key) {
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double key) {
         if (this.isVisible() && isInRange(mouseX, mouseY, this.createX, this.createY, this.getWidth(), this.getHeight())) {
             int page = 0;
 
@@ -145,10 +161,10 @@ public class GuiButtonPopupMenu extends Screen {
             if (EmailUtils.isKeyDown(GLFW.GLFW_KEY_LEFT_CONTROL) || EmailUtils.isKeyDown(GLFW.GLFW_KEY_RIGHT_CONTROL)) {
                 page += 1;
             }
-            if (key == 1) {
+            if (key > 0) {
                 this.scroll.go(-1 - page);
                 return true;
-            } else if (key == -1) {
+            } else if (key < 0) {
                 this.scroll.go(1 + page);
                 return true;
             }
@@ -156,7 +172,12 @@ public class GuiButtonPopupMenu extends Screen {
         return false;
     }
 
-    static boolean isInRange(int mouseX, int mouseY, int x, int y, int width, int height) {
+    @Override
+    protected void updateWidgetNarration(NarrationElementOutput output) {
+
+    }
+
+    static boolean isInRange(double mouseX, double mouseY, int x, int y, int width, int height) {
         return (mouseX >= x && mouseY >= y) && (mouseX <= x + width && mouseY <= y + height);
     }
 

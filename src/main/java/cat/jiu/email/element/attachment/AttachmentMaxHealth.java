@@ -5,7 +5,6 @@ import cat.jiu.core.util.Utils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.event.AttachmentEvent;
-import cat.jiu.email.util.EmailUtils;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -20,7 +19,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.awt.*;
 import java.util.Collections;
 import java.util.List;
 
@@ -117,7 +115,7 @@ public class AttachmentMaxHealth implements IAttachment {
 
     @Override
     public String getName() {
-        return "health";
+        return "info.inbox.healths";
     }
 
     @Override

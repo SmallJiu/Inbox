@@ -2,10 +2,11 @@ package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.api.IData;
 import cat.jiu.core.util.Utils;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
+import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
-import cat.jiu.email.event.AttachmentEvent;
-import cat.jiu.email.util.EmailUtils;
+import cat.jiu.email.ui.gui.component.GuiFilterTextField;
 import com.google.gson.JsonObject;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.nbt.CompoundTag;
@@ -16,12 +17,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
-import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class AttachmentXP implements IAttachment {
@@ -42,7 +42,6 @@ public class AttachmentXP implements IAttachment {
     public AttachmentXP(CompoundTag tag) {
         this.read(tag);
     }
-
     public AttachmentXP(JsonObject json) {
         this.read(json);
     }
@@ -97,27 +96,47 @@ public class AttachmentXP implements IAttachment {
     }
 
     @Override
-    public void merge(IAttachment other) {
-        if (other instanceof AttachmentXP attachment && !attachment.isEmpty()) {
-            this.addLevels(attachment.getLevels());
-            this.addPoints(attachment.getPoints());
-        }
-    }
-
-    @Override
     public boolean isEmpty() {
         return this.getLevels() == 0 && this.getPoints() == 0;
     }
 
     @Override
     public String getName() {
-        return "xp";
+        return "info.inbox.xps";
     }
 
+    @Override
+    public void merge(IAttachment other) {
+        if (other instanceof AttachmentXP attachment && !attachment.isEmpty()) {
+            this.addLevels(attachment.getLevels());
+            this.addPoints(attachment.getPoints());
+        }
+    }
     @Override
     public void accept(Player player) {
         player.giveExperienceLevels(this.getLevels());
         player.giveExperiencePoints(this.getPoints());
+    }
+
+    @Override
+    public boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+        if (!player.isCreative()){
+            if (player.experienceLevel < this.getLevels()) {
+                msgHandler.accept("info.inbox.generate.attachment.exp.level.send.fail", new Object[]{this.getLevels(), player.experienceLevel});
+                return false;
+            }
+            if (player.totalExperience < this.getPoints()) {
+                msgHandler.accept("info.inbox.generate.attachment.exp.point.send.fail", new  Object[]{this.getPoints(), player.totalExperience});
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onPlayerSendChecked(Player player) {
+        player.giveExperiencePoints(-this.getPoints());
+        player.giveExperienceLevels(-this.getLevels());
     }
 
     @Override
@@ -136,5 +155,54 @@ public class AttachmentXP implements IAttachment {
     @Override
     public Component getDisplayName() {
         return Component.translatable("info.inbox.xps");
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static class Widget extends AttachmentSendScreenWidget {
+        public static final Component
+                LEVEL_TEXT = Component.translatable("info.inbox.xp.level").append(","),
+                POINT_TEXT = Component.translatable("info.inbox.xp.point");
+        public static final WidgetEntry INSTANCE = new WidgetEntry(ID, true, Widget::new);
+
+        public final GuiFilterTextField levelBox, pointBox;
+        private Widget() {
+            super(Component.translatable("info.inbox.xps"));
+            this.initSubWiget(true);
+
+            int width = RenderUtils.width("000000000000");
+            this.levelBox = this.addSubWidget(
+                    new GuiFilterTextField("0", false, 0, 0, width, RenderUtils.fontHeight() + 1),
+                    0, 0, 0, 0
+            ).setWigetRender(null, widget->{
+                RenderUtils.drawComponent(widget.graphics, LEVEL_TEXT,
+                        widget.widget.getX() + widget.widget.getWidth() + 2, widget.widget.getY(), Color.WHITE.getRGB(), true
+                );
+                return RenderUtils.width(LEVEL_TEXT) + 8;
+            }).cast();
+            this.levelBox.setMaxLength(100);
+
+            this.pointBox = this.addSubWidget(
+                    new GuiFilterTextField("0", false, 0, 0, width, RenderUtils.fontHeight() + 1),
+                    0, 0, 0, 0
+            ).setWigetRender(null, widget->{
+                RenderUtils.drawComponent(widget.graphics, POINT_TEXT,
+                        widget.widget.getX() + widget.widget.getWidth() + 2, widget.widget.getY(), Color.WHITE.getRGB(), true
+                );
+                return RenderUtils.width(POINT_TEXT) + 1;
+            }).cast();
+            this.pointBox.setMaxLength(100);
+        }
+
+        @Override
+        public int getWidth() {
+            return super.getWidth() + RenderUtils.width(LEVEL_TEXT) + 8 + RenderUtils.width(POINT_TEXT) + 1;
+        }
+
+        @Override
+        public IAttachment newAttachmentInstance() {
+            return new AttachmentXP()
+                    .setLevels(this.levelBox.getAsNumber().intValue())
+                    .setPoints(this.pointBox.getAsNumber().intValue());
+        }
     }
 }

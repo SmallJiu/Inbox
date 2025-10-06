@@ -2,7 +2,6 @@ package cat.jiu.email.api;
 
 import cat.jiu.core.api.IData;
 import cat.jiu.core.api.serializable.IDataSerializable;
-import cat.jiu.core.api.serializable.ISerializable;
 
 import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.element.data.JsonData;
@@ -31,10 +30,11 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.IMapData<?>>, Supplier<ResourceLocation> {
+public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consumer<Player>, Supplier<ResourceLocation> {
     Logger LOGGER = LogManager.getLogger("Inbox:Attachment");
     ResourceLocation EMPTY_ID = Utils.location(EmailMain.MODID, "attachment/empty");
     String ID_NAME = "id";
@@ -52,19 +52,46 @@ public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.I
     };
 
     DynamicRegistry2<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry2<ResourceLocation, IAttachment>((id, data) -> {
-        LOGGER.error("Attachment '{}' is not registered.", id);
+        LOGGER.error("'{}' is not registered.", id);
         return EMPTY;
     }).setKeyGetter(
-            data->data.getLocation(ID_NAME)
+            data -> data.getLocation(ID_NAME)
     );
 
     ResourceLocation getID();
 
+    /**
+     * @return attachment id
+     */
     @Override
     default ResourceLocation get(){return this.getID();}
 
+    /**
+     * 合并附件<p>
+     * merge attachment
+     */
     void merge(IAttachment other);
+
+    /**
+     * 玩家领取附件<p>
+     * Player receive attachment
+     */
     void accept(Player player);
+
+    /**
+     * 用于检查此附件是否可以在玩家发送时添加到邮件<p>
+     * Used to check if this attachment can be added to the message when the player sends it
+     */
+    default boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+        return true;
+    }
+    /**
+     * 检查完成的后处理<p>
+     * Check the finished post-processing
+     */
+    default void onPlayerSendChecked(Player player) {
+
+    }
 
     @OnlyIn(Dist.CLIENT)
     default void render(AttachmentEvent.Render event) {
@@ -92,7 +119,7 @@ public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.I
         event.graphics.renderFakeItem(this.getDisplayStack(), x, event.getY());
     }
     default Component getDisplayName() {
-        return CommonComponents.EMPTY;
+        return Component.translatable(this.getName());
     }
     ItemStack STACK = new ItemStack(Items.ITEM_FRAME);
     default ItemStack getDisplayStack() {
@@ -110,6 +137,7 @@ public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.I
         return String.valueOf(this.getID());
     }
 
+    @SuppressWarnings("unchecked")
     default <T extends IAttachment> T cast() {
         return (T) this;
     }
@@ -162,7 +190,6 @@ public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.I
         protected Component displayName = CommonComponents.EMPTY;
 
         public SerializableAttachment() {}
-
         public SerializableAttachment(JsonObject json) {
             this.read(JsonData.map(json));
         }
@@ -172,9 +199,11 @@ public interface IAttachment extends Consumer<Player>, IDataSerializable<IData.I
         public SerializableAttachment(IData.IMapData<?> data) {
             this.read(data);
         }
-        public SerializableAttachment(Component displayName, ItemStack displayStack) {
-            this.displayName = displayName;
-            this.displayStack = displayStack;
+
+        protected SerializableAttachment setDisplay(Component name, ItemStack stack) {
+            this.displayName = name;
+            this.displayStack = stack;
+            return this;
         }
 
         @Override

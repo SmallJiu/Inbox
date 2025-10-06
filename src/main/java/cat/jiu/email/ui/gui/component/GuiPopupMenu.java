@@ -22,7 +22,6 @@ public class GuiPopupMenu extends AbstractWidget {
 	protected boolean visible, resetWidth, resetHeight;
 	protected int showCount = 0;
 
-
 	public GuiPopupMenu() {
 		super(0, 0, 0, 0, Component.empty());
 	}
@@ -84,6 +83,12 @@ public class GuiPopupMenu extends AbstractWidget {
 	public void setResetButtonSize(boolean resetWidth, boolean resetHeight) {
 		this.resetWidth = resetWidth;
 		this.resetHeight = resetHeight;
+	}
+	public void setSize(int width, int height) {
+		for (Button button : this.buttons) {
+			button.setWidth(width);
+			button.setHeight(height);
+		}
 	}
 
 	@Override

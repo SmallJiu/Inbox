@@ -12,6 +12,7 @@ public class EmailCommands {
                 .addSubCommand(CommandSendEmail.register())
                 .addSubCommand(CommandScheduledEmail.register())
                 .addSubCommand(CommandEventEmail.register())
-                .addSubCommand(CommandUndying.register());
+                .addSubCommand(CommandUndying.register())
+                .addSubCommand(CommandAttribute.register());
     }
 }

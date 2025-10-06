@@ -1,146 +1,201 @@
 package cat.jiu.email.ui.gui.component;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.util.EmailUtils;
 
-import com.google.common.collect.Lists;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import org.lwjgl.glfw.GLFW;
-
-import javax.annotation.Nonnull;
 
 @OnlyIn(Dist.CLIENT)
-public class GuiTime implements GuiEventListener, NarratableEntry {
-	protected final Screen parent;
-	private boolean isEnable = false;
+public class GuiTime extends AbstractWidget {
 	protected final Font font;
-	private final boolean isHorizontal;
-	private final List<EditBox> fields = Lists.newArrayList();
+	public final boolean isHorizontal;
+	public boolean renderBackground = true;
+
+	public final List<Time> times = new ArrayList<>();
+	public final Time day, hour, minute, second, tick;
 	
-	public GuiTime(Screen parent, boolean isHorizontal) {
+	public GuiTime(boolean isHorizontal) {
+		this(isHorizontal, false, false, true, true, false);
+	}
+	public GuiTime(boolean isHorizontal, boolean addDay, boolean addHour, boolean addMinute, boolean addSecond, boolean addTick) {
+		super(0, 0, 0, 0, CommonComponents.EMPTY);
 		this.font = Minecraft.getInstance().font;
-		this.parent = parent;
 		this.isHorizontal = isHorizontal;
-		
-		Predicate<Character> charFilter = typedChar ->
-			"0123456789".contains(String.valueOf(typedChar));
-		
-		int width = this.font.width("8") * 3 + 7;
-		for (int i = 0; i < 6; i++) {
-			GuiFilterTextField field = new GuiFilterTextField("0", this.font, 0, 0, width, this.font.lineHeight + 1).setTypedCharFilter(charFilter);
-			field.setBordered(false);
-			field.setMaxLength(4);
-			this.fields.add(field);
+
+		int width = this.font.width("8") * 5 + 2;
+		this.day = addDay ? this.createEditbox(Component.translatable("inbox.config.time.day"), width) : null;
+		width = this.font.width("8") * 4 + 5;
+		this.hour = addHour ? this.createEditbox(Component.translatable("inbox.config.time.hour"), width) : null;
+		this.minute = addMinute ? this.createEditbox(Component.translatable("inbox.config.time.minute"), width) : null;
+		this.second = addSecond ? this.createEditbox(Component.translatable("inbox.config.time.second"), width) : null;
+		this.tick = addTick ? this.createEditbox(Component.translatable("inbox.config.time.tick"), width) : null;
+	}
+
+	public Time createEditbox(Component name, int width) {
+		GuiFilterTextField field = new GuiFilterTextField("0", false, 0, 0, width, this.font.lineHeight + 1);
+		field.setBordered(false);
+		field.setMaxLength(4);
+		Time time = new Time(name, field);
+		this.times.add(time);
+		return time;
+	}
+	public static class Time {
+		public final Component name;
+		public final GuiFilterTextField field;
+		public Time(Component name, GuiFilterTextField field) {
+			this.name = name;
+			this.field = field;
 		}
 	}
+
 	public GuiTime setTextFieldWidth(int width) {
-		for (EditBox field : this.fields) {
-			field.setWidth(width);
+		for (Time time : this.times) {
+			time.field.setWidth(width);
 		}
 		return this;
 	}
 
-	public void render(GuiGraphics graphics, int x, int y, float p_230430_4_) {
-		if(!this.isEnable) return;
-		final String[] times = {
-				I18n.get("inbox.config.time.day"),
-				I18n.get("inbox.config.time.hour"),
-				I18n.get("inbox.config.time.minute"),
-				I18n.get("inbox.config.time.second"),
-				I18n.get("inbox.config.time.tick"),
-				I18n.get("inbox.config.time.millis")
-		};
+	public GuiTime setRenderPos(int x, int y) {
+		this.setX(x);
+		this.setY(y);
+		return this;
+	}
+	public GuiTime setRenderBackgroubd(boolean render) {
+		this.renderBackground = render;
+		return this;
+	}
 
+	@Override
+	public int getWidth() {
 		int width = 0;
-		for (String time : times) {
-			width = Math.max(width, this.font.width(time));
-		}
-		int weightWidth = this.fields.get(0).getWidth(),
-			weightHeight = this.fields.get(0).getHeight();
-
-		if(this.isHorizontal) {
-			graphics.fill(x - 2, y - 3, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
-			graphics.fill(x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + weightHeight + 3 - 1, Color.BLACK.getRGB());
-			graphics.fill(x - 2, y - 4, x + weightWidth - 3 + width + 2 + 5, y + weightHeight + 3, Color.BLACK.getRGB());
-			
-			graphics.hLine(x - 2, x + weightWidth - 3 + width + 5, y - 2, 1347420415);
-			graphics.hLine(x - 2, x + weightWidth - 3 + width + 5, y + weightHeight + 3 - 3, 1347420415);
-			
-			graphics.vLine(x-2, y - 2, y + weightHeight + 3 - 3, 1347420415);
-			graphics.vLine(x + weightWidth - 3 + width + 5, y - 2, y + weightHeight + 3 - 3, 1347420415);
-			x+=2;
-
-			for (int i = 0; i < this.fields.size(); i++) {
-				EditBox field = this.fields.get(i);
-				field.setX(x);
-				field.setY(y);
-				field.renderWidget(graphics, x, y, p_230430_4_);
-				x += field.getWidth();
-
-				graphics.drawString(this.font, times[i]+",", x, y, Color.GREEN.getRGB(), true);
-				x += this.font.width(times[i]) + 5;
+		if (this.isHorizontal) {
+			width = this.times.size() * (this.times.get(0).field.getWidth() + 4);
+			for (Time time : this.times) {
+				width += this.font.width(time.name);
 			}
 		}else {
-			graphics.fill(x - 2, y - 3, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * 6 - 1, Color.BLACK.getRGB());
-			graphics.fill(x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + (weightHeight + 3) * 6 - 1, Color.BLACK.getRGB());
-			graphics.fill(x - 2, y - 4, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * 6, Color.BLACK.getRGB());
-			
-			graphics.hLine(x - 2, x + weightWidth - 3 + width + 5, y - 2, 1347420415);
-			graphics.hLine(x - 2, x + weightWidth - 3 + width + 5, y + (weightHeight + 3) * 6 - 3, 1347420415);
-			
-			graphics.vLine(x - 3, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
-			graphics.vLine(x + weightWidth + 3 + width, y - 2, y + (weightHeight + 3) * 6 - 3, 1347420415);
+			for (int i = 0; i < this.times.size(); i++) {
+				width = Math.max(width, this.font.width(this.times.get(i).name) + this.times.get(i).field.getWidth());
+			}
+		}
+		return width;
+	}
+
+	@Override
+	public int getHeight() {
+		int height;
+		if (this.isHorizontal) {
+			height = this.times.get(0).field.getHeight();
+		}else {
+			height = this.times.get(0).field.getHeight() * this.times.size();
+		}
+		return height;
+	}
+
+	@Override
+	protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		int x = this.getX();
+		int y = this.getY();
+
+		int width = 0;
+		for (Time time : times) {
+			width = Math.max(width, this.font.width(time.name));
+		}
+		int weightWidth = this.times.get(0).field.getWidth(),
+			weightHeight = this.times.get(0).field.getHeight();
+
+		if(this.isHorizontal) {
+			x+=2;
+			for (int i = 0; i < this.times.size(); i++) {
+				Time time = this.times.get(i);
+				time.field.setX(x);
+				time.field.setY(y);
+				time.field.renderWidget(graphics, x, y, partialTick);
+				RenderUtils.hLine(graphics, time.field.getX(), time.field.getY() + time.field.getHeight() - 1, time.field.getWidth() - 4, RenderUtils.rgb(128, 128, 128, 150));
+				x += time.field.getWidth();
+
+				RenderUtils.drawComponent(graphics, time.name, x+1, y, Color.GREEN.getRGB(), true);
+				x += this.font.width(time.name) + 5;
+			}
+		}else {
+			if (this.renderBackground){
+				graphics.fill(x - 3, y - 3, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * this.times.size() + 2, Color.BLACK.getRGB());
+				graphics.fill(x - 4, y - 3, x + weightWidth - 3 + width + 3 + 5, y + (weightHeight + 3) * this.times.size() + 1, Color.BLACK.getRGB());
+				graphics.fill(x - 3, y - 4, x + weightWidth - 3 + width + 2 + 5, y + (weightHeight + 3) * this.times.size(), Color.BLACK.getRGB());
+
+				RenderUtils.hLine(graphics, x - 2, y - 3, weightWidth + width + 4, 1347420415);
+				RenderUtils.hLine(graphics, x - 2, y + (weightHeight + 3) * this.times.size(), weightWidth + width + 4, 1347420415);
+
+				RenderUtils.vLine(graphics, x - 3, y - 3, (weightHeight + 3) * this.times.size() + 3, 1347420415);
+				RenderUtils.vLine(graphics, x + weightWidth + 3 + width, y - 3, (weightHeight + 3) * this.times.size() + 3, 1347420415);
+			}
 			x++;
 
-			for (int i = 0; i < this.fields.size(); i++) {
-				EditBox field = this.fields.get(i);
-				field.setX(x);
-				field.setY(y);
-				field.renderWidget(graphics, x, y, p_230430_4_);
-				graphics.drawString(this.font, times[i], x + weightWidth, y, Color.GREEN.getRGB(), true);
-				y += field.getHeight() + 3;
+			for (int i = 0; i < this.times.size(); i++) {
+				Time time = this.times.get(i);
+				time.field.setX(x);
+				time.field.setY(y);
+				time.field.renderWidget(graphics, x, y, partialTick);
+				RenderUtils.hLine(graphics, time.field.getX(), time.field.getY() + time.field.getHeight() - 1, time.field.getWidth() - 4, RenderUtils.rgb(128, 128, 128, 150));
+				RenderUtils.drawComponent(graphics, time.name, x + weightWidth-2, y, Color.GREEN.getRGB(), true);
+				y += time.field.getHeight() + 3;
 			}
 		}
 	}
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
-		if(this.isEnable){
-			for (EditBox field : this.fields) {
-				if(field.mouseClicked(mouseX, mouseY, mouseButton)){
-					field.setFocused(true);
-					return true;
-				}
-				field.setFocused(false);
+		for (Time time : this.times) {
+			time.field.setFocused(false);
+		}
+		for (Time time : this.times) {
+			if(time.field.mouseClicked(mouseX, mouseY, mouseButton)){
+				time.field.setFocused(true);
+				return true;
 			}
 		}
-		return false;
+		return super.mouseClicked(mouseX, mouseY, mouseButton);
 	}
 
 	@Override
 	public boolean charTyped(char typedChar, int keyCode) {
-		if(this.isEnable) {
-			for (EditBox field : this.fields) {
-				if(field.isFocused() && field.charTyped(typedChar, keyCode)){
-					return true;
-				}
+		for (Time time : this.times) {
+			if(time.field.charTyped(typedChar, keyCode)){
+				return true;
 			}
 		}
-		return false;
+		return super.charTyped(typedChar, keyCode);
+	}
+	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		for (Time time : this.times) {
+			if(time.field.isFocused() && time.field.keyPressed(keyCode, scanCode, modifiers)){
+				return true;
+			}
+		}
+		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	@Override
+	public boolean keyReleased(int pKeyCode, int pScanCode, int pModifiers) {
+		for (Time time : this.times) {
+			if(time.field.isFocused() && time.field.keyReleased(pKeyCode, pScanCode, pModifiers)){
+				return true;
+			}
+		}
+		return super.keyReleased(pKeyCode, pScanCode, pModifiers);
 	}
 
 	@Override
@@ -148,90 +203,61 @@ public class GuiTime implements GuiEventListener, NarratableEntry {
 
 	@Override
 	public boolean isFocused() {
-		for (EditBox field : this.fields) {
-			if(field.isFocused()){
+		for (Time time : this.times) {
+			if(time.field.isFocused()){
 				return true;
 			}
 		}
 		return false;
 	}
 
-	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if(this.isEnable){
-			for (EditBox field : this.fields) {
-				if(field.isFocused() && field.keyPressed(keyCode, scanCode, modifiers)){
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
 	public boolean isEnable() {
-		return isEnable;
+		return this.visible;
 	}
 	public GuiTime setEnable(boolean isEnable) {
-		this.isEnable = isEnable;
-		this.fields.forEach(field -> field.setVisible(isEnable));
+		this.visible = isEnable;
+		this.times.forEach(time -> time.field.setVisible(isEnable));
 		return this;
 	}
 
-	/**
-	 * @param index
-	 * 				0 = Day,<p>
-	 * 				1 = Hour,<p>
-	 * 				2 = Minute,<p>
-	 * 				3 = Second,<p>
-	 * 				4 = Tick,<p>
-	 * 				5 = Millis
-	 */
 	public int get(int index) {
 		try {
-			return Integer.parseInt(this.fields.get(index).getValue());
+			return Integer.parseInt(this.times.get(index).field.getValue());
 		}catch(NumberFormatException e) {
 			return 0;
 		}
 	}
 	
 	public int getDay() {
-		return this.get(0);
+		return this.day != null ? this.day.field.getAsNumber().intValue() : 0;
 	}
 
 	public int getHour() {
-		return this.get(1);
+		return this.hour != null ? this.hour.field.getAsNumber().intValue() : 0;
 	}
 
 	public int getMinute() {
-		return this.get(2);
+		return this.minute != null ? this.minute.field.getAsNumber().intValue() : 0;
 	}
 
 	public int getSecond() {
-		return this.get(3);
+		return this.second != null ? this.second.field.getAsNumber().intValue() : 0;
 	}
 
 	public int getTick() {
-		return this.get(4);
-	}
-
-	public int getMillis() {
-		return this.get(5);
+		return this.tick != null ? this.tick.field.getAsNumber().intValue() : 0;
 	}
 
 	public long getTimeOfMillis() {
-		return EmailUtils.parseMillis(this.getDay(), this.getHour(), this.getMinute(), this.getSecond(), this.getTick(), this.getMillis());
+		return EmailUtils.parseMillis(this.getDay(), this.getHour(), this.getMinute(), this.getSecond(), this.getTick(), 0);
 	}
-	
+
 	public long getTimeOfTicks() {
 		return this.getTimeOfMillis() / 50;
 	}
 
 	@Override
-	public NarrationPriority narrationPriority() {
-		return NarrationPriority.NONE;
-	}
+	protected void updateWidgetNarration(NarrationElementOutput output) {
 
-	@Override
-	public void updateNarration(NarrationElementOutput pNarrationElementOutput) {
 	}
 }

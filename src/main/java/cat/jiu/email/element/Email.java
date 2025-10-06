@@ -18,7 +18,6 @@ import cat.jiu.core.util.client.AudioSystem;
 import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.core.util.element.sound.SoundJmp123;
-import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.element.attachment.*;
 import com.google.common.collect.Lists;
@@ -40,6 +39,8 @@ import net.minecraft.world.item.ItemStack;
 
 @SuppressWarnings("unused")
 public class Email implements IDataSerializable<IData.IMapData<?>> {
+	public static final Email EMPTY = new Email(Text.empty, Text.empty).setRead(true).setReceive(true);
+
 	protected IText title;
 	protected IText sender;
 
@@ -111,6 +112,14 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 		this.read(data);
 	}
 
+	public boolean isEmpty(){
+		return this == EMPTY
+				|| this.getTitle() == Text.empty
+				|| this.getSender() == Text.empty
+				|| !this.hasMessages()
+				|| !this.hasAttachments();
+	}
+
 	public boolean isDeletable() {
 		return deletable;
 	}
@@ -168,7 +177,11 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 */
 	public boolean isReceived() {return receive;}
 
+	@Deprecated
 	public boolean hasAttachments(ResourceLocation id) {
+		return this.hasAttachment(id);
+	}
+	public boolean hasAttachment(ResourceLocation id) {
 		return this.attachments!=null && this.attachments.containsKey(id);
 	}
 
@@ -176,16 +189,20 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 获取对应ID的附件
 	 */
 	public <T extends IAttachment> T getAttachment(ResourceLocation id) {
-		if (!this.hasAttachments(id)) {
+		if (!this.hasAttachment(id)) {
 			this.addAttachment(IAttachment.REGISTRY.get(id, new JsonObject()));
 		}
 		return this.attachments.get(id).cast();
 	}
 
 	public Collection<IAttachment> getAttachments(){
-		return this.hasAttachment() ? Collections.unmodifiableCollection(this.attachments.values()) : Collections.emptyList();
+		return this.hasAttachments() ? Collections.unmodifiableCollection(this.attachments.values()) : Collections.emptyList();
 	}
+	@Deprecated
 	public boolean hasAttachment() {
+		return this.hasAttachments();
+	}
+	public boolean hasAttachments() {
 		if (this.attachments!=null) {
 			for (IAttachment value : this.attachments.values()) {
 				if (!value.isEmpty()) {
@@ -204,7 +221,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 			if (this.attachments == null) {
 				this.attachments = new ConcurrentHashMap<>();
 			}
-			if (this.hasAttachments(attachment.getID())) {
+			if (this.hasAttachment(attachment.getID())) {
 				this.getAttachment(attachment.getID()).merge(attachment);
 			} else {
 				this.attachments.put(attachment.getID(), attachment);
@@ -217,7 +234,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 邮件附带的物品
 	 */
 	public List<ItemStack> getItems() {
-		if (this.hasAttachments(AttachmentItem.ID)) {
+		if (this.hasAttachment(AttachmentItem.ID)) {
 			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).getItems();
 		}
 		return Collections.emptyList();
@@ -226,7 +243,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 邮件附带的效果
 	 */
 	public List<MobEffectInstance> getEffects() {
-		if (this.hasAttachments(AttachmentEffect.ID)) {
+		if (this.hasAttachment(AttachmentEffect.ID)) {
 			return this.<AttachmentEffect>getAttachment(AttachmentItem.ID).getEffects();
 		}
 		return Collections.emptyList();
@@ -235,7 +252,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 邮件附带的物品
 	 */
 	public List<AttachmentCommand.Cmd> getCommands() {
-		if (this.hasAttachments(AttachmentCommand.ID)) {
+		if (this.hasAttachment(AttachmentCommand.ID)) {
 			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).getCommands();
 		}
 		return Collections.emptyList();
@@ -256,6 +273,10 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 			this.networkSize = EmailUtils.getSize((CompoundTag) this.write(NBTData.map()).getData());
 		}
 		return this.networkSize;
+	}
+
+	public String getFormatedNetworkSize(){
+		return EmailUtils.getSize(this.getEmailNetworkSize());
 	}
 
 	/**
@@ -462,7 +483,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 已被移除的物品
 	 */
 	public ItemStack removeItem(int slot) {
-		if(this.hasAttachments(AttachmentItem.ID)) {
+		if(this.hasAttachment(AttachmentItem.ID)) {
 			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).remove(slot);
 		}
 		return ItemStack.EMPTY;
@@ -471,7 +492,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 清空邮件附带的所有物品
 	 */
 	public Email clearItems() {
-		if(this.hasAttachments(AttachmentItem.ID)) {
+		if(this.hasAttachment(AttachmentItem.ID)) {
 			this.<AttachmentItem>getAttachment(AttachmentItem.ID).removeAll();
 		}
 		return this;
@@ -480,7 +501,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 添加物品到邮件
 	 */
 	public Email addItems(List<ItemStack> stacks) {
-		if(!this.hasAttachments(AttachmentItem.ID)) {
+		if(!this.hasAttachment(AttachmentItem.ID)) {
 			this.addAttachment(new AttachmentItem());
 		}
 		if (stacks!=null && !stacks.isEmpty()){
@@ -492,7 +513,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 添加物品到邮件
 	 */
 	public Email addItem(ItemStack... stacks) {
-		if(!this.hasAttachments(AttachmentItem.ID)) {
+		if(!this.hasAttachment(AttachmentItem.ID)) {
 			this.addAttachment(new AttachmentItem());
 		}
 		if (stacks!=null && stacks.length > 0) {
@@ -504,7 +525,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 设置邮件的附加指令
 	 */
 	public ItemStack setItem(int slot, ItemStack newItem) {
-		if(this.hasAttachments(AttachmentItem.ID)) {
+		if(this.hasAttachment(AttachmentItem.ID)) {
 			return this.<AttachmentItem>getAttachment(AttachmentItem.ID).setStack(slot, newItem);
 		}
 		return ItemStack.EMPTY;
@@ -516,7 +537,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 已被移除指令
 	 */
 	public AttachmentCommand.Cmd removeCommand(int slot) {
-		if(this.hasAttachments(AttachmentCommand.ID)) {
+		if(this.hasAttachment(AttachmentCommand.ID)) {
 			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).removeCommand(slot);
 		}
 		return null;
@@ -525,7 +546,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 清空邮件附带的所有指令
 	 */
 	public Email clearAllCommands() {
-		if(this.hasAttachments(AttachmentCommand.ID)) {
+		if(this.hasAttachment(AttachmentCommand.ID)) {
 			this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).removeAllCommand();
 		}
 		return this;
@@ -534,7 +555,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 添加指令到邮件
 	 */
 	public Email addCommands(List<AttachmentCommand.Cmd> cmds) {
-		if(!this.hasAttachments(AttachmentCommand.ID)) {
+		if(!this.hasAttachment(AttachmentCommand.ID)) {
 			this.addAttachment(new AttachmentCommand());
 		}
 		if (cmds!=null){
@@ -546,7 +567,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 添加指令到邮件
 	 */
 	public Email addCommands(AttachmentCommand.Cmd... cmds) {
-		if(!this.hasAttachments(AttachmentCommand.ID)) {
+		if(!this.hasAttachment(AttachmentCommand.ID)) {
 			this.addAttachment(new AttachmentCommand());
 		}
 		if (cmds!=null){
@@ -560,35 +581,35 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * 设置邮件的附加指令
 	 */
 	public AttachmentCommand.Cmd setCommand(int slot, AttachmentCommand.Cmd newCmd) {
-		if(this.hasAttachments(AttachmentCommand.ID)) {
+		if(this.hasAttachment(AttachmentCommand.ID)) {
 			return this.<AttachmentCommand>getAttachment(AttachmentCommand.ID).setCommand(slot, newCmd);
 		}
 		return null;
 	}
 
 	public Email setExperience(int levels, int points) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		this.getAttachmentXP().setLevels(levels).setPoints(points);
 		return this;
 	}
 	public Email addExperienceLevel(int levels) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		this.getAttachmentXP().addLevels(levels);
 		return this;
 	}
 	public Email addExperiencePoint(int points) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		this.getAttachmentXP().addPoints(points);
 		return this;
 	}
 	public Email subExperience(int levels, int points) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		AttachmentXP attachment = this.getAttachmentXP();
@@ -598,7 +619,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 		return this;
 	}
 	public Email subExperienceLevel(int levels) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		AttachmentXP attachment = this.getAttachmentXP();
@@ -606,7 +627,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 		return this;
 	}
 	public Email subExperiencePoint(int points) {
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		AttachmentXP attachment = this.getAttachmentXP();
@@ -614,7 +635,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 		return this;
 	}
 	public AttachmentXP getAttachmentXP(){
-		if(!this.hasAttachments(AttachmentXP.ID)) {
+		if(!this.hasAttachment(AttachmentXP.ID)) {
 			this.addAttachment(new AttachmentXP());
 		}
 		return this.getAttachment(AttachmentXP.ID);
@@ -698,13 +719,13 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	 * @return 是否带有附加的物品
 	 */
 	public boolean hasItems() {
-		return this.hasAttachments(AttachmentItem.ID) && !this.getAttachment(AttachmentItem.ID).isEmpty();
+		return this.hasAttachment(AttachmentItem.ID) && !this.getAttachment(AttachmentItem.ID).isEmpty();
 	}
 	public boolean hasCommands() {
-		return this.hasAttachments(AttachmentCommand.ID) && !this.getAttachment(AttachmentCommand.ID).isEmpty();
+		return this.hasAttachment(AttachmentCommand.ID) && !this.getAttachment(AttachmentCommand.ID).isEmpty();
 	}
 	public boolean hasXPs() {
-		return this.hasAttachments(AttachmentXP.ID) && !this.getAttachment(AttachmentXP.ID).isEmpty();
+		return this.hasAttachment(AttachmentXP.ID) && !this.getAttachment(AttachmentXP.ID).isEmpty();
 	}
 	/**
 	 * @return 是否带有附加的消息

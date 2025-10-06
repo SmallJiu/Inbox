@@ -15,7 +15,7 @@ import java.util.UUID;
 
 class CommandEmailDelete {
     public static BaseCommand.Base register(){
-        return new BaseCommand.Builder("deleter")
+        return new BaseCommand.Builder("delete")
                 .argument((cmd, node) -> node
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .then(Commands.argument("email", LongArgumentType.longArg(0))

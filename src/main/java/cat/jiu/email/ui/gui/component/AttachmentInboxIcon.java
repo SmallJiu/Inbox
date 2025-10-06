@@ -18,7 +18,7 @@ public class AttachmentInboxIcon extends ModifierSource<ItemStack> {
     static final String prefix = AttachmentAttribute.ID.toString();
     static ModifierSourceType<ItemStack> TYPE = null;
 
-    public static ModifierSourceType<ItemStack> getIconType() {
+    public static ModifierSourceType<ItemStack> initIconType() {
         if (TYPE == null) {
             TYPE = ModifierSourceType.register(new ModifierSourceType<ItemStack>() {
                 @Override
@@ -44,7 +44,7 @@ public class AttachmentInboxIcon extends ModifierSource<ItemStack> {
 
     boolean temp;
     public AttachmentInboxIcon(boolean data) {
-        super(getIconType(), (o1,o2)->0, ItemStack.EMPTY);
+        super(initIconType(), (o1, o2)->0, ItemStack.EMPTY);
         this.temp = data;
     }
 

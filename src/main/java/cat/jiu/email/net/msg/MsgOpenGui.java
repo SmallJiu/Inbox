@@ -1,9 +1,11 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.SideProxy;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.ui.GuiHandler;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -25,10 +27,11 @@ public class MsgOpenGui extends BaseMessage {
 	}
 	
 	public boolean handler(Supplier<NetworkEvent.Context> ctx) {
-		EmailMain.runOnServerThread(()->
-				GuiHandler.openGui(this.guiID, ctx.get().getSender())
-		);
-//		ctx.get().getSender().getServer().doRunTask(new TickTask(0, ()->GuiHandler.openGui(this.guiID, ctx.get().getSender())));
+		if (SideProxy.isClient()) {
+			ctx.get().enqueueWork(() ->
+					GuiHandler.openGui(this.guiID)
+			);
+		}
 		return true;
 	}
 }

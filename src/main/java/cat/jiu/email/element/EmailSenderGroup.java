@@ -1,20 +1,12 @@
 package cat.jiu.email.element;
 
-import java.util.Objects;
-
 public enum EmailSenderGroup {
     SYSTEM, PLAYER;
     public static EmailSenderGroup getGroupByID(int id) {
-        if (id == 1) {
-            return PLAYER;
-        }
-        return SYSTEM;
+        return id == 1 ? PLAYER : SYSTEM;
     }
     public static int getIDByGroup(EmailSenderGroup sender) {
-        if (Objects.requireNonNull(sender) == EmailSenderGroup.PLAYER) {
-            return 1;
-        }
-        return 0;
+        return sender == EmailSenderGroup.PLAYER ? 1 :0;
     }
     public boolean isPlayerSend() {
         return this == PLAYER;

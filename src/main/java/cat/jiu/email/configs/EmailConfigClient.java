@@ -1,7 +1,6 @@
 package cat.jiu.email.configs;
 
 import cat.jiu.core.util.base.BaseConfig;
-import cat.jiu.email.util.RenderCorner;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class EmailConfigClient {
@@ -14,7 +13,6 @@ public class EmailConfigClient {
     public static final Position Position;
     public static final EmailConfigServer.Time Prompt_Email;
     public static final ForgeConfigSpec.IntValue Send_History_Max_Count;
-    public static final ForgeConfigSpec.EnumValue<RenderCorner> Undying_Count_Render_Side;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -47,11 +45,6 @@ public class EmailConfigClient {
                 .translation("inbox.config.send.history_max")
                 .comment("send history max count")
                 .defineInRange("Send_History_Max_Count", 5, 0, Integer.MAX_VALUE);
-
-        Undying_Count_Render_Side = builder
-                .translation("inbox.config.layout.corner")
-                .comment("inbox.config.layout.corner.0")
-                .defineEnum("Undying_Count_Render_Side", RenderCorner.lower_left);
 
         CONFIG_MAIN = builder.build();
     }
@@ -99,9 +92,5 @@ public class EmailConfigClient {
                 builder.pop();
             }
         }
-    }
-
-    static {
-
     }
 }

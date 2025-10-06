@@ -9,8 +9,6 @@ import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.Collection;
-
 class CommandOpenInbox {
     public static BaseCommand.Base register(){
         return new BaseCommand.Builder("inbox")
@@ -19,29 +17,22 @@ class CommandOpenInbox {
                         .then(Commands.argument("player", GameProfileArgument.gameProfile()).executes(cmd))
                 )
                 .execute((server, sender, args, ctx) -> {
-                    Collection<GameProfile> profiles = GameProfileArgument.getGameProfiles(ctx, "player");
-                    if (!profiles.isEmpty()){
+                    try {
                         if (ctx.getSource().hasPermission(4)) {
-                            for (GameProfile profile : profiles) {
-                                ServerPlayer player1 = server.getPlayerList().getPlayer(profile.getId());
-                                if (player1 != null) {
-                                    GuiHandler.openGui(GuiHandler.EMAIL_MAIN, player1);
-                                }else {
+                            for (GameProfile profile : GameProfileArgument.getGameProfiles(ctx, "player")) {
+                                ServerPlayer player = server.getPlayerList().getPlayer(profile.getId());
+                                if (player != null) {
+                                    GuiHandler.openGui(GuiHandler.EMAIL_MAIN, player);
+                                } else {
                                     ctx.getSource().sendFailure(Component.translatable(ChatFormatting.RED + String.format("找不到在线玩家：%s", profile.getName())));
                                 }
                             }
-                        }else {
+                        } else {
                             ctx.getSource().sendFailure(Component.translatable(ChatFormatting.RED + "你没有所需权限。"));
                         }
-
-                        return 1;
+                    } catch (Exception e) {
+                        GuiHandler.openGui(GuiHandler.EMAIL_MAIN, ctx.getSource().getPlayer());
                     }
-
-                    if (sender instanceof ServerPlayer p){
-                        GuiHandler.openGui(GuiHandler.EMAIL_MAIN, p);
-                        return 1;
-                    }
-
                     return 1;
                 })
                 .build();

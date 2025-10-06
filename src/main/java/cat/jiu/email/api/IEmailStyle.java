@@ -14,7 +14,8 @@ public interface IEmailStyle extends Supplier<ResourceLocation> {
     static StaticRegistry<ResourceLocation, IEmailStyle> REGISTRY = new StaticRegistry<ResourceLocation, IEmailStyle>(EmailMain.MODID, "email/style")
             .setKeyGetter(
                     data-> Utils.location(data.getString(NAME_ID)),
-                    data->Utils.location(data.get(NAME_ID).getAsString())
+                    data->Utils.location(data.get(NAME_ID).getAsString()),
+                    data -> data.getLocation(NAME_ID)
             );
 
     void renderBack(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, boolean canScroll, float partialTick);

@@ -9,8 +9,10 @@ import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.*;
+import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;
+import cat.jiu.email.ui.gui.GuiInbox;
 import com.google.common.collect.Lists;
 
 import cat.jiu.core.api.element.IText;
@@ -23,6 +25,7 @@ import cat.jiu.email.event.EmailSendDevMessageEvent;
 import com.google.common.collect.Maps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
@@ -61,7 +64,6 @@ public class SendDevEmail {
 				.addMessages(msgs)
 				.setExternalSound(new AudioSystem.Audio(default_sound, default_sound.exists() ? null : EmailMain.class.getResourceAsStream("/assets/email/sounds/default.mp3"), SoundSource.PLAYERS).setRetryFile("https://raw.githubusercontent.com/SmallJiu/Document/refs/heads/master/mods/Inbox/default.mp3")
 						.setCanLopping(true)
-						.setInfiniteLopping(true)
 						.setLoopDelay(500)
 				)
 				.addItem(
@@ -102,6 +104,7 @@ public class SendDevEmail {
 			Inbox inbox = Inbox.get(player);
 
 			player.getServer().getPlayerList().sendPlayerPermissionLevel(player);
+			EmailMain.NETWORK.sendMessageToPlayer(new MsgSendCooling(inbox.getSendCooling()), player);
 			
 			if(!inbox.isSendDevMsg()) {
 				inbox.setSendDevMsg(true);
@@ -155,11 +158,21 @@ public class SendDevEmail {
 	public static void onClientTick(TickEvent.ClientTickEvent event){
 		if (event.phase == TickEvent.Phase.END && Minecraft.getInstance().player != null) {
 			if (System.currentTimeMillis() >= showToast) {
-				if (EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
+				int unread = GuiInbox.INBOX.getUnRead(),
+						unReceived = GuiInbox.INBOX.getUnReceived();
+				if (unread > 0 || unReceived > 0) {
+					Component
+							title = CommonComponents.EMPTY,
+							message = CommonComponents.EMPTY;
+					if (unread > 0) {
+						title = Component.translatable("info.inbox.has_unread", EmailMain.getUnread());
+					}
+					if (unReceived > 0) {
+						message = Component.translatable("info.inbox.has_unreceive", EmailMain.getUnaccepted());
+					}
+
 					Minecraft.getInstance().getToasts().addToast(new SystemToast(
-							SystemToast.SystemToastIds.PACK_COPY_FAILURE,
-							Component.translatable("info.inbox.has_unread", EmailMain.getUnread()),
-							Component.translatable("info.inbox.has_unreceive", EmailMain.getUnaccepted())
+							SystemToast.SystemToastIds.PACK_COPY_FAILURE, title, message
 					));
 				}
 				showToast = System.currentTimeMillis() + EmailConfigClient.Prompt_Email.getMillis();

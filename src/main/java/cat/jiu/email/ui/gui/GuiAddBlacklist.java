@@ -25,11 +25,13 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
 public class GuiAddBlacklist extends Screen {
+	protected final Screen parent;
 	protected final List<String> blacklist;
 	protected EditBox name;
 	protected int leftPos, topPos, xSize, ySize;
-	public GuiAddBlacklist(List<String> blacklist) {
+	public GuiAddBlacklist(Screen parent, List<String> blacklist) {
 		super(CommonComponents.EMPTY);
+		this.parent = parent;
 		this.blacklist = blacklist;
 	}
 
@@ -56,7 +58,7 @@ public class GuiAddBlacklist extends Screen {
 		});
 		btn.setX(btn.getX() - (btn.getWidth()/2));
 		this.addRenderableWidget(btn);
-		this.addRenderableWidget(new GuiButton(btn.getX(), btn.getY() + btn.getHeight()+2, btn.getWidth(), btn.getHeight(), Component.translatable("info.inbox.black.back"), b-> GuiHandler.openGui(GuiHandler.EMAIL_BLACKLIST)));
+		this.addRenderableWidget(new GuiButton(btn.getX(), btn.getY() + btn.getHeight()+2, btn.getWidth(), btn.getHeight(), Component.translatable("info.inbox.black.back"), b-> Minecraft.getInstance().setScreen(this.parent)));
 	}
 
 	@Override
@@ -78,5 +80,11 @@ public class GuiAddBlacklist extends Screen {
 	@Override
 	public boolean isPauseScreen() {
 		return false;
+	}
+
+	@Override
+	public void onClose() {
+		super.onClose();
+		Minecraft.getInstance().setScreen(this.parent);
 	}
 }

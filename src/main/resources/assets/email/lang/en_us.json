@@ -39,11 +39,11 @@
   "info.inbox.black.back": "Back",
   "info.inbox.play_sound": "Play",
   "info.inbox.play_sound.stop": "Stop",
-  "info.inbox.refresh": "Refresh Inbox",
   "info.inbox.refreshing": "Refreshing...",
-  "info.inbox.refresh.hard": "Hard Refresh Inbox",
+  "info.inbox.refresh": "Check for new email",
+  "info.inbox.refresh.hard": "Re-fetch the inbox from the server",
   "info.inbox.refresh.cooling": "Cooling...",
-  "info.inbox.email_size": "Email Size: %s Bytes",
+  "info.inbox.email_size": "Size: %s",
   "info.inbox.remain_expiration_time": "Expiration remaining: %s",
   "info.inbox.confirm": "Confirm",
   "info.inbox.cancel": "Cancel",
@@ -57,6 +57,8 @@
   "info.inbox.xp_save_to_email": "This XPs is save on inbox.",
   "info.inbox.xp_save_to_email.0": "Level: %s",
   "info.inbox.xp_save_to_email.1": "Point: %s",
+  "info.inbox.xp.level": "EXP Levels",
+  "info.inbox.xp.point": "EXP Points",
   "info.inbox.no_select_title": "Select an email to see info.",
   "info.inbox.no_select_time": "Now time: %s",
   "info.inbox.tip": "Select a email and press %s can %s too.",
@@ -84,18 +86,37 @@
   "info.inbox.sound_not_found": "Can not play audio, registry name: %s",
   "info.inbox.sound_not_found.ext": "Can not play audio, path: %s",
 
-  "info.inbox.items": "Items",
-  "info.inbox.xps": "XPs",
-  "info.inbox.commands": "Commands",
-  "info.inbox.healths": "Healths",
+  "info.inbox.items": "Item",
+  "info.inbox.xps": "EXP",
+  "info.inbox.commands": "Command",
+  "info.inbox.healths": "Health",
   "info.inbox.healths.temp": " (Temp)",
-  "info.inbox.effects": "Buff/Debuff",
-  "info.inbox.attribute": "Attributes",
+  "info.inbox.effects": "Potion Effect",
+  "info.inbox.attribute": "Attribute",
   "info.inbox.undying": "Power of Immortality",
 
   #gen
   "info.inbox.generate": "Generate email.",
+  "info.inbox.generate.message": "Messages",
+  "info.inbox.generate.attachment": "Attachments",
+  "info.inbox.generate.attachment.item": "Hold 'Ctrl' and scroll the mouse wheel to adjust the item count of sends",
+  "info.inbox.generate.attachment.item.selected": "Click again to cancel the item send",
+  "info.inbox.generate.attachment.item.select_all": "Select all",
+  "info.inbox.generate.attachment.item.cancel_all": "Cancel all",
+  "info.inbox.generate.attachment.item.send.fail": "Failed to send, not enough items. Slot: %s, Need: %s, Owned: %s.",
+  "info.inbox.generate.attachment.undying.send.fail": "Failed to send, not enough undying count. Need: %s, Owned: %s.",
+  "info.inbox.generate.attachment.exp.level.send.fail": "Failed to send, not enough exp levels. Need: %s, Owned: %s.",
+  "info.inbox.generate.attachment.exp.point.send.fail": "Failed to send, not enough exp points. Need: %s, Owned: %s.",
+  "info.inbox.generate.attachment.effect.amplifier": "Potion amplifier.",
+  "info.inbox.generate.attachment.effect.infinite": "Infinite potion time.",
+  "info.inbox.generate.attachment.effect.beacon": "Beacon effect.",
+  "info.inbox.generate.attachment.effect.show_icon": "Show icon.",
+  "info.inbox.generate.attachment.effect.show_particles": "Show particles.",
+  "info.inbox.generate.attachment.effect.mainhand_to_curative": "Makes the mainhand item one of the healing items.",
+  "info.inbox.generate.attachment.commands.op_permission": "Execute with OP permissions",
+  "info.inbox.generate.attachment.commands.hide_on_tooltip": "Hide command on tooltip",
   "info.inbox.generate.sound": "Sound",
+  "info.inbox.generate.sound.info": "The email comes with audio",
   "info.inbox.generate.sound.use_mc_sound": "Use vanilla sound.",
 
   #send
@@ -110,18 +131,18 @@
   "info.inbox.history": "History Addressee",
   "info.inbox.send.lock": "Email can be delete.",
 
-  "info.inbox.cooling": "Cooling -> %s:%s:%s:%s:%s",
+  "info.inbox.cooling": "Cooling",
   "info.inbox.from": "You have a new email from %s",
   "info.inbox.send.warn": "Warning: Use this button receive email maybe will lose items.",
   "info.inbox.send.not_op.abs": "Can not use obscure addresser: %s, please call admin.",
   "info.inbox.send.not_op.expiration": "Can not add expiration time to email, you are not Admin!",
   "info.inbox.send.abs": "Send email to %s players. (took %s ms)",
-  "info.inbox.send.name": "Click key ' Tab ' can fast typed player name.",
+  "info.inbox.send.name": "Click key ' Tab ' to fast typed player name.",
 
   "info.inbox.error.not_found_player": "Can not found Player: %s !",
   "info.inbox.error.empty_name": "Addressee can not be empty !",
   "info.inbox.error.send_self": "Server setting, You can't send email to your self !",
-  "info.inbox.error.empty_msgs_item": "item or message can not be empty!",
+  "info.inbox.error.empty_msgs_item": "Attachments and messages must have a non-empty one!",
 
   "info.inbox.error.send.to_big": "Email item is to big, please remove some item or nbt. Slot: %s, Size: %s / 2097152 Bytes",
   "info.inbox.error.send.to_big.email": "Send email to big, Please reduce the email size. %s / 2097152 Bytes",
@@ -146,7 +167,7 @@
 
   #scheduled
   "info.inbox.scheduled": "Scheduled Email",
-  "info.inbox.scheduled.expiration_time": "Expiration time: %s",
+  "info.inbox.scheduled.expiration_time": "Expiration: %s",
   "info.inbox.scheduled.last_time": "Send countdown: %s",
   "info.inbox.scheduled.interval_time": "Interval: %s",
   "info.inbox.scheduled.custom": "This email you can receive!",
@@ -167,6 +188,12 @@
   "info.inbox.scheduled.gen.note": "Note: ",
 
   #command
+  "inbox.command.attribute.get": "The following are the attributes that [%s] are permanently changed by Inbox",
+  "inbox.command.attribute.get.modifier": "Modifier",
+  "inbox.command.attribute.set": "Modifying attributes for %s entities is successful.",
+  "inbox.command.attribute.add": "Adding attributes to %s entities is successful.",
+  "inbox.command.attribute.remove": "Successfully removed attributes for %s entities.",
+
   "inbox.command.undying.set": "Your immortal power has been set to %s by %s",
   "inbox.command.undying.add": "Your immortal power has been add to %s by %s",
 
@@ -235,6 +262,9 @@
   "inbox.config.file_charset": "File storage charset",
   "inbox.config.file_charset.0": "json file storage charset",
 
+  "inbox.config.totem_to_undiying": "Totem To Immortality",
+  "inbox.config.totem_to_undiying.0": "Right-click on the Totem of undying or similar item to convert it into Immortality Power",
+
   "inbox.config.save_to_root_directory": "Save email to root directory",
   "inbox.config.save_to_root_directory.0": "save email to world directory if false,",
   "inbox.config.save_to_root_directory.1": "can cross you saves send email if true.",
@@ -288,13 +318,6 @@
   "inbox.config.layout.email_list_width.0": "Candidate Emails Width",
 
   "inbox.config.layout.prompt": "Unread email prompt interval",
-
-  "inbox.config.layout.corner": "Undying count render side",
-  "inbox.config.layout.corner.0": "Change undying count render side",
-  "inbox.config.layout.corner.upper_left": "Upper left corner",
-  "inbox.config.layout.corner.upper_right": "Upper right corner",
-  "inbox.config.layout.corner.lower_left": "Lower left corner",
-  "inbox.config.layout.corner.lower_right": "Lower right corner",
 
   "inbox.config.layout.size.width": "Width",
   "inbox.config.layout.size.width.0": "Set inbox main gui width",

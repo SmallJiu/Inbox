@@ -13,6 +13,7 @@ import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.data.NBTData;
+import cat.jiu.email.configs.EmailConfigServer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -35,6 +36,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	private final String owner;
 	private boolean dev;
 	private long emailHistoryCount = 0;
+	private long sendCooling;
 
 	private Inbox(String owner) {
 		this.owner = owner;
@@ -146,7 +148,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		int i = 0;
 		for(long id : this.getEmailIDs()) {
 			Email email = this.getEmail(id);
-			if(email.hasAttachment() && !email.isReceived()) i++;
+			if(email.hasAttachments() && !email.isReceived()) i++;
 		}
 		return i;
 	}
@@ -168,7 +170,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	 * @return email by id
 	 */
 	public Email getEmail(long id) {
-		return this.hasEmail(id) ? this.emails.get(id) : null;
+		return this.hasEmail(id) ? this.emails.get(id) : Email.EMPTY;
 	}
 	/**
 	 * remove email by id
@@ -245,7 +247,26 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	public Map<String, Object> getCustomValue() {
 		return Collections.unmodifiableMap(customValue);
 	}
-	
+
+	public long getSendCooling() {
+		return sendCooling;
+	}
+	public Inbox setSendCooling(long sendCooling) {
+		this.sendCooling = sendCooling;
+		return this;
+	}
+	public Inbox setSendCoolingFromTime(long coolingMillis) {
+		this.sendCooling = System.currentTimeMillis() + coolingMillis;
+		return this;
+	}
+	public Inbox setSendCoolingToNow() {
+		this.sendCooling = System.currentTimeMillis() + EmailConfigServer.Send.cooling.getMillis();
+		return this;
+	}
+	public boolean isSendCooling(){
+		return System.currentTimeMillis() <= this.sendCooling;
+	}
+
 	/**
 	 * add sender blacklist to inbox
 	 * @param name the sender name
@@ -276,7 +297,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	 * get sender blacklist
 	 */
 	public List<String> getSenderBlacklist() {
-		return Collections.unmodifiableList(senderBlacklist);
+		return senderBlacklist;
 	}
 	
 	/**
@@ -288,9 +309,6 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		&& !Minecraft.getInstance().isLocalServer()) {
 			EmailMain.log.error("Client can not save inbox to Server!");
 			return false;
-		}
-		if(this.isEmptyInbox()){
-			EmailMain.log.error("Inbox is EMPTY! unknown bug for this. Inbox json: {}", this);
 		}
 		try {
 			StorageType type = StorageType.getInstance();
@@ -334,11 +352,15 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		if(this.dev) data.putData("dev", true);
 
 		data.putData("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
+		data.putData("sendCooling", this.sendCooling);
 
 		if(!this.isEmptyInbox()) {
 			IData.IMapData<?> emails = data.newMap();
 			for (long id : this.getEmailIDs()) {
-				emails.putData(String.valueOf(id), this.getEmail(id).write(data.newMap()));
+				Email email =  this.getEmail(id);
+				if (!email.isEmpty()) {
+					emails.putData(String.valueOf(id), email.write(data.newMap()));
+				}
 			}
 			data.putData("emails", emails);
 		}
@@ -359,18 +381,17 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		}
 
 		if(!this.senderBlacklist.isEmpty()) {
-			IData.IListData<?> list = data.newList();
-			list.putData(this.senderBlacklist.toArray(new String[0]));
-			data.putData("blacklist", list);
+			data.putData("blacklist", this.senderBlacklist.toArray(new String[0]));
 		}
 		return data;
 	}
 
-	private static final List<String> old_version_black_key = Arrays.asList("dev", "custom", "historySize", "blacklist");
+	private static final List<String> old_version_black_key = Arrays.asList("dev", "custom", "historySize", "blacklist", "sendCooling");
 	@Override
 	public void read(IData.IMapData<?> data) {
 		if(data!=null && !data.isEmpty()) {
 			if(data.containsKey("dev")) this.dev = data.getBoolean("dev");
+			this.sendCooling = data.getLong("sendCooling");
 
 			if(data.containsKey("custom")) {
 				data.getMap("custom").foreach((key, value) -> {
@@ -398,9 +419,9 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 				));
 			}else {// for old version
 				data.foreach((key, value) -> {
-					if(!old_version_black_key.contains(key)) {
+					try {
 						this.emails.put(Long.valueOf(key), new Email(value.getAsMap()));
-					}
+					} catch (Exception ignored) {}
 				});
 			}
 
@@ -417,14 +438,12 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 			}
 			this.emailHistoryCount = Math.max(this.emailHistoryCount, emailMaxID);
 
-			if(data.containsKey("blacklist")) {
-				data.getList("blacklist", String.class).foreach((index, value)->{
-					String name = value.getAsPrimitive().getAsString();
-					if(!this.isInSenderBlacklist(name)) {
-						this.addSenderBlacklist(name);
-					}
-				});
-			}
+			data.getList("blacklist", String.class).foreach((index, value)->{
+				String name = value.getAsPrimitive().getAsString();
+				if(!this.isInSenderBlacklist(name)) {
+					this.addSenderBlacklist(name);
+				}
+			});
 		}
 	}
 
