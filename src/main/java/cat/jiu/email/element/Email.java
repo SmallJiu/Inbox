@@ -31,7 +31,9 @@ import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.*;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
@@ -114,10 +116,7 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 
 	public boolean isEmpty(){
 		return this == EMPTY
-				|| this.getTitle() == Text.empty
-				|| this.getSender() == Text.empty
-				|| !this.hasMessages()
-				|| !this.hasAttachments();
+				|| (!this.hasMessages() && !this.hasAttachments());
 	}
 
 	public boolean isDeletable() {
@@ -705,8 +704,21 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 	public void receive(Player player) {
 		if (!this.isReceived() && this.attachments!=null) {
 			this.setReceive(true);
-			this.attachments.forEach((k,v) -> v.accept(player));
+			this.attachments.forEach((k,v) -> {
+				try {
+					v.accept(player);
+				} catch (Exception e) {
+					sendReceiveErrorMessage(player, v, e);
+				}
+			});
 		}
+	}
+
+	public static void sendReceiveErrorMessage(Player player, IAttachment attachment, Exception e) {
+		player.sendSystemMessage(Component.literal(ChatFormatting.RED + "[Inbox] Email receive error: "));
+		player.sendSystemMessage(Component.literal(ChatFormatting.RED + "  - attachment: " + attachment.getID()));
+		player.sendSystemMessage(Component.literal(ChatFormatting.RED + "  - error message: "));
+		player.sendSystemMessage(Component.literal(ChatFormatting.RED + "    - " + e.getMessage()));
 	}
 
 	/**

@@ -37,8 +37,10 @@ class CommandSendEmail {
                             email = SendDevEmail.getDevEmail();
                         }else {
                             JsonElement emailJson = JsonUtils.parseThrow(file, EmailConfigServer.File_Charset.get());
-                            email = new Email(emailJson.getAsJsonObject())
-                                    .setSender(new Text(sender instanceof Player ? ((Player)sender).getName().getString() : EmailMain.SYSTEM));
+                            email = new Email(emailJson.getAsJsonObject());
+                            if (Text.empty.equals(email.getSender())) {
+                                email.setSender(new Text(sender instanceof Player ? ((Player) sender).getName().getString() : EmailMain.SYSTEM));
+                            }
                         }
                     } catch (Exception e) {
                         ctx.getSource().sendFailure(Component.literal(e.getMessage()));

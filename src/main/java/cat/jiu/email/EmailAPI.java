@@ -69,7 +69,7 @@ public class EmailAPI {
 	 */
 	public static void sendEmail(Player player, EmailSenderGroup group, String addresser, Email email) {
 		if(player.level().isClientSide()) {
-			EmailMain.NETWORK.sendMessageToServer(new MsgSend0(group, addresser, email));
+			EmailMain.NETWORK.sendMessageToServer(new MsgSend(group, addresser, email));
 		}else {
 			sendEmail(group, addresser, email);
 		}

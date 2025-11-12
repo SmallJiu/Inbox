@@ -6,6 +6,7 @@ import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
+import cat.jiu.email.element.Email;
 import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.ui.gui.component.GuiCheckbox;
 import cat.jiu.email.ui.gui.component.GuiFilterTextField;
@@ -151,7 +152,11 @@ public class AttachmentAttribute implements IAttachment {
             for (Map.Entry<Attribute, EnumMap<AttributeModifier.Operation, List<AttributeValue>>> attributeEntry : this.attributeMap.entrySet()) {
                 for (Map.Entry<AttributeModifier.Operation, List<AttributeValue>> operationEntry : attributeEntry.getValue().entrySet()) {
                     for (AttributeValue value : operationEntry.getValue()) {
-                        accept(player, attributeEntry.getKey(), operationEntry.getKey(), value);
+                        try {
+                            accept(player, attributeEntry.getKey(), operationEntry.getKey(), value);
+                        } catch (Exception e) {
+                            Email.sendReceiveErrorMessage(player, this, e);
+                        }
                     }
                 }
             }
@@ -159,7 +164,7 @@ public class AttachmentAttribute implements IAttachment {
     }
 
     public static void accept(LivingEntity entity, Attribute attribute, AttributeModifier.Operation operation, AttributeValue value) {
-        AttributeInstance instance = Objects.requireNonNull(entity.getAttribute(attribute), String.format("not found attribute: %s", attribute));
+        AttributeInstance instance = Objects.requireNonNull(entity.getAttribute(attribute), String.format("not found player attribute: %s", ForgeRegistries.ATTRIBUTES.getKey(attribute)));
         AttributeState.Id id = AttributeState.id(attribute, operation, value.temp);
         instance.removeModifier(id.uid);
         if (value.temp) {
@@ -529,7 +534,7 @@ public class AttachmentAttribute implements IAttachment {
 
                 this.value = this.addWiget(new GuiFilterTextField(
                         "0", true, 0, 0, 30, RenderUtils.fontHeight()+4
-                )).cast();
+                ).setCanBeNegative(true)).cast();
                 this.value.setResponder(s->{
                     this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
                     this.value.setTooltip(this.operationModifier.getTooltip());

@@ -131,6 +131,7 @@
   "info.inbox.@a": "已知玩家",
   "info.inbox.history": "历史收件人",
   "info.inbox.send.lock": "邮件是否可删除",
+  "info.inbox.send.lock.false": "邮件不可被玩家删除",
 
   "info.inbox.cooling": "冷却中",
   "info.inbox.from": "你有一封来自%s的新邮件",

@@ -146,7 +146,7 @@ public class InboxButton {
 			if(this.gui instanceof InventoryScreen inv) {
 				this.setX(inv.getGuiLeft() + EmailConfigClient.Position.Inbox_Buttons.Survival_Gui_Button.X.get());
 			}
-			if(EmailMain.getUnread() > 0 || EmailMain.getUnaccepted() > 0) {
+			if(EmailAPI.getUnread() > 0 || EmailAPI.getUnaccepted() > 0) {
 				this.drawHasEmailInfo(graphics, partialTick);
 				this.progress.updata();
 			}

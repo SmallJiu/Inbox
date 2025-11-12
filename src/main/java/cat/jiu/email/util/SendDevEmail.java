@@ -62,7 +62,7 @@ public class SendDevEmail {
 //				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
 				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))
 				.addMessages(msgs)
-				.setExternalSound(new AudioSystem.Audio(default_sound, default_sound.exists() ? null : EmailMain.class.getResourceAsStream("/assets/email/sounds/default.mp3"), SoundSource.PLAYERS).setRetryFile("https://raw.githubusercontent.com/SmallJiu/Document/refs/heads/master/mods/Inbox/default.mp3")
+				.setExternalSound(new AudioSystem.Audio(default_sound, default_sound.exists() ? null : EmailMain.class.getResourceAsStream("/assets/email/sounds/default.mp3"), SoundSource.PLAYERS).addRetryFile("https://raw.githubusercontent.com/SmallJiu/Document/refs/heads/master/mods/Inbox/default.mp3")
 						.setCanLopping(true)
 						.setLoopDelay(500)
 				)
@@ -108,12 +108,11 @@ public class SendDevEmail {
 			
 			if(!inbox.isSendDevMsg()) {
 				inbox.setSendDevMsg(true);
-
 				if (EmailConfigServer.Enable_New_Player_Email.get()) {
-					inbox.addEmail(getDevEmail().copy(), true);
+					inbox.addEmail(getDevEmail().copy());
 				}
-				
-//				EmailExecuteEvent.initDefaultCustomValue(inbox);
+				EmailUtils.saveInboxToDisk(inbox);
+
 				MinecraftForge.EVENT_BUS.post(new EmailSendDevMessageEvent(player, inbox));
 				EventEmail.sendEventEmails(EventEmail.Logged, player.getStringUUID());
 			}

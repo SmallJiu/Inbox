@@ -16,10 +16,8 @@ public class CommandEventEmail {
                 .addSubCommand(new BaseCommand.Builder("load")
                         .level(1)
                         .execute((server, sender, args, ctx) -> {
-                            if (ctx.getSource().hasPermission(4)) {
-                                EventEmail.load();
-                                sender.sendSystemMessage(Component.translatable("Success!"));
-                            }
+                            EventEmail.load();
+                            sender.sendSystemMessage(Component.literal("Success!"));
                             return 1;
                         })
                         .build()
@@ -27,25 +25,21 @@ public class CommandEventEmail {
                         .level(1)
                         .argument((cmd, node)->node
                                 .then(Commands.argument("event", new EmailEventType())
-                                        .then(Commands.argument("email", new EmailFileType(EmailAPI.getGlobalDataPath() + "emails/"))
+                                        .then(Commands.argument("email", new EmailFileType())
                                                 .executes(cmd)
                                         ))
                         )
                         .execute((server, sender, args, ctx) -> {
-                            if (ctx.getSource().hasPermission(4)) {
-                                ResourceLocation e = ctx.getArgument("event", ResourceLocation.class);
-                                String f = ctx.getArgument("email", File.class).getName();
-                                EventEmail.register(e,f);
-                                ctx.getSource().sendSystemMessage(
-                                        Component.literal(ChatFormatting.GREEN + "success")
-                                                .append(". event: ")
-                                                .append(ChatFormatting.GREEN + String.valueOf(e))
-                                                .append(", file: ")
-                                                .append(ChatFormatting.GREEN + f)
-                                );
-                            }else {
-                                ctx.getSource().sendFailure(Component.literal(ChatFormatting.RED + "you are not op."));
-                            }
+                            ResourceLocation e = ctx.getArgument("event", ResourceLocation.class);
+                            String f = ctx.getArgument("email", File.class).getName();
+                            EventEmail.register(e,f);
+                            ctx.getSource().sendSystemMessage(
+                                    Component.literal(ChatFormatting.GREEN + "success")
+                                            .append(". event: ")
+                                            .append(ChatFormatting.GREEN + String.valueOf(e))
+                                            .append(", file: ")
+                                            .append(ChatFormatting.GREEN + f)
+                            );
                             return 1;
                         })
                         .build()

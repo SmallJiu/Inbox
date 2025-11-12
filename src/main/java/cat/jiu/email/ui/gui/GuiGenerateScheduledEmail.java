@@ -146,9 +146,12 @@ public class GuiGenerateScheduledEmail extends Screen {
                 List<String> tip = Lists.newArrayList();
 
                 tip.add(entry.email.getTitle().format());
+                tip.add(I18n.get("info.inbox.main.from", entry.email.getSender().format()));
+                if (!entry.email.isDeletable()) {
+                    tip.add(ChatFormatting.RED + I18n.get("info.inbox.send.lock.false"));
+                }
 
                 if (entry.email.hasExpirationTime()) {
-                    tip.add("");
                     tip.add(I18n.get("info.inbox.scheduled.expiration_time", ITimer.formatTimestamp(entry.email.getExpirationTime().millis)));
                 }
 

@@ -34,7 +34,7 @@ public class EmailConfigServer {
 				.translation("inbox.config.new_player_email")
 				.comment("inbox.config.new_player_email.0",
 						"inbox.config.new_player_email.1")
-				.define("Enable_New_Player_Email", true);
+				.define("Enable_New_Player_Email", false);
 
 		Totem_To_Undiying = builder
 				.translation("inbox.config.totem_to_undiying")

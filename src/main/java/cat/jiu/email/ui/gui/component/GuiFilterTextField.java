@@ -13,11 +13,12 @@ import java.util.function.Predicate;
 @OnlyIn(Dist.CLIENT)
 public class GuiFilterTextField extends EditBox {
     public static final Predicate<Character>
-            NUMBER_FILTER = c->"0123456789".contains(c.toString()),
-            DECIAML_FILTER = c->"0123456789.".contains(c.toString());
+            NUMBER_FILTER = c->"0123456789-".contains(c.toString()),
+            DECIAML_FILTER = c->"0123456789-.".contains(c.toString());
 
     private Predicate<Character> typedCharFilter;
     private final String defaultText;
+    protected boolean canBeNegative = false;
 
     public GuiFilterTextField(String defaultText, boolean deciamlNumber, int x, int y, int width, int height) {
         this(defaultText, x, y, width, height);
@@ -34,6 +35,15 @@ public class GuiFilterTextField extends EditBox {
 
     public GuiFilterTextField setTypedCharFilter(Predicate<Character> filter) {
         this.typedCharFilter = filter;
+        return this;
+    }
+
+    public boolean isCanBeNegative() {
+        return canBeNegative;
+    }
+
+    public GuiFilterTextField setCanBeNegative(boolean canBeNegative) {
+        this.canBeNegative = canBeNegative;
         return this;
     }
 
@@ -56,6 +66,9 @@ public class GuiFilterTextField extends EditBox {
 
             if(this.getValue().isEmpty()) {
                 this.setValue(this.defaultText);
+            }
+            if (!this.isCanBeNegative() && this.getAsNumber().intValue() < 0) {
+                this.setValue("0");
             }
             return flag;
         }

@@ -36,6 +36,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.server.command.EnumArgument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,7 +48,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.2.0";
+                                VERSION = "1.20.1-1.2.0-a1";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {
@@ -72,6 +74,7 @@ public class EmailMain {
             bus.addListener(this::onClientSetup);
             bus.addListener(this::onRegisterBindings);
         }
+
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, EmailConfigServer.CONFIG_MAIN, "jiu/inbox/configs-server.toml");
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, EmailConfigClient.CONFIG_MAIN, "jiu/inbox/configs-client.toml");
         MinecraftForge.EVENT_BUS.register(this);
@@ -100,10 +103,12 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
-        event.enqueueWork(()-> NETWORK = EmailNetworkHandler.getInstance());
+        event.enqueueWork(()-> {
+            NETWORK = new EmailNetworkHandler();
+        });
         MinecraftForge.EVENT_BUS.register(SendDevEmail.class);
 
-        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
+        ArgumentTypeInfos.registerByClass(EmailFileType.class, new EmailFileType.Info());
         ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
 
         // register email attachment
@@ -158,8 +163,9 @@ public class EmailMain {
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (!TASK.isEmpty()) {
             for (int i = 0; i < TASK.size(); i++) {
-                if (TASK.get(i) != null) {
-                    TASK.remove(i).run();
+                Runnable runnable = TASK.remove(i);
+                if (runnable != null) {
+                    runnable.run();
                 }
             }
         }

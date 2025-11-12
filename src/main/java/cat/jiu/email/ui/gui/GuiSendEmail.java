@@ -5,10 +5,8 @@ import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.element.Email;
 import cat.jiu.email.element.EmailSenderGroup;
-import cat.jiu.email.net.msg.MsgSend0;
-import cat.jiu.email.ui.GuiHandler;
+import cat.jiu.email.net.msg.MsgSend;
 import cat.jiu.email.ui.gui.component.NameEditbox;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -38,7 +36,7 @@ public class GuiSendEmail extends GuiGenerateEmail {
 
     @Override
     protected void onGenerateEmailSuccess(Email email) {
-        EmailMain.NETWORK.sendMessageToServer(new MsgSend0(EmailSenderGroup.PLAYER, this.name.getValue(), email));
+        EmailMain.NETWORK.sendMessageToServer(new MsgSend(EmailSenderGroup.PLAYER, this.name.getValue(), email));
     }
 
     @Override

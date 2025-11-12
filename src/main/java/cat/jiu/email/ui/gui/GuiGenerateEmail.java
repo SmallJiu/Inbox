@@ -11,10 +11,12 @@ import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.sound.SoundJmp123;
 import cat.jiu.core.util.element.sound.SoundMC;
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.Email;
+import cat.jiu.email.net.msg.MsgGenerateEmail;
 import cat.jiu.email.ui.gui.component.*;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.SizeReport;
@@ -400,6 +402,9 @@ public class GuiGenerateEmail extends Screen {
         File file = new File(EmailAPI.getGlobalDataPath(), "emails/"+filename);
         try {
             JsonUtils.toJsonFileThrow(file, object, true, EmailConfigServer.File_Charset.get());
+            if (!Minecraft.getInstance().isLocalServer()) {
+                EmailMain.NETWORK.sendMessageToServer(new MsgGenerateEmail(filename, email));
+            }
             this.setMessage(Component.literal("Success! File: " + filename), 10000);
         }catch (Exception e){
             e.printStackTrace();

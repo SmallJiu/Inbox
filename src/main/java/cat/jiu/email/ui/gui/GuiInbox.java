@@ -8,6 +8,7 @@ import cat.jiu.core.util.client.GifDecoder;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.sound.SoundJmp123;
 import cat.jiu.core.util.element.sound.SoundMC;
+import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.configs.EmailConfigClient;
@@ -106,6 +107,7 @@ public class GuiInbox extends Screen {
 
     public static void refresh() {
         if (Minecraft.getInstance().screen instanceof GuiInbox) {
+            EmailAPI.setAccept(0, 0);
             EmailMain.NETWORK.sendMessageToServer(new MsgRefreshInbox(INBOX.getEmailIDs()));
         }
     }
@@ -250,9 +252,10 @@ public class GuiInbox extends Screen {
                         Component.translatable("info.inbox.accept"),
                         b-> {
                             EmailMain.NETWORK.sendMessageToServer(new MsgReceiveEmail.Receive(this.getCurrentEmailID()));
-                            if (this.emailList.getSelected()!=null) {
+                            Email current = this.getCurrentEmail();
+                            if (current!=null) {
                                 this.acceptEmailBtn.visible = false;
-                                this.emailList.getSelected().getEmail().receive(getMinecraft().player);
+                                current.receive(getMinecraft().player);
                                 this.updataInboxSize();
                             }
                         }
@@ -743,6 +746,12 @@ public class GuiInbox extends Screen {
         }
         this.emailList.refreshList();
         this.setSelectEmail(selected, false);
+        if (!emai.isRead()) {
+            EmailAPI.setAccept(EmailAPI.getUnread()+1, EmailAPI.getUnaccepted());
+        }
+        if (!emai.isReceived()) {
+            EmailAPI.setAccept(EmailAPI.getUnread(), EmailAPI.getUnaccepted()+1);
+        }
     }
 
     public void setSelectEmail(long id, boolean updataInfo) {

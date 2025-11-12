@@ -345,7 +345,7 @@ public class AttachmentUndying implements IAttachment {
 
             int width = RenderUtils.width("0000000000000000000000000000");
             this.countBox = this.addSubWidget(
-                    new GuiFilterTextField("0", false, 0, 0, width, RenderUtils.fontHeight() + 1),
+                    new GuiFilterTextField("0", false, 0, 0, width, RenderUtils.fontHeight() + 1).setCanBeNegative(true),
                     0, 0, 0, 0
             ).setWigetRender(null, widget->{
                 RenderUtils.drawComponent(widget.graphics, COUNT_TEXT,

@@ -130,6 +130,7 @@
   "info.inbox.@a": "Save Players",
   "info.inbox.history": "History Addressee",
   "info.inbox.send.lock": "Email can be delete.",
+  "info.inbox.send.lock.false": "Email can not be delete by player.",
 
   "info.inbox.cooling": "Cooling",
   "info.inbox.from": "You have a new email from %s",

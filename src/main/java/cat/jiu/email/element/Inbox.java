@@ -37,6 +37,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	private boolean dev;
 	private long emailHistoryCount = 0;
 	private long sendCooling;
+	private boolean opened;
 
 	private Inbox(String owner) {
 		this.owner = owner;
@@ -82,15 +83,21 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	/**
 	 * @return true if this email list contains no emails.
 	 */
-	public boolean isEmptyInbox() {return this.emails.isEmpty();}
+	public boolean isEmptyInbox() {
+		return this.emails.isEmpty();
+	}
 	/**
 	 * @return true if this custom value list contains no values.
 	 */
-	public boolean isEmptyCustomValues() {return this.customValue.isEmpty();}
+	public boolean isEmptyCustomValues() {
+		return this.customValue.isEmpty();
+	}
 	/**
 	 * @return the inbox owner string
 	 */
-	public String getOwner() {return owner;}
+	public String getOwner() {
+		return owner;
+	}
 	/**
 	 * @return the owner uuid
 	 */
@@ -104,19 +111,28 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	/**
 	 * @return emails count
 	 */
-	public int emailCount() {return emails.size();}
+	public int emailCount() {
+		return emails.size();
+	}
 	/**
 	 * @return custom values count
 	 */
-	public int customValueCount() {return customValue.size();}
+	public int customValueCount() {
+		return customValue.size();
+	}
 	/**
 	 * @return true if inbox has dev msg
 	 */
-	public boolean isSendDevMsg() {return dev;}
+	public boolean isSendDevMsg() {
+		return dev;
+	}
 	/**
 	 * set inbox dev msg state
 	 */
-	public void setSendDevMsg(boolean dev) {this.dev = dev;}
+	public Inbox setSendDevMsg(boolean dev) {
+		this.dev = dev;
+		return this;
+	}
 	/**
 	 * @return inbox serialize size, for send network pack
 	 */
@@ -326,9 +342,9 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	 * read inbox from disk
 	 */
 	public Inbox readFromDisk() {
-		return this.readFromDisk(EmailUtils.getInboxJson(this.owner));
+		return this.readFrom(EmailUtils.getInboxJson(this.owner));
 	}
-	private Inbox readFromDisk(JsonObject json) {
+	private Inbox readFrom(JsonObject json) {
 		this.emails.clear();
 		this.customValue.clear();
 		this.senderBlacklist.clear();
@@ -336,7 +352,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		this.read(JsonData.map(json));
 		return this;
 	}
-	private Inbox readFromDisk(CompoundTag nbt) {
+	private Inbox readFrom(CompoundTag nbt) {
 		this.emails.clear();
 		this.customValue.clear();
 		this.senderBlacklist.clear();
@@ -349,7 +365,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 
 	@Override
 	public IData.IMapData<?> write(IData.IMapData<?> data) {
-		if(this.dev) data.putData("dev", true);
+		data.putData("dev", this.isSendDevMsg());
 
 		data.putData("historySize", this.emailHistoryCount > 0 && this.emailHistoryCount > this.emails.size() ? this.emailHistoryCount : this.emails.size());
 		data.putData("sendCooling", this.sendCooling);
@@ -358,7 +374,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 			IData.IMapData<?> emails = data.newMap();
 			for (long id : this.getEmailIDs()) {
 				Email email =  this.getEmail(id);
-				if (!email.isEmpty()) {
+				if (email != null) {
 					emails.putData(String.valueOf(id), email.write(data.newMap()));
 				}
 			}
@@ -390,7 +406,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	@Override
 	public void read(IData.IMapData<?> data) {
 		if(data!=null && !data.isEmpty()) {
-			if(data.containsKey("dev")) this.dev = data.getBoolean("dev");
+			this.dev = data.getBoolean("dev");
 			this.sendCooling = data.getLong("sendCooling");
 
 			if(data.containsKey("custom")) {
@@ -529,7 +545,11 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 			return other.senderBlacklist == null;
 		}else return senderBlacklist.equals(other.senderBlacklist);
 	}
-	
+
+	public void setOpened(boolean opened) {
+		this.opened = opened;
+	}
+
 	/**
 	 * @return the player inbox
 	 */
@@ -548,7 +568,10 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 	public static Inbox get(@Nonnull String owner) {
 		Inbox inbox;
 		if(inboxCache.containsKey(owner)) {
-			inbox = inboxCache.get(owner).readFromDisk();
+			inbox = inboxCache.get(owner);
+			if (!inbox.opened) {
+				inbox.readFromDisk();
+			}
 		}else {
 			try {
 				owner = UUID.fromString(owner).toString();
@@ -574,7 +597,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		if(inboxTag==null)return null;
 		Inbox inbox;
 		if(inboxCache.containsKey(uid.toString())) {
-			inbox = inboxCache.get(uid.toString()).readFromDisk(inboxTag);
+			inbox = inboxCache.get(uid.toString()).readFrom(inboxTag);
 		}else {
 			inbox = new Inbox(uid.toString(), inboxTag);
 			inboxCache.put(uid.toString(), inbox);
@@ -593,7 +616,7 @@ public final class Inbox implements IDataSerializable<IData.IMapData<?>> {
 		
 		Inbox inbox;
 		if(inboxCache.containsKey(uid.toString())) {
-			inbox = inboxCache.get(uid.toString()).readFromDisk(inboxJson);
+			inbox = inboxCache.get(uid.toString()).readFrom(inboxJson);
 		}else {
 			inbox = new Inbox(uid.toString(), inboxJson);
 			inboxCache.put(uid.toString(), inbox);

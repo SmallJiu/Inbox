@@ -24,6 +24,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -49,7 +50,7 @@ public class AttachmentCommand implements IAttachment {
         }
     }
 
-    protected List<Cmd> commands, unmodifiable;
+    protected List<Cmd> commands;
 
     public AttachmentCommand() {}
 
@@ -113,10 +114,7 @@ public class AttachmentCommand implements IAttachment {
     }
 
     public List<Cmd> getCommands() {
-        if (this.unmodifiable==null) {
-            this.unmodifiable = Collections.unmodifiableList(this.commands);
-        }
-        return this.unmodifiable;
+        return this.isEmpty() ? Collections.emptyList() : this.commands;
     }
 
     @Override
@@ -167,13 +165,8 @@ public class AttachmentCommand implements IAttachment {
     @Override
     public void accept(Player player) {
         if (!this.isEmpty() && player.getServer()!=null) {
-            Commands commands = player.getServer().getCommands();
             for (Cmd cmd : this.commands) {
-                String c = cmd.cmd();
-                for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
-                    c = entry.getValue().parser(entry.getKey(), c, player);
-                }
-                commands.performPrefixedCommand(cmd.performer().isServer() ? player.getServer().createCommandSourceStack() : player.createCommandSourceStack(), c);
+                cmd.execute(player, player.getServer());
             }
         }
     }
@@ -181,6 +174,8 @@ public class AttachmentCommand implements IAttachment {
     @OnlyIn(Dist.CLIENT)
     @Override
     public List<Component> getHoverMessage() {
+        if (this.isEmpty()) return Collections.emptyList();
+
         List<Component> cmdTooltip = new ArrayList<>();
         int hideCount = 0;
         for (Cmd cmd : this.getCommands()) {
@@ -266,6 +261,14 @@ public class AttachmentCommand implements IAttachment {
         public Cmd setPerformer(Performer performer) {
             this.performer = performer;
             return this;
+        }
+
+        public int execute(Player player, MinecraftServer server) {
+            String c = this.cmd();
+            for (Map.Entry<String, ParameterFunction> entry : PARAMETERS_PARSER.entrySet()) {
+                c = entry.getValue().parser(entry.getKey(), c, player);
+            }
+            return server.getCommands().performPrefixedCommand(this.performer().isServer() ? server.createCommandSourceStack() : player.createCommandSourceStack(), c);
         }
 
         @Override

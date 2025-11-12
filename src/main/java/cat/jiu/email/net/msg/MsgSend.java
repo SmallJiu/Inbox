@@ -36,13 +36,13 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class MsgSend0 extends BaseMessage {
+public class MsgSend extends BaseMessage {
     protected String addressed;
     protected EmailSenderGroup group;
     protected Email email;
 
-    public MsgSend0() {}
-    public MsgSend0(EmailSenderGroup group, String addressee, Email email) {
+    public MsgSend() {}
+    public MsgSend(EmailSenderGroup group, String addressee, Email email) {
         this.group = group;
         this.addressed = addressee;
         this.email = email;
