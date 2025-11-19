@@ -19,6 +19,7 @@ public class EmailNetworkHandler extends BaseNetworkHandler {
 				.register(MsgGenerateEmail.class)
 				.register(MsgUndying.class)
 				.register(MsgSendCooling.class)
+				.register(MsgEmailFiles.class)
 
 				.register(MsgDeleteEmail.Delete.class)
 				.register(MsgDeleteEmail.AllRead.class)

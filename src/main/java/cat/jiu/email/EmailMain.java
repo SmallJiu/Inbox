@@ -1,5 +1,6 @@
 package cat.jiu.email;
 
+import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
@@ -36,8 +37,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.server.command.EnumArgument;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -103,12 +104,13 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
+        ArgumentTypeInfos.registerByClass(EmailFileType.class, new EmailFileType.Info());
         event.enqueueWork(()-> {
             NETWORK = new EmailNetworkHandler();
         });
         MinecraftForge.EVENT_BUS.register(SendDevEmail.class);
 
-        ArgumentTypeInfos.registerByClass(EmailFileType.class, new EmailFileType.Info());
+//        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
         ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
 
         // register email attachment
@@ -119,6 +121,7 @@ public class EmailMain {
         IAttachment.REGISTRY.register(AttachmentEffect.ID, AttachmentEffect::new);
         IAttachment.REGISTRY.register(AttachmentAttribute.ID, AttachmentAttribute::new);
         IAttachment.REGISTRY.register(AttachmentUndying.ID, AttachmentUndying::new);
+        IAttachment.REGISTRY.register(AttachmentWaypoint.ID, AttachmentWaypoint::new);
 
         AttachmentCommand.registerParameterParser("player", true, (key, cmd, player) -> cmd.replace(key, player.getName().getString()));
     }
@@ -134,6 +137,7 @@ public class EmailMain {
         AttachmentSendScreenWidget.REGISTRY.register(AttachmentCommand.Widget.INSTANCE);
         AttachmentSendScreenWidget.REGISTRY.register(AttachmentAttribute.Widget.INSTANCE);
         AttachmentSendScreenWidget.REGISTRY.register(AttachmentEffect.Widget.INSTANCE);
+        AttachmentSendScreenWidget.REGISTRY.register(AttachmentWaypoint.Widget.INSTANCE);
     }
     @OnlyIn(Dist.CLIENT)
     void onRegisterBindings(RegisterKeyMappingsEvent event) {

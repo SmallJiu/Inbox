@@ -132,7 +132,7 @@ public abstract class AttachmentSendScreenWidget extends AbstractWidget {
                         down_right.run()
                     )
                     .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
-                    .build(), -2, 0, 0, 0)
+                    .build(), -3, 0, 0, 0)
                     .setConsumerEvent(false, true, false, false)
                     .cast();
         }

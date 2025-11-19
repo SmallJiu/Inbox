@@ -163,6 +163,14 @@ public class EmailAPI {
 	public static int getUnaccepted() {
 		return unaccepted;
 	}
+	public static void modifiyAccecpt(boolean read, boolean received) {
+		unread += read ? 0 : 1;
+		unaccepted += received ? 0 : 1;
+	}
+	public static void modifiyAccecpt(int unRead, int unReceived) {
+		unread += unRead;
+		unaccepted += unReceived;
+	}
 	public static void setAccept(int unRead, int unReceived) {
 		unread = unRead;
 		unaccepted = unReceived;

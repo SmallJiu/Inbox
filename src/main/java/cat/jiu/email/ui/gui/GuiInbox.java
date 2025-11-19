@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
+@OnlyIn(Dist.CLIENT)
 @SuppressWarnings("all")
 public class GuiInbox extends Screen {
     public static final ResourceLocation BackGround = Utils.location(EmailMain.MODID, "textures/gui/container/inbox_bg.png");
@@ -184,6 +185,7 @@ public class GuiInbox extends Screen {
                 }
                 , 256, 256, 111, 169, 55, 55, btn->
                 this.refresh(()->{
+                            EmailAPI.setAccept(0, 0);
                             this.stopSound();
                             this.setCurrentEmail(-1);
                             this.refreshBtn.visible = false;
@@ -256,6 +258,7 @@ public class GuiInbox extends Screen {
                             if (current!=null) {
                                 this.acceptEmailBtn.visible = false;
                                 current.receive(getMinecraft().player);
+                                EmailAPI.modifiyAccecpt(0, -1);
                                 this.updataInboxSize();
                             }
                         }
@@ -342,7 +345,6 @@ public class GuiInbox extends Screen {
         RenderUtils.hLineGradient(graphics, false, this.currentEmailCreateTime.getX(), this.currentEmailCreateTime.getY() + this.currentEmailCreateTime.getHeight() - 4, this.emailInfo.getWidth(), 1, Color.YELLOW.getRGB(), 0, 0);
         super.render(graphics, mouseX, mouseY, pPartialTick);
 
-        RenderUtils.drawString(graphics, this.getInboxSize(), this.refreshBtn.getX() + this.refreshBtn.getWidth() + 4, this.refreshBtn.getY() + this.refreshBtn.getHeight()/2 - this.getFont().lineHeight/2, Color.WHITE.getRGB(), true);
         if (this.currentTitle != null) {
             this.currentTitle.render(graphics, this.currentEmailTitle.getX(), this.currentEmailTitle.getY(), this.currentEmailTitle.getWidth(), Color.WHITE.getRGB(), true);
         }
@@ -352,7 +354,9 @@ public class GuiInbox extends Screen {
                 .setRenderPos(this.refreshBtn.getX(), this.refreshBtn.getY() - 5)
                 .setRenderSize(this.refreshBtn.getWidth(), this.refreshBtn.getHeight())
                 .render(graphics);
+        RenderUtils.drawString(graphics, this.getInboxSize(), this.refreshBtn.getX() + this.refreshBtn.getWidth() + 4, this.refreshBtn.getY() + this.refreshBtn.getHeight()/2 - this.getFont().lineHeight/2, Color.WHITE.getRGB(), true);
 
+        this.renderTip(graphics, mouseX, mouseY);
         this.renderTooltip(graphics, mouseX, mouseY);
 
         graphics.pose().pushPose();
@@ -474,6 +478,43 @@ public class GuiInbox extends Screen {
             RenderUtils.tooltipBackground(graphics, x, y+RenderUtils.getFontHeight()*2-1, RenderUtils.width(tip2), RenderUtils.getFontHeight(), true, false);
             RenderUtils.drawCenteredComponent(graphics, tip2, x, y+RenderUtils.getFontHeight()+8, Color.WHITE.getRGB(), true);
         }
+    }
+
+    private Component tip;
+    private long tipTime;
+    private int tipColor;
+
+    public void setTip(Component tip) {
+        this.setTip(tip, 5 * 20, -1);
+    }
+    /**
+     * @param tipTime unit: tick
+     */
+    public void setTip(Component tip, long tipTime, int tipColor) {
+        this.tip = tip;
+        this.tipTime = System.currentTimeMillis() + (tipTime * 50);
+        this.tipColor = tipColor;
+    }
+    private void renderTip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (this.tip == null || System.currentTimeMillis() > this.tipTime) {
+            return;
+        }
+        int tipX = this.refreshBtn.getX() + this.refreshBtn.getWidth() + 4 + RenderUtils.width(this.getInboxSize()) + 4;
+        int tipY = this.refreshBtn.getY() + this.refreshBtn.getHeight() / 2 - this.getFont().lineHeight / 2;
+        int tipMaxWidth = 50;
+        Email current = this.getCurrentEmail();
+        if ((current == null || current == Email.EMPTY) || (current.isReceived() && !current.isDeletable())) {
+            tipMaxWidth = this.functionMenuBtn.getX() - tipX - 4;
+        }else {
+            if (!current.isReceived() && current.isDeletable()) {
+                tipMaxWidth = this.acceptEmailBtn.getX() - tipX - 4;
+            } else if (current.isReceived() && current.isDeletable()) {
+                tipMaxWidth = this.deleteEmailBtn.getX() - tipX - 4;
+            }
+        }
+        RenderUtils.renderScrollingComponent(graphics, this.tip,
+                tipX, tipY, tipMaxWidth, this.tipColor, true
+        );
     }
 
     private final Date now = new Date();
@@ -615,6 +656,7 @@ public class GuiInbox extends Screen {
             if(!email.isRead()) {
                 EmailMain.NETWORK.sendMessageToServer(new MsgReadEmail(id));
                 email.setRead(true);
+                EmailAPI.modifiyAccecpt(-1, 0);
                 this.updataInboxSize();
             }
             this.emailInfo.setScrollDistance(0);
@@ -737,8 +779,8 @@ public class GuiInbox extends Screen {
         return INBOX;
     }
 
-    public void addEmail(long id, Email emai) {
-        INBOX.setEmail(id, emai);
+    public void addEmail(long id, Email email) {
+        INBOX.setEmail(id, email);
         this.updataInboxSize();
         long selected = -1;
         if (this.emailList.getSelected() != null) {
@@ -746,12 +788,7 @@ public class GuiInbox extends Screen {
         }
         this.emailList.refreshList();
         this.setSelectEmail(selected, false);
-        if (!emai.isRead()) {
-            EmailAPI.setAccept(EmailAPI.getUnread()+1, EmailAPI.getUnaccepted());
-        }
-        if (!emai.isReceived()) {
-            EmailAPI.setAccept(EmailAPI.getUnread(), EmailAPI.getUnaccepted()+1);
-        }
+        EmailAPI.modifiyAccecpt(email.isRead(), email.isReceived());
     }
 
     public void setSelectEmail(long id, boolean updataInfo) {
@@ -873,6 +910,19 @@ public class GuiInbox extends Screen {
                 return height;
             }
             return 1;
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            Email email = this.parent.getCurrentEmail();
+            if (email != null) {
+                for (IAttachment attachment : email.getAttachments()) {
+                    if (attachment.onClicked(mouseX, mouseY, button)){
+                        return true;
+                    }
+                }
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
         }
 
         @Override

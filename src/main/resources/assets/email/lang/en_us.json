@@ -94,6 +94,7 @@
   "info.inbox.effects": "Potion Effect",
   "info.inbox.attribute": "Attribute",
   "info.inbox.undying": "Power of Immortality",
+  "info.inbox.waypoints": "Waypoint",
 
   #gen
   "info.inbox.generate": "Generate email.",
@@ -115,6 +116,10 @@
   "info.inbox.generate.attachment.effect.mainhand_to_curative": "Makes the mainhand item one of the healing items.",
   "info.inbox.generate.attachment.commands.op_permission": "Execute with OP permissions",
   "info.inbox.generate.attachment.commands.hide_on_tooltip": "Hide command on tooltip",
+  "info.inbox.generate.attachment.waypoints.create_wait.0": "There are %s waypoints to be created",
+  "info.inbox.generate.attachment.waypoints.create_wait.1": "Please choose one of the following Mod to create a waypoint",
+  "info.inbox.generate.attachment.waypoints.regenerate": "Click to recreate the waypoint",
+  "info.inbox.generate.attachment.waypoints.recived": "All waypoints have been created.",
   "info.inbox.generate.sound": "Sound",
   "info.inbox.generate.sound.info": "The email comes with audio",
   "info.inbox.generate.sound.use_mc_sound": "Use vanilla sound.",

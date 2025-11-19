@@ -1,14 +1,17 @@
 package cat.jiu.email.util;
 
+import java.awt.*;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
 import cat.jiu.email.EmailAPI;
+import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.*;
+import cat.jiu.email.net.msg.MsgEmailFiles;
 import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;
@@ -25,6 +28,7 @@ import cat.jiu.email.event.EmailSendDevMessageEvent;
 import com.google.common.collect.Maps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -36,6 +40,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
@@ -91,6 +96,11 @@ public class SendDevEmail {
 						.addValue(Attributes.ATTACK_DAMAGE, AttributeModifier.Operation.MULTIPLY_BASE, new AttachmentAttribute.AttributeValue(20, false))
 						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.MULTIPLY_TOTAL, new AttachmentAttribute.AttributeValue(20, false))
 				)
+				.addAttachment(new AttachmentWaypoint()
+						.addWaypoint(Level.OVERWORLD, BlockPos.ZERO, "Overworld Zero Point", Color.WHITE.getRGB())
+						.addWaypoint(Level.NETHER, BlockPos.ZERO, "Nether Zero Point", Color.WHITE.getRGB())
+						.addWaypoint(Level.END, BlockPos.ZERO, "End Zero Point", Color.WHITE.getRGB())
+				)
 				.setReceive(true);
 	}
 	
@@ -101,6 +111,7 @@ public class SendDevEmail {
 	@SubscribeEvent
 	public static void onJoin(PlayerEvent.PlayerLoggedInEvent event) {
 		if(event.getEntity() instanceof ServerPlayer player) {
+//			EmailMain.NETWORK.sendMessageToPlayer(new MsgEmailFiles(EmailFileType.getFiles()), player);
 			Inbox inbox = Inbox.get(player);
 
 			player.getServer().getPlayerList().sendPlayerPermissionLevel(player);

@@ -4,15 +4,19 @@ import cat.jiu.core.api.IData;
 import cat.jiu.core.api.serializable.IDataSerializable;
 
 import cat.jiu.core.util.Utils;
+import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.element.data.JsonData;
 import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.core.util.registry.DynamicRegistry2;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.event.AttachmentEvent;
+import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -25,6 +29,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.awt.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -118,6 +123,12 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
     default void drawIcon(AttachmentEvent.Render event, int x){
         event.graphics.renderFakeItem(this.getDisplayStack(), x, event.getY());
     }
+
+    @OnlyIn(Dist.CLIENT)
+    default boolean onClicked(double mouseX, double mouseY, int button) {
+        return false;
+    }
+
     default Component getDisplayName() {
         return Component.translatable(this.getName());
     }

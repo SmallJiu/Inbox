@@ -1,6 +1,5 @@
 package cat.jiu.email.command;
 
-import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailAPI;
 import com.google.gson.JsonArray;
@@ -15,10 +14,6 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.synchronization.ArgumentTypeInfo;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 
@@ -29,8 +24,7 @@ import java.util.concurrent.CompletableFuture;
 public class EmailFileType implements ArgumentType<File> {
     public static final File DEFAULT_EMAIL = new File("default");
 
-    public final Map<String, File> files;
-    public final File[] fileArray;
+    public final Map<String, File> files = new HashMap<>();
 
     public EmailFileType() {
         this(EmailAPI.getGlobalDataPath() + "emails/");
@@ -41,28 +35,22 @@ public class EmailFileType implements ArgumentType<File> {
     public EmailFileType(File dir) {
         dir.mkdirs();
         File[] files = dir.listFiles();
-        if (files != null && files.length > 0) {
-            this.files = new HashMap<>();
+        if (files != null) {
             for (File file : files) {
+                if (file == null) continue;
                 this.files.put(file.getName(), file);
             }
-            this.fileArray = files;
-        }else {
-            this.files = Collections.emptyMap();
-            this.fileArray = new File[0];
         }
+        this.files.put("default", DEFAULT_EMAIL);
     }
     public EmailFileType(File... files) {
-        if (files != null && files.length > 0) {
-            this.files = new HashMap<>();
+        if (files != null) {
             for (File file : files) {
+                if (file == null) continue;
                 this.files.put(file.getName(), file);
             }
-            this.fileArray = files;
-        }else {
-            this.files = Collections.emptyMap();
-            this.fileArray = new File[0];
         }
+        this.files.put("default", DEFAULT_EMAIL);
     }
 
     @Override
@@ -92,54 +80,35 @@ public class EmailFileType implements ArgumentType<File> {
     }
 
     public static class Info implements ArgumentTypeInfo<EmailFileType, Info.Template> {
-        boolean test(){
-            return false;
-        }
         @Override
         public void serializeToNetwork(Template template, FriendlyByteBuf buf) {
-            if (this.test()){
-                CompoundTag tag = new CompoundTag();
-                ListTag list = new ListTag();
-                for (File file : template.files) {
-                    list.add(StringTag.valueOf(file.getPath()));
-                }
-                tag.put("files", list);
-                buf.writeNbt(tag);
-            }
+            buf.writeCollection(template.files, (b, file) -> b.writeUtf(file.getName().replace('\\', '/')));
         }
-
         @Override
         public Template deserializeFromNetwork(FriendlyByteBuf buf) {
-            if (this.test()){
-                List<File> files = new ArrayList<>();
-                for (Tag tag : buf.readNbt().getList("files", NBTData.getType(String.class))) {
-                    files.add(new File(tag.getAsString()));
-                }
-                return new Template(files.toArray(new File[0]));
-            }
-            return new Template(new EmailFileType().fileArray);
+            return new Template(buf.readCollection(ArrayList::new, buf1 -> new File(buf1.readUtf().replace('\\', '/'))));
         }
-
         @Override
         public void serializeToJson(Template template, JsonObject json) {
+            JsonArray array = new JsonArray();
+            for (File file : template.files) {
+                array.add(file.getPath().replace('\\', '/'));
+            }
+            json.add("files", array);
         }
-
         @Override
         public Template unpack(EmailFileType arg) {
-            return new Template(arg.fileArray);
+            return new Template(arg.files.values());
         }
-
         public class Template implements ArgumentTypeInfo.Template<EmailFileType> {
-            final File[] files;
-            Template(File... files) {
+            final Collection<File> files;
+            Template(Collection<File> files) {
                 this.files = files;
             }
-
             @Override
             public EmailFileType instantiate(CommandBuildContext pContext) {
-                return new EmailFileType(this.files);
+                return new EmailFileType(this.files.toArray(new File[0]));
             }
-
             @Override
             public ArgumentTypeInfo<EmailFileType, ?> type() {
                 return Info.this;

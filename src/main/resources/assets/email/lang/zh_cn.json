@@ -95,6 +95,7 @@
   "info.inbox.effects": "药水效果",
   "info.inbox.attribute": "属性",
   "info.inbox.undying": "不死之力",
+  "info.inbox.waypoints": "路径点",
 
   //gen
   "info.inbox.generate": "生成邮件",
@@ -116,6 +117,10 @@
   "info.inbox.generate.attachment.effect.mainhand_to_curative": "使主手物品为治愈物品之一",
   "info.inbox.generate.attachment.commands.op_permission": "以op权限执行",
   "info.inbox.generate.attachment.commands.hide_on_tooltip": "隐藏具体指令",
+  "info.inbox.generate.attachment.waypoints.create_wait.0": "还有 %s 个路径点待创建",
+  "info.inbox.generate.attachment.waypoints.create_wait.1": "请在以下Mod中选择一个以创建路径点",
+  "info.inbox.generate.attachment.waypoints.regenerate": "点击以重新创建路径点",
+  "info.inbox.generate.attachment.waypoints.recived": "路径点已全部生成完毕.",
   "info.inbox.generate.sound": "音频",
   "info.inbox.generate.sound.info": "邮件附带音频",
   "info.inbox.generate.sound.use_mc_sound": "使用原版音频",

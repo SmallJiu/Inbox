@@ -249,11 +249,6 @@ public class AttachmentEffect implements IAttachment {
         }
 
         @Override
-        public int getHeight() {
-            return super.getHeight();
-        }
-
-        @Override
         public IAttachment newAttachmentInstance() {
             AttachmentEffect attachment = new AttachmentEffect();
             for (SubWidget.PositionWiget widget : this.effects.widgets) {
