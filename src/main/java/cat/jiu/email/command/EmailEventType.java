@@ -17,14 +17,7 @@ import java.util.stream.Collectors;
 public class EmailEventType implements ArgumentType<ResourceLocation> {
     @Override
     public ResourceLocation parse(StringReader reader) throws CommandSyntaxException {
-//        String s = reader.readString();
-
-        int i = reader.getCursor();
-        while(reader.canRead() && reader.peek() != ' ') {
-            reader.skip();
-        }
-        String s = reader.getString().substring(i, reader.getCursor());
-        return Utils.location(s);
+        return Utils.location(reader.readUnquotedString());
     }
 
     @Override

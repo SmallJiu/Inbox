@@ -17,6 +17,7 @@ import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.email.util.SendDevEmail;
+import net.minecraft.commands.synchronization.ArgumentTypeInfo;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.commands.synchronization.SingletonArgumentInfo;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,11 +33,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.IModBusEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
@@ -75,10 +78,17 @@ public class EmailMain {
             bus.addListener(this::onClientSetup);
             bus.addListener(this::onRegisterBindings);
         }
-
+        this.registerArgumentType(bus);
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, EmailConfigServer.CONFIG_MAIN, "jiu/inbox/configs-server.toml");
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, EmailConfigClient.CONFIG_MAIN, "jiu/inbox/configs-client.toml");
         MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    private void registerArgumentType(IEventBus bus){
+        DeferredRegister<ArgumentTypeInfo<?, ?>> regsiter = DeferredRegister.create(ForgeRegistries.Keys.COMMAND_ARGUMENT_TYPES, MODID);
+        regsiter.register(bus);
+        regsiter.register("email_files", ()-> ArgumentTypeInfos.registerByClass(EmailFileType.class, new EmailFileType.Info()));
+        regsiter.register("email_events", ()-> ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new)));
     }
 
     void onConfigLoading(ModConfigEvent.Loading event){
@@ -104,14 +114,10 @@ public class EmailMain {
     }
 
     private void setup(final FMLCommonSetupEvent event){
-        ArgumentTypeInfos.registerByClass(EmailFileType.class, new EmailFileType.Info());
         event.enqueueWork(()-> {
             NETWORK = new EmailNetworkHandler();
         });
         MinecraftForge.EVENT_BUS.register(SendDevEmail.class);
-
-//        ArgumentTypeInfos.registerByClass(EmailFileType.class, SingletonArgumentInfo.contextFree(EmailFileType::new));
-        ArgumentTypeInfos.registerByClass(EmailEventType.class, SingletonArgumentInfo.contextFree(EmailEventType::new));
 
         // register email attachment
         IAttachment.REGISTRY.register(AttachmentItem.ID, AttachmentItem::new);

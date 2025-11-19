@@ -6,12 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import cat.jiu.email.EmailAPI;
-import cat.jiu.email.command.EmailFileType;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.element.EventEmail;
 import cat.jiu.email.element.attachment.*;
-import cat.jiu.email.net.msg.MsgEmailFiles;
 import cat.jiu.email.net.msg.MsgSendCooling;
 import cat.jiu.email.net.msg.MsgUnaccepted;
 import cat.jiu.core.util.client.AudioSystem;

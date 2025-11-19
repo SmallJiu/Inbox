@@ -24,7 +24,7 @@ public class MsgGenerateEmail extends BaseMessage {
     public MsgGenerateEmail() {
     }
 
-    public MsgGenerateEmail( String fileName, Email email) {
+    public MsgGenerateEmail(String fileName, Email email) {
         this.email = email;
         this.fileName = fileName;
     }

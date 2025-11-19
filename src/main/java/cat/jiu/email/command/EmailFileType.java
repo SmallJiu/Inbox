@@ -1,6 +1,5 @@
 package cat.jiu.email.command;
 
-import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailAPI;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -23,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class EmailFileType implements ArgumentType<File> {
     public static final File DEFAULT_EMAIL = new File("default");
+    public static final File DIRECTORY = new File(EmailAPI.getGlobalDataPath() + "emails/");
 
     public final Map<String, File> files = new HashMap<>();
 
@@ -55,11 +55,7 @@ public class EmailFileType implements ArgumentType<File> {
 
     @Override
     public File parse(StringReader reader) throws CommandSyntaxException {
-        int i = reader.getCursor();
-        while(reader.canRead() && reader.peek() != ' ') {
-            reader.skip();
-        }
-        String s = reader.getString().substring(i, reader.getCursor());
+        String s = reader.readUnquotedString();
         if ("default".equals(s)) {
             return DEFAULT_EMAIL;
         }
@@ -69,6 +65,11 @@ public class EmailFileType implements ArgumentType<File> {
         for (String file : this.files.keySet()) {
             if (file.contains(s)) {
                 return this.files.get(file);
+            }
+        }
+        for (File file : DIRECTORY.listFiles()) {
+            if (file.getName().contains(s)) {
+                return file;
             }
         }
         throw new SimpleCommandExceptionType(Component.literal("Not found file.")).create();
@@ -86,7 +87,7 @@ public class EmailFileType implements ArgumentType<File> {
         }
         @Override
         public Template deserializeFromNetwork(FriendlyByteBuf buf) {
-            return new Template(buf.readCollection(ArrayList::new, buf1 -> new File(buf1.readUtf().replace('\\', '/'))));
+            return new Template(buf.readList(b -> new File(b.readUtf().replace('\\', '/'))));
         }
         @Override
         public void serializeToJson(Template template, JsonObject json) {
