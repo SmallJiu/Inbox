@@ -48,6 +48,7 @@ public class AttachmentWaypoint implements IAttachment {
     public static final ItemStack MAP = new ItemStack(Items.FILLED_MAP);
 
     protected Map<ResourceKey<Level>, List<Waypoint>> waypoints;
+    protected String defaultMapMod = "xaerominimap";
 
     public AttachmentWaypoint() {
     }
@@ -86,6 +87,17 @@ public class AttachmentWaypoint implements IAttachment {
     }
 
     /**
+     * @param defaultMapMod 默认以 XX Mod来创建路径点，没找到或没加载则打开ui以选择mod
+     */
+    public AttachmentWaypoint setDefaultMapMod(String defaultMapMod) {
+        this.defaultMapMod = defaultMapMod;
+        return this;
+    }
+    public String getDefaultMapMod() {
+        return defaultMapMod;
+    }
+
+    /**
      * @param dimension look like {@link Level#OVERWORLD}
      * @param name can be translation key
      */
@@ -119,7 +131,7 @@ public class AttachmentWaypoint implements IAttachment {
 
     @OnlyIn(Dist.CLIENT)
     private void accept() {
-        Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), Screen.hasShiftDown()));
+        Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), this.getDefaultMapMod(), Screen.hasShiftDown()));
 //        this.getWaypoints().forEach(GuiHandler::addXaeroWaypoint);
     }
 
@@ -132,6 +144,7 @@ public class AttachmentWaypoint implements IAttachment {
 
     @Override
     public void read(IData.IMapData<?> data) {
+        this.setDefaultMapMod(data.getString("defaultMapMod", "xaerominimap"));
         data.getMap("waypoints").foreach((key, value) -> {
             ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, Utils.location(key));
             if (value.isList()) {
@@ -169,6 +182,7 @@ public class AttachmentWaypoint implements IAttachment {
     @Override
     public IData.IMapData<?> write(IData.IMapData<?> data) {
         if (!this.isEmpty()) {
+            data.putData("defaultMapMod", this.getDefaultMapMod());
             IData.IMapData<?> waypoints = data.newMap();
             this.getDimensionWaypoints().forEach((key, waypoints_d) -> {
                 IData.IListData<?> dimension = data.newList();
@@ -220,7 +234,7 @@ public class AttachmentWaypoint implements IAttachment {
     public boolean onClicked(double mouseX, double mouseY, int button) {
         if (button == 0
                 && RenderUtils.inRange(mouseX, mouseY, this.iconX, this.iconY, 16, 16)) {
-            Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), Screen.hasShiftDown()));
+            Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), this.getDefaultMapMod(), Screen.hasShiftDown()));
             return true;
         }
         return false;
@@ -235,23 +249,38 @@ public class AttachmentWaypoint implements IAttachment {
 
         /**
          * @param dimension look like {@link Level#OVERWORLD}
-         * @param name can be translation key
+         * @param name 可为翻译键 - can be translation key
+         * @param pos waypoint pos
          */
         public Waypoint(ResourceKey<Level> dimension, BlockPos pos, String name) {
             this.dimension = dimension;
             this.pos = pos;
             this.name = name;
         }
+        /**
+         * @param color 路径点颜色 - waypoint color
+         */
         public Waypoint setColor(ChatFormatting color) {
             return this.setColor(color.getColor() == null ? Color.BLACK.getRGB() : color.getColor());
         }
+        /**
+         * @param color 路径点颜色 - waypoint color
+         */
         public Waypoint setColor(Color color) {
             return this.setColor(color.getRGB());
         }
+
+        /**
+         * @param color 路径点颜色 - waypoint color
+         */
         public Waypoint setColor(int color) {
             this.color = color;
             return this;
         }
+
+        /**
+         * @param extraName 额外名称。例如 "保险库A" 里的 "A" - Extra name. For example, "A" in "Vault A"
+         */
         public Waypoint setExtraName(String extraName) {
             this.extraName = extraName;
             return this;
@@ -399,11 +428,13 @@ public class AttachmentWaypoint implements IAttachment {
 
         public final Screen parent;
         public final ArrayList<Waypoint> waypoints = new ArrayList<>();
+        public final String defaultMapMod;
         public MapModList mapModList;
-        public ChoiceMapModScreen(Screen parent, List<Waypoint> waypoints, boolean showMapModList) {
+        public ChoiceMapModScreen(Screen parent, List<Waypoint> waypoints, String defaultMapMod, boolean showMapModList) {
             super(CommonComponents.EMPTY);
             this.parent = parent;
             this.waypoints.addAll(waypoints);
+            this.defaultMapMod = defaultMapMod;
             this.check = showMapModList;
         }
 
@@ -419,7 +450,7 @@ public class AttachmentWaypoint implements IAttachment {
             for (String modId : REGISTRY.keySet()) {
                 if (ModList.get().isLoaded(modId)) {
                     ModList.get().getModContainerById(modId).ifPresent(container ->
-                        this.mapModList.add(Button.builder(Component.literal(container.getModInfo().getDisplayName()), b-> {
+                        this.mapModList.add(modId, Button.builder(Component.literal(container.getModInfo().getDisplayName()), b-> {
                             for (Waypoint waypoint : this.waypoints) {
                                 REGISTRY.get(modId).accept(waypoint);
                             }
@@ -436,7 +467,7 @@ public class AttachmentWaypoint implements IAttachment {
             if (false) {
                 for (int i = 0; i < 10; i++) {
                     int index = this.mapModList.children().size();
-                    this.mapModList.add(Button.builder(Component.literal("Test_" + (i + 1)), b ->
+                    this.mapModList.add("Test", Button.builder(Component.literal("Test_" + (i + 1)), b ->
                         Minecraft.getInstance().player.sendSystemMessage(Component.literal(String.format("Clicked: %s", index)))
                     ).build());
                 }
@@ -461,8 +492,22 @@ public class AttachmentWaypoint implements IAttachment {
                     Minecraft.getInstance().setScreen(this.parent);
                     return;
                 }
-                if (this.mapModList.children().size() == 1) {
+                if (REGISTRY.containsKey(this.defaultMapMod) && ModList.get().isLoaded(this.defaultMapMod)) {
+                    for (MapModList.MapMod mapMod : this.mapModList.children()) {
+                        if (mapMod.modId.equals(this.defaultMapMod)) {
+                            mapMod.btn.onPress();
+                            break;
+                        }
+                    }
+                }else if (this.mapModList.children().size() == 1) {
                     this.mapModList.children().get(0).btn.onPress();
+                }else if(this.mapModList.children().isEmpty()) {
+                    if (this.parent instanceof GuiInbox) {
+                        ((GuiInbox)this.parent).setTip(Component.translatable("info.inbox.generate.attachment.waypoints.not_found_mod"), 10*20, -1);
+                    }else {
+                        Minecraft.getInstance().player.sendSystemMessage(Component.translatable("info.inbox.generate.attachment.waypoints.not_found_mod"));
+                    }
+                    Minecraft.getInstance().setScreen(this.parent);
                 }
             }
         }
@@ -487,8 +532,8 @@ public class AttachmentWaypoint implements IAttachment {
                 this.setRenderSelection(false);
                 this.waypointCount = waypointCount;
             }
-            public void add(Button b) {
-                this.addEntry(new MapMod(b));
+            public void add(String modId, Button b) {
+                this.addEntry(new MapMod(modId, b));
             }
 
             @Override
@@ -502,8 +547,10 @@ public class AttachmentWaypoint implements IAttachment {
             }
 
             public static class MapMod extends ObjectSelectionList.Entry<MapMod> {
+                public final String modId;
                 public final Button btn;
-                public MapMod(Button btn) {
+                public MapMod(String modId, Button btn) {
+                    this.modId = modId;
                     this.btn = btn;
                 }
 

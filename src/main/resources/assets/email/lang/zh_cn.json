@@ -121,6 +121,7 @@
   "info.inbox.generate.attachment.waypoints.create_wait.1": "请在以下Mod中选择一个以创建路径点",
   "info.inbox.generate.attachment.waypoints.regenerate": "点击以重新创建路径点",
   "info.inbox.generate.attachment.waypoints.recived": "路径点已全部生成完毕.",
+  "info.inbox.generate.attachment.waypoints.not_found_mod": "未找到地图Mod，请安装 \"Xaero's Minimap\" 或 \"FTBChunk\" 或 \"JourneyMap\" 后再重新生成路径点.",
   "info.inbox.generate.sound": "音频",
   "info.inbox.generate.sound.info": "邮件附带音频",
   "info.inbox.generate.sound.use_mc_sound": "使用原版音频",

@@ -14,6 +14,12 @@ import cat.jiu.email.ui.gui.component.AttachmentInboxIcon;
 import cat.jiu.email.EmailMain;
 
 import com.google.common.collect.Lists;
+import dev.ftb.mods.ftbchunks.client.map.MapDimension;
+import dev.ftb.mods.ftbchunks.client.map.MapManager;
+import dev.ftb.mods.ftbchunks.client.map.WaypointImpl;
+import dev.ftb.mods.ftbchunks.client.map.WaypointType;
+import journeymap.client.api.impl.ClientAPI;
+import journeymap.client.waypoint.WaypointStore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
@@ -65,6 +71,8 @@ public class GuiHandler {
 	@OnlyIn(Dist.CLIENT)
 	private static void registerModGenWaypoint(){
 		AttachmentWaypoint.ChoiceMapModScreen.registerModGenWaypoint("xaerominimap", GuiHandler::addXaeroWaypoint);
+		AttachmentWaypoint.ChoiceMapModScreen.registerModGenWaypoint("ftbchunks", GuiHandler::addFTBChunkWaypoint);
+		AttachmentWaypoint.ChoiceMapModScreen.registerModGenWaypoint("journeymap", GuiHandler::addJourneymapWaypoint);
 	}
 
 	@OnlyIn(Dist.CLIENT)
@@ -73,6 +81,7 @@ public class GuiHandler {
 			Minecraft mc = Minecraft.getInstance();
 			if (!Misc.hasEffect(mc.player, Effects.NO_WAYPOINTS) && !Misc.hasEffect(mc.player, Effects.NO_WAYPOINTS_HARMFUL)) {
 				MinimapSession session = BuiltInHudModules.MINIMAP.getCurrentSession();
+
 				MinimapWorldRootContainer container = session.getWorldManager().getRootWorldContainer(session.getWorldState().getCurrentWorldPath().getRoot());
 				for (MinimapWorldContainer subContainer : container.getSubContainers()) {
 					for (MinimapWorld minimapWorld : subContainer.getWorlds()) {
@@ -90,7 +99,7 @@ public class GuiHandler {
 								double dimDiv = container.getDimensionScale(waypoint.dimension) / waypointDestDimScale;
 								x = OptimizedMath.myFloor((double) x * dimDiv);
 								z = OptimizedMath.myFloor((double) z * dimDiv);
-								Waypoint instant = new Waypoint(x, y, z, I18n.get(waypoint.name), waypoint.extraName != null ? waypoint.extraName : "X", WaypointColor.getRandom(), WaypointPurpose.NORMAL, false, true);
+								Waypoint instant = new Waypoint(x, y, z, I18n.get(waypoint.name), waypoint.extraName != null ? waypoint.extraName : "X", waypoint.color);
 								minimapWorld.getCurrentWaypointSet().add(instant, !HudMod.INSTANCE.getSettings().waypointsBottom);
 								return;
 							}
@@ -98,6 +107,34 @@ public class GuiHandler {
 					}
 				}
 			}
+		}
+	}
+
+	@OnlyIn(Dist.CLIENT)
+	public static void addFTBChunkWaypoint(AttachmentWaypoint.Waypoint waypoint) {
+		if (ModList.get().isLoaded("ftbchunks")) {
+			MapManager.getInstance().ifPresent(manager -> {
+				MapDimension dimension = manager.getDimension(waypoint.dimension);
+				WaypointImpl ftbWaypoint = new WaypointImpl(WaypointType.DEFAULT, dimension, waypoint.pos);
+				ftbWaypoint.setColor(waypoint.color);
+				ftbWaypoint.setName(waypoint.name + (waypoint.extraName != null ? " (" + waypoint.extraName + ")" : ""));
+				dimension.getWaypointManager().add(ftbWaypoint);
+			});
+		}
+	}
+
+	@OnlyIn(Dist.CLIENT)
+	public static void addJourneymapWaypoint(AttachmentWaypoint.Waypoint waypoint) {
+		if (ModList.get().isLoaded("journeymap")) {
+			JourneymapShowWaypoint.show(waypoint);
+		}
+	}
+	private static class JourneymapShowWaypoint {
+		private static void show(AttachmentWaypoint.Waypoint waypoint) {
+			journeymap.client.waypoint.Waypoint journeymapWaypoint = journeymap.client.waypoint.Waypoint.at(waypoint.pos, journeymap.client.waypoint.Waypoint.Type.Normal, waypoint.dimension.location().toString());
+			journeymapWaypoint.setColor(waypoint.color);
+			journeymapWaypoint.setName(waypoint.name + (waypoint.extraName != null ? " (" + waypoint.extraName + ")" : ""));
+			ClientAPI.INSTANCE.show(journeymapWaypoint.modWaypoint());
 		}
 	}
 

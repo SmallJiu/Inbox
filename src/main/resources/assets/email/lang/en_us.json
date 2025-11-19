@@ -120,6 +120,7 @@
   "info.inbox.generate.attachment.waypoints.create_wait.1": "Please choose one of the following Mod to create a waypoint",
   "info.inbox.generate.attachment.waypoints.regenerate": "Click to recreate the waypoint",
   "info.inbox.generate.attachment.waypoints.recived": "All waypoints have been created.",
+  "info.inbox.generate.attachment.waypoints.not_found_mod": "Not find the map mod, please install \"Xaero's Minimap\" or \"FTBChunk\" or \"JourneyMap\" before regenerating the waypoint.",
   "info.inbox.generate.sound": "Sound",
   "info.inbox.generate.sound.info": "The email comes with audio",
   "info.inbox.generate.sound.use_mc_sound": "Use vanilla sound.",

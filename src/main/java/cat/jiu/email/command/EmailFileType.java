@@ -22,15 +22,14 @@ import java.util.concurrent.CompletableFuture;
 
 public class EmailFileType implements ArgumentType<File> {
     public static final File DEFAULT_EMAIL = new File("default");
-    public static final File DIRECTORY = new File(EmailAPI.getGlobalDataPath() + "emails/");
+    public static File directory(){
+        return new File(EmailAPI.getGlobalDataPath() + "emails/");
+    }
 
     public final Map<String, File> files = new HashMap<>();
 
     public EmailFileType() {
-        this(EmailAPI.getGlobalDataPath() + "emails/");
-    }
-    public EmailFileType(String dir) {
-        this(new File(dir));
+        this(directory());
     }
     public EmailFileType(File dir) {
         dir.mkdirs();
@@ -67,7 +66,7 @@ public class EmailFileType implements ArgumentType<File> {
                 return this.files.get(file);
             }
         }
-        for (File file : DIRECTORY.listFiles()) {
+        for (File file : directory().listFiles()) {
             if (file.getName().contains(s)) {
                 return file;
             }

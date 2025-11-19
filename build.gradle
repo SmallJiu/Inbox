@@ -141,6 +141,12 @@ dependencies {
 //    implementation("org.xerial:sqlite-jdbc:[3.49.1.0,)")
     runtimeOnly fg.deobf("curse.maven:lan-server-properties-387365:4776657")
     runtimeOnly fg.deobf("curse.maven:placebo-283644:6274231")
+    implementation fg.deobf("curse.maven:xaeros-minimap-263420:6778028")
+    implementation fg.deobf("curse.maven:architectury-api-419699:5084452")
+    implementation fg.deobf("curse.maven:ftb-library-forge-404465:6807424")
+    implementation fg.deobf("curse.maven:ftb-teams-forge-404468:6130786")
+    implementation fg.deobf("curse.maven:ftb-chunks-forge-314906:5919655")
+    implementation fg.deobf("curse.maven:journeymap-32274:4873848")
     implementation fg.deobf("curse.maven:apothic-attributes-898963:5634071")
 
     compileOnly("blank:jmp123-all:1.0.0")
