@@ -273,7 +273,6 @@ public class AttachmentEffect implements IAttachment {
         public static class EffectWidget extends SubWidget {
             public final UUID uuid;
             public final EditBox effect;
-            public ModifierWidget effectModifier;
             public final GuiTime time;
             public final GuiFilterTextField level;
             public final GuiCheckbox infinite, beaconAdd, showIcon, showParticles, setMainhandItemToCurativeItem;
@@ -287,6 +286,16 @@ public class AttachmentEffect implements IAttachment {
                 EffectIcon icon = this.addWiget(new EffectIcon(), -4, 0, 2, 0).cast();
                 icon.effect = MobEffects.MOVEMENT_SPEED;
                 this.effect.setValue("minecraft:speed");
+
+                ModifierWidget effectModifier = this.addWiget(new ModifierWidget(false, new AtomicInteger(), EFFECTS.size(), (modifier, index)->{
+                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(EFFECTS.get(index));
+                    this.effect.setValue(String.valueOf(EFFECTS.get(index)));
+
+                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
+                    this.effect.setTooltip(effectName);
+                    icon.setTooltip(effectName);
+                    modifier.setTooltip(effectName);
+                })).cast();
                 this.effect.setResponder(s-> {
                     MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(Utils.location(s));
 
@@ -294,40 +303,12 @@ public class AttachmentEffect implements IAttachment {
                     Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
                     this.effect.setTooltip(effectName);
                     icon.setTooltip(effectName);
-                    this.effectModifier.setTooltip(effectName);
+                    effectModifier.setTooltip(effectName);
                 });
-
-                AtomicInteger effectIndex = new AtomicInteger(0);
-                this.effectModifier = this.addWiget(new ModifierWidget(false, ()-> {
-                    effectIndex.set(effectIndex.get() + 1);
-                    if (effectIndex.get() >= EFFECTS.size()) {
-                        effectIndex.set(0);
-                    }
-                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(EFFECTS.get(effectIndex.get()));
-                    this.effect.setValue(String.valueOf(EFFECTS.get(effectIndex.get())));
-
-                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
-                    this.effect.setTooltip(effectName);
-                    icon.setTooltip(effectName);
-                    this.effectModifier.setTooltip(effectName);
-                }, ()->{
-                    effectIndex.set(effectIndex.get() - 1);
-                    if (effectIndex.get() < 0) {
-                        effectIndex.set(EFFECTS.size()-1);
-                    }
-                    MobEffect effectInstance = ForgeRegistries.MOB_EFFECTS.getValue(EFFECTS.get(effectIndex.get()));
-                    this.effect.setValue(String.valueOf(EFFECTS.get(effectIndex.get())));
-
-                    Tooltip effectName = Tooltip.create(Component.translatable(effectInstance != null ? effectInstance.getDescriptionId() : "Not found effect"));
-                    this.effect.setTooltip(effectName);
-                    icon.setTooltip(effectName);
-                    this.effectModifier.setTooltip(effectName);
-                }), 0, 0, 2, 2).cast();
-
                 Tooltip effectName = Tooltip.create(Component.translatable(MobEffects.MOVEMENT_SPEED.getDescriptionId()));
                 this.effect.setTooltip(effectName);
                 icon.setTooltip(effectName);
-                this.effectModifier.setTooltip(effectName);
+                effectModifier.setTooltip(effectName);
 
                 this.time = this.addWiget(
                         new GuiTime(false).setRenderBackgroubd(false),
@@ -338,15 +319,10 @@ public class AttachmentEffect implements IAttachment {
                         "0", false, 0, 0, 20, RenderUtils.fontHeight()+4
                 ), 0, 0, 3, 0).cast();
                 this.level.setMaxLength(2);
-                this.addWiget(new ModifierWidget(false, ()->
-                    this.level.setValue(String.valueOf(this.level.getAsNumber().intValue()+1))
-                , ()->{
-                    this.level.setValue(String.valueOf(this.level.getAsNumber().intValue()-1));
-                    if (this.level.getAsNumber().intValue() < 0) {
-                        this.level.setValue("0");
-                    }
-                }), 0, 0, 6, 2).cast().setTooltip(Tooltip.create(Component.translatable("info.inbox.generate.attachment.effect.amplifier")));
                 this.level.setTooltip(Tooltip.create(Component.translatable("info.inbox.generate.attachment.effect.amplifier")));
+                this.addWiget(new ModifierWidget(false, new AtomicInteger(), 32768, (modifier, index)->
+                    this.level.setValue(String.valueOf(index))
+                )).cast().setTooltip(this.level.getTooltip());
 
                 this.infinite = this.addWiget(createCheckbox(Component.translatable("info.inbox.generate.attachment.effect.infinite"), false, null),
                         0, 0, 4, 2).setConsumerEvent(false, true, false, false).cast();

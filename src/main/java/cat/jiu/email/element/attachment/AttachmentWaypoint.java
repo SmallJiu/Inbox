@@ -1,13 +1,13 @@
 package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.api.IData;
+import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.util.Randoms;
 import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
-import cat.jiu.email.event.AttachmentEvent;
 import cat.jiu.email.ui.gui.GuiInbox;
 import cat.jiu.email.ui.gui.component.GuiFilterTextField;
 import com.google.common.collect.Lists;
@@ -21,8 +21,6 @@ import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -71,20 +69,20 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
     public List<Waypoint> getWaypoints(){
         if (!this.isEmpty()) {
             List<Waypoint> waypoints = Lists.newArrayList();
-            this.waypoints.forEach((key, value) -> waypoints.addAll(value));
+            this.getDimensionWaypoints().forEach((key, value) -> waypoints.addAll(value));
             return waypoints;
         }
         return Collections.emptyList();
     }
 
-    public AttachmentWaypoint setWaypoints(Map<ResourceKey<Level>, List<Waypoint>> waypoints) {
+    public AttachmentWaypoint setDimensionWaypoints(Map<ResourceKey<Level>, List<Waypoint>> waypoints) {
         this.waypoints = waypoints;
         return this;
     }
     public int getWaypointCount(){
         AtomicInteger result = new AtomicInteger();
         if (!this.isEmpty()) {
-            this.waypoints.forEach((key, value) -> result.addAndGet(value.size()));
+            this.getDimensionWaypoints().forEach((key, value) -> result.addAndGet(value.size()));
         }
         return result.get();
     }
@@ -111,7 +109,7 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
     }
     public AttachmentWaypoint addWaypoint(Waypoint waypoint) {
         if (this.getDimensionWaypoints() == null) {
-            this.setWaypoints(new HashMap<>());
+            this.setDimensionWaypoints(new HashMap<>());
         }
         if (!this.getDimensionWaypoints().containsKey(waypoint.dimension)) {
             this.getDimensionWaypoints().put(waypoint.dimension, new ArrayList<>());
@@ -151,33 +149,11 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
         data.getMap("waypoints").foreach((key, value) -> {
             ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, Utils.location(key));
             if (value.isList()) {
-                value.getAsList().foreach((index, waypoint_d) ->
-                    this.addWaypoint(new Waypoint(
-                            dimension,
-                            new BlockPos(
-                                    waypoint_d.getAsMap().getInt("x"),
-                                    waypoint_d.getAsMap().getInt("y"),
-                                    waypoint_d.getAsMap().getInt("z")
-                            ),
-                            waypoint_d.getAsMap().getString("name", "Point_" + this.getWaypointCount())
-                        )
-                            .setColor(ChatFormatting.getById(waypoint_d.getAsMap().getInt("color")))
-                            .setExtraName(waypoint_d.getAsMap().getString("extraName", null))
-                    )
+                value.getAsList().foreach((index, waypoint_) ->
+                    this.addWaypoint(Waypoint.create(dimension, waypoint_.getAsMap()))
                 );
             }else if (value.isMap()) {
-                this.addWaypoint(new Waypoint(
-                                dimension,
-                                new BlockPos(
-                                        value.getAsMap().getInt("x"),
-                                        value.getAsMap().getInt("y"),
-                                        value.getAsMap().getInt("z")
-                                ),
-                                value.getAsMap().getString("name", "Point_" + this.getWaypointCount())
-                        )
-                                .setColor(ChatFormatting.getById(value.getAsMap().getInt("color")))
-                                .setExtraName(value.getAsMap().getString("extraName", null))
-                );
+                this.addWaypoint(Waypoint.create(dimension, value.getAsMap()));
             }
         });
     }
@@ -187,20 +163,11 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
         if (!this.isEmpty()) {
             data.putData("defaultMapMod", this.getDefaultMapMod());
             IData.IMapData<?> waypoints = data.newMap();
-            this.getDimensionWaypoints().forEach((key, waypoints_d) -> {
+            this.getDimensionWaypoints().forEach((key, waypoints_) -> {
                 IData.IListData<?> dimension = data.newList();
-                waypoints_d.forEach(waypoint ->{
-                    IData.IMapData<?> waypoint_d = data.newMap();
-                    waypoint_d.putData("x", waypoint.pos.getX());
-                    waypoint_d.putData("y", waypoint.pos.getY());
-                    waypoint_d.putData("z", waypoint.pos.getZ());
-                    waypoint_d.putData("name", waypoint.name);
-                    if (waypoint.extraName != null) {
-                        waypoint_d.putData("extraName", waypoint.extraName);
-                    }
-                    waypoint_d.putData("color", waypoint.color.getId());
-                    dimension.putData(waypoint_d);
-                });
+                waypoints_.forEach(waypoint ->
+                    dimension.putData(waypoint.write(data.newMap()))
+                );
                 waypoints.putData(String.valueOf(key.location()), dimension);
             });
             data.putData("waypoints", waypoints);
@@ -229,12 +196,22 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
         Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), this.getDefaultMapMod(), Screen.hasShiftDown()));
     }
 
-    public static class Waypoint {
+    public static class Waypoint implements IDataSerializable<IData.IMapData<?>> {
+        public static Waypoint create(ResourceKey<Level> dimension, IData.IMapData<?> data) {
+            Waypoint instance = new Waypoint(dimension);
+            instance.read(data);
+            return instance;
+        }
+
         public final ResourceKey<Level> dimension;
-        public final BlockPos pos;
-        public final String name;
+        public BlockPos pos;
+        public String name;
         public String extraName;
-        public ChatFormatting color;
+        public ChatFormatting color = ChatFormatting.GREEN;
+
+        public Waypoint(ResourceKey<Level> dimension) {
+            this.dimension = dimension;
+        }
 
         /**
          * @param dimension look like {@link Level#OVERWORLD}
@@ -246,11 +223,24 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
             this.pos = pos;
             this.name = name;
         }
+
+        public Waypoint setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Waypoint setPos(BlockPos pos) {
+            this.pos = pos;
+            return this;
+        }
+
         /**
          * @param color 路径点颜色 - waypoint color
          */
         public Waypoint setColor(ChatFormatting color) {
-            this.color = color;
+			if(color != null && color.isColor()){
+				this.color = color;
+			}
             return this;
         }
 
@@ -260,6 +250,27 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
         public Waypoint setExtraName(String extraName) {
             this.extraName = extraName;
             return this;
+        }
+
+        @Override
+        public void read(IData.IMapData<?> data) {
+            this.setPos(new BlockPos(data.getInt("x"), data.getInt("y"), data.getInt("z")));
+            this.setName(data.getString("name"));
+            this.setExtraName(data.getString("extraName", null));
+            this.setColor(ChatFormatting.getByCode(data.getChar("color", ChatFormatting.GREEN.getChar())));
+        }
+
+        @Override
+        public IData.IMapData<?> write(IData.IMapData<?> data) {
+            data.putData("x", this.pos.getX());
+            data.putData("y", this.pos.getY());
+            data.putData("z", this.pos.getZ());
+            data.putData("name", this.name);
+            if (this.extraName != null) {
+                data.putData("extraName", this.extraName);
+            }
+            data.putData("color", this.color.getChar());
+            return data;
         }
     }
     @OnlyIn(Dist.CLIENT)
@@ -331,30 +342,13 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
                 )).cast();
                 this.dimension.setValue(Minecraft.getInstance().player.level().dimension().location().toString());
 
-                AtomicInteger dimensionIndex = new AtomicInteger(dimensions.indexOf(Minecraft.getInstance().player.level().dimension().location()));
-                this.dimensionModifier = this.addWiget(new ModifierWidget(false, ()-> {
-                    dimensionIndex.set(dimensionIndex.get() + 1);
-                    if (dimensionIndex.get() >= dimensions.size()) {
-                        dimensionIndex.set(0);
-                    }
-                    this.dimension.setValue(String.valueOf(dimensions.get(dimensionIndex.get())));
+                this.dimension.setTooltip(Tooltip.create(Component.literal(this.dimension.getValue())));
+                this.addWiget(new ModifierWidget(false, new AtomicInteger(dimensions.indexOf(Minecraft.getInstance().player.level().dimension().location())), dimensions.size(), (modifier, index)-> {
+                    this.dimension.setValue(String.valueOf(dimensions.get(index)));
                     Tooltip dimensionName = Tooltip.create(Component.literal(this.dimension.getValue()));
                     this.dimension.setTooltip(dimensionName);
-                    this.dimensionModifier.setTooltip(dimensionName);
-                }, ()->{
-                    dimensionIndex.set(dimensionIndex.get() - 1);
-                    if (dimensionIndex.get() < 0) {
-                        dimensionIndex.set(dimensions.size()-1);
-                    }
-                    this.dimension.setValue(String.valueOf(dimensions.get(dimensionIndex.get())));
-                    Tooltip dimensionName = Tooltip.create(Component.literal(this.dimension.getValue()));
-                    this.dimension.setTooltip(dimensionName);
-                    this.dimensionModifier.setTooltip(dimensionName);
-                }), 0, 0, 2, 2).cast();
-
-                Tooltip dimensionName = Tooltip.create(Component.literal(this.dimension.getValue()));
-                this.dimension.setTooltip(dimensionName);
-                this.dimensionModifier.setTooltip(dimensionName);
+                    modifier.setTooltip(dimensionName);
+                })).cast().setTooltip(this.dimension.getTooltip());
 
                 this.name = this.addWiget(new EditBox(
                         RenderUtils.getFontRenderer(), 0, 0, 65, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
@@ -387,19 +381,11 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
                     return RenderUtils.width("Z: ") + 2;
                 }, null).cast();
 
-                AtomicInteger colorIndex = new AtomicInteger(Randoms.nextInt(16));
-                this.color = ChatFormatting.getById(colorIndex.get());
-                this.addWiget(new ModifierWidget(false, ()-> {
-                    if (colorIndex.addAndGet(1) >= 16) {
-                        colorIndex.set(0);
-                    }
-                    this.color = ChatFormatting.getById(colorIndex.get());
-                }, ()->{
-                    if (colorIndex.addAndGet(-1) < 0) {
-                        colorIndex.set(15);
-                    }
-                    this.color = ChatFormatting.getById(colorIndex.get());
-                }), 0, 0, 9, 2).setWigetRender(widget->{
+                int initColor = Randoms.nextInt(16);
+                this.color = ChatFormatting.getById(initColor);
+                this.addWiget(new ModifierWidget(false, new AtomicInteger(initColor), 16, (modifier, index)->
+                    this.color = ChatFormatting.getById(index)
+                ), 0, 0, 9, 2).setWigetRender(widget->{
                     int color = (this.color.getColor() & -67108864) == 0 ? this.color.getColor() | -16777216 : this.color.getColor();
                     RenderUtils.fill(widget.graphics, widget.widget.getX() - (RenderUtils.fontHeight()+1) - 2, widget.widget.getY()+1, RenderUtils.fontHeight()+1, RenderUtils.fontHeight()+1, color);
                     return RenderUtils.fontHeight()+1;

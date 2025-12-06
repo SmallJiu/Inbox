@@ -1,5 +1,6 @@
 package cat.jiu.email.api;
 
+import cat.jiu.core.api.Lambdas;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.core.util.registry.StaticRegistry;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 
 @OnlyIn(Dist.CLIENT)
@@ -118,19 +120,43 @@ public abstract class AttachmentSendScreenWidget extends AbstractWidget {
 
     public static class ModifierWidget extends SubWidget {
         public final Button up_left, down_right;
+
+        public ModifierWidget(boolean isHorizontal, AtomicInteger index, int maxIndex, Lambdas.Consumer2<ModifierWidget, Integer> indexConsumer) {
+            super(isHorizontal);
+            this.up_left = this.addWiget(Button.builder(Component.literal(isHorizontal ? "<" : "∧"), b -> {
+                                index.set(index.get() + 1);
+                                if (index.get() >= maxIndex) {
+                                    index.set(0);
+                                }
+                                indexConsumer.accept(this, index.get());
+                            })
+                            .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
+                            .build(), -3, 0, 0, 0)
+                    .setConsumerEvent(false, true, false, false)
+                    .cast();
+
+            this.down_right = this.addWiget(Button.builder(Component.literal(isHorizontal ? ">" : "∨"), b -> {
+                                index.set(index.get() - 1);
+                                if (index.get() < 0) {
+                                    index.set(maxIndex-1);
+                                }
+                                indexConsumer.accept(this, index.get());
+                            })
+                            .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
+                            .build(), -3, 0, 0, 0)
+                    .setConsumerEvent(false, true, false, false)
+                    .cast();
+        }
+
         public ModifierWidget(boolean isHorizontal, Runnable up_left, Runnable down_right) {
             super(isHorizontal);
-            this.up_left = this.addWiget(Button.builder(Component.literal(isHorizontal ? "<" : "∧"), b->
-                        up_left.run()
-                    )
+            this.up_left = this.addWiget(Button.builder(Component.literal(isHorizontal ? "<" : "∧"), b -> up_left.run())
                     .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
                     .build(), -3, 0, 0, 0)
                     .setConsumerEvent(false, true, false, false)
                     .cast();
 
-            this.down_right = this.addWiget(Button.builder(Component.literal(isHorizontal ? ">" : "∨"), b->
-                        down_right.run()
-                    )
+            this.down_right = this.addWiget(Button.builder(Component.literal(isHorizontal ? ">" : "∨"), b -> down_right.run())
                     .size(RenderUtils.fontHeight(), RenderUtils.fontHeight())
                     .build(), -3, 0, 0, 0)
                     .setConsumerEvent(false, true, false, false)

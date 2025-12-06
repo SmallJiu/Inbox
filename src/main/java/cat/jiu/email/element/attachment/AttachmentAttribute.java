@@ -38,6 +38,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.io.File;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod.EventBusSubscriber
 public class AttachmentAttribute implements IAttachment {
@@ -474,12 +475,10 @@ public class AttachmentAttribute implements IAttachment {
         public static class AttributeWidget extends SubWidget {
             public final UUID uuid;
             public final EditBox attribute;
-            public int attributeIndex = 0;
+            public AtomicInteger attributeIndex = new AtomicInteger();
             public AttributeModifier.Operation operation = AttributeModifier.Operation.ADDITION;
             public final GuiFilterTextField value;
             public final GuiCheckbox isTemp;
-
-            protected ModifierWidget operationModifier, attributeModifier;
 
             public AttributeWidget(UUID uuid, Runnable onRemove) {
                 super(true);
@@ -489,76 +488,42 @@ public class AttachmentAttribute implements IAttachment {
                         RenderUtils.getFontRenderer(), 0, 0, 200, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
                 )).cast();
                 this.attribute.setValue(ATTRIBUTES.get(0).toString());
+                this.attribute.setTooltip(Tooltip.create(Component.translatable(
+                        ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(0)).getDescriptionId()
+                )));
+                ModifierWidget attributeModifier = this.addWiget(new ModifierWidget(false, this.attributeIndex, ATTRIBUTES.size(), (modifier, index) -> {
+                    this.attribute.setValue(ATTRIBUTES.get(index).toString());
+                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(index));
+                    this.attribute.setTooltip(Tooltip.create(Component.translatable(
+                            value == null ? "Not found attribute." : value.getDescriptionId()
+                    )));
+                    modifier.setTooltip(this.attribute.getTooltip());
+                })).cast(); attributeModifier.setTooltip(this.attribute.getTooltip());
                 this.attribute.setResponder(s->{
                     ResourceLocation id = Utils.location(this.attribute.getValue());
                     Attribute value = ForgeRegistries.ATTRIBUTES.getValue(id);
-                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
+                    attributeModifier.setTooltip(Tooltip.create(Component.translatable(
                             value == null ? "Not found attribute." : value.getDescriptionId()
                     )));
-                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
+                    this.attribute.setTooltip(attributeModifier.getTooltip());
                     if (value != null) {
-                        this.attributeIndex = ATTRIBUTES.indexOf(id);
+                        this.attributeIndex.set(ATTRIBUTES.indexOf(id));
                     }
                 });
-
-                this.attributeModifier = this.addWiget(new ModifierWidget(false, ()->{
-                    this.attributeIndex--;
-                    if (this.attributeIndex < 0) {
-                        this.attributeIndex = ATTRIBUTES.size() - 1;
-                    }
-                    this.attribute.setValue(ATTRIBUTES.get(this.attributeIndex).toString());
-
-                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(this.attributeIndex));
-                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
-                            value == null ? "Not found attribute." : value.getDescriptionId()
-                    )));
-                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
-                }, ()->{
-                    this.attributeIndex++;
-                    if (this.attributeIndex >= ATTRIBUTES.size()) {
-                        this.attributeIndex = 0;
-                    }
-                    this.attribute.setValue(ATTRIBUTES.get(this.attributeIndex).toString());
-
-                    Attribute value = ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(this.attributeIndex));
-                    this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
-                            value == null ? "Not found attribute." : value.getDescriptionId()
-                    )));
-                    this.attribute.setTooltip(this.attributeModifier.getTooltip());
-                }), 0, 0, 2, 3).cast();
-
-                this.attributeModifier.setTooltip(Tooltip.create(Component.translatable(
-                        ForgeRegistries.ATTRIBUTES.getValue(ATTRIBUTES.get(0)).getDescriptionId()
-                )));
-                this.attribute.setTooltip(this.attributeModifier.getTooltip());
 
                 this.value = this.addWiget(new GuiFilterTextField(
                         "0", true, 0, 0, 30, RenderUtils.fontHeight()+4
                 ).setCanBeNegative(true)).cast();
+                this.value.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                ModifierWidget valueModifier = this.addWiget(new ModifierWidget(false, new AtomicInteger(), 2, (modifier, index)->{
+                    this.operation = AttributeModifier.Operation.fromValue(index);
+                    this.value.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                    modifier.setTooltip(this.value.getTooltip());
+                })).cast(); valueModifier.setTooltip(this.value.getTooltip());
                 this.value.setResponder(s->{
-                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
-                    this.value.setTooltip(this.operationModifier.getTooltip());
+                    this.value.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
+                    valueModifier.setTooltip(this.value.getTooltip());
                 });
-                this.operationModifier = this.addWiget(new ModifierWidget(false, ()->{
-                    int index = this.operation.toValue() - 1;
-                    if (index < 0) {
-                        index = 2;
-                    }
-                    this.operation = AttributeModifier.Operation.fromValue(index);
-                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
-                    this.value.setTooltip(this.operationModifier.getTooltip());
-                }, ()->{
-                    int index = this.operation.toValue() + 1;
-                    if (index > 2) {
-                        index = 0;
-                    }
-                    this.operation = AttributeModifier.Operation.fromValue(index);
-                    this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
-                    this.value.setTooltip(this.operationModifier.getTooltip());
-                }), 0, 0, 2, 3).cast();
-
-                this.operationModifier.setTooltip(Tooltip.create(Component.literal(AttachmentAttribute.getMethod(this.operation, this.value.getAsNumber().doubleValue()))));
-                this.value.setTooltip(this.operationModifier.getTooltip());
 
                 this.isTemp = this.addWiget(new GuiCheckbox(
                         0, 0, RenderUtils.fontHeight(), RenderUtils.fontHeight(), CommonComponents.EMPTY, true, null

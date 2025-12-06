@@ -13,8 +13,8 @@ import java.util.function.Predicate;
 @OnlyIn(Dist.CLIENT)
 public class GuiFilterTextField extends EditBox {
     public static final Predicate<Character>
-            NUMBER_FILTER = c->"0123456789-".contains(c.toString()),
-            DECIAML_FILTER = c->"0123456789-.".contains(c.toString());
+            NUMBER_FILTER = c->"0123456789-,".contains(c.toString()),
+            DECIAML_FILTER = c->"0123456789-,.".contains(c.toString());
 
     private Predicate<Character> typedCharFilter;
     private final String defaultText;
@@ -52,7 +52,7 @@ public class GuiFilterTextField extends EditBox {
             return 0;
         }
         try {
-            return new LazilyParsedNumber(this.getValue());
+            return new LazilyParsedNumber(this.getValue().replace(",", ""));
         }catch (Exception e){
             return 0;
         }
