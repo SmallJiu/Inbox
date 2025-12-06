@@ -536,7 +536,7 @@ public class GuiGenerateEmail extends Screen {
                 attachment.attachment.render(graphics, mouseX, mouseY, 0);
 
                 attachment.delete.setX(x + attachment.attachment.getWidth() + 2);
-                attachment.delete.setY(y);
+                attachment.delete.setY(y + attachment.attachment.getHeight() - 15);
                 attachment.delete.render(graphics, mouseX, mouseY, 0);
                 y += attachment.attachment.getHeight() + 3;
             }

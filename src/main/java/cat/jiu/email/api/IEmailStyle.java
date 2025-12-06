@@ -10,17 +10,14 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.function.Supplier;
 
 public interface IEmailStyle extends Supplier<ResourceLocation> {
-    static String NAME_ID = "style";
+    String ID_NAME = "style";
     static StaticRegistry<ResourceLocation, IEmailStyle> REGISTRY = new StaticRegistry<ResourceLocation, IEmailStyle>(EmailMain.MODID, "email/style")
-            .setKeyGetter(
-                    data-> Utils.location(data.getString(NAME_ID)),
-                    data->Utils.location(data.get(NAME_ID).getAsString()),
-                    data -> data.getLocation(NAME_ID)
-            );
+            .setKeyGetter(ID_NAME, Utils::location)
+    ;
 
-    void renderBack(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, boolean canScroll, float partialTick);
-    void renderContent(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, boolean canScroll, float partialTick);
-    void renderSelection(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, boolean canScroll, float partialTick);
+    void renderBack(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick);
+    void renderContent(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick);
+    void renderSelection(GuiGraphics graphics, Email email, int x, int y, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick);
 
     @Override
     default ResourceLocation get(){return this.getID(); }

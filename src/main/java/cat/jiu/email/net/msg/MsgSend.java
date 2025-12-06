@@ -21,6 +21,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
@@ -34,6 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class MsgSend extends BaseMessage {
@@ -148,7 +151,14 @@ public class MsgSend extends BaseMessage {
 
         if(!inbox.isInSenderBlacklist(sender.getName().getString())) {
             if (this.email.hasAttachments()){
-                BiConsumer<String, Object[]> messageHandler = (key, args)-> this.sendMessage(sender, key, args);
+                Consumer<Component> messageHandler = component -> {
+                    if (component.getContents() instanceof TranslatableContents) {
+                        TranslatableContents translatable = (TranslatableContents) component.getContents();
+                        this.sendMessage(sender, translatable.getKey(), translatable.getArgs());
+                    }else {
+                        this.sendMessage(sender, component.getString());
+                    }
+                };
                 for (IAttachment attachment : this.email.getAttachments()) {
                     if (!attachment.onPlayerSendCheck(sender, messageHandler)) {
                         if(this.group.isPlayerSend() && lock) {

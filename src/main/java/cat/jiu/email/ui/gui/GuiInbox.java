@@ -605,7 +605,7 @@ public class GuiInbox extends Screen {
             if (this.deleteEmailOverlay) {
                 this.deleteEmailBtn.onPress();
             }else {
-                this.deleteEmailOverlay = true;
+                this.deleteEmailOverlay = this.getCurrentEmail().isDeletable();
             }
             return true;
         }

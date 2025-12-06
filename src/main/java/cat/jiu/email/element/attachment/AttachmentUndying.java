@@ -46,7 +46,7 @@ import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @Mod.EventBusSubscriber
 public class AttachmentUndying implements IAttachment {
@@ -116,11 +116,11 @@ public class AttachmentUndying implements IAttachment {
     }
 
     @Override
-    public boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+    public boolean onPlayerSendCheck(Player player, Consumer<Component> msgHandler) {
         if (!this.isEmpty() && !player.isCreative() && player.getServer() != null) {
             long count = UndyingState.get(player.getServer()).getCount(player.getUUID());
             if (count < this.getUndyingCount()) {
-                msgHandler.accept("info.inbox.generate.attachment.undying.send.fail", new Object[]{this.getUndyingCount(), count});
+                msgHandler.accept(Component.translatable("info.inbox.generate.attachment.undying.send.fail", this.getUndyingCount(), count));
                 return false;
             }
         }

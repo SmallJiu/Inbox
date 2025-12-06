@@ -24,6 +24,7 @@ import cat.jiu.email.element.Inbox;
 import cat.jiu.email.event.EmailSendDevMessageEvent;
 
 import com.google.common.collect.Maps;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.core.BlockPos;
@@ -95,9 +96,9 @@ public class SendDevEmail {
 						.addValue(Attributes.ATTACK_SPEED, AttributeModifier.Operation.MULTIPLY_TOTAL, new AttachmentAttribute.AttributeValue(20, false))
 				)
 				.addAttachment(new AttachmentWaypoint()
-						.addWaypoint(Level.OVERWORLD, BlockPos.ZERO, "Overworld Zero Point", Color.WHITE.getRGB())
-						.addWaypoint(Level.NETHER, BlockPos.ZERO, "Nether Zero Point", Color.WHITE.getRGB())
-						.addWaypoint(Level.END, BlockPos.ZERO, "End Zero Point", Color.WHITE.getRGB())
+						.addWaypoint(Level.OVERWORLD, BlockPos.ZERO, "Overworld Zero Point", ChatFormatting.GREEN)
+						.addWaypoint(Level.NETHER, BlockPos.ZERO, "Nether Zero Point", ChatFormatting.DARK_RED)
+						.addWaypoint(Level.END, BlockPos.ZERO, "End Zero Point", ChatFormatting.DARK_PURPLE)
 				)
 				.setReceive(true);
 	}

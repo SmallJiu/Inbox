@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class AttachmentXP implements IAttachment {
@@ -119,14 +119,14 @@ public class AttachmentXP implements IAttachment {
     }
 
     @Override
-    public boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+    public boolean onPlayerSendCheck(Player player, Consumer<Component> msgHandler) {
         if (!player.isCreative()){
             if (player.experienceLevel < this.getLevels()) {
-                msgHandler.accept("info.inbox.generate.attachment.exp.level.send.fail", new Object[]{this.getLevels(), player.experienceLevel});
+                msgHandler.accept(Component.translatable("info.inbox.generate.attachment.exp.level.send.fail", this.getLevels(), player.experienceLevel));
                 return false;
             }
             if (player.totalExperience < this.getPoints()) {
-                msgHandler.accept("info.inbox.generate.attachment.exp.point.send.fail", new  Object[]{this.getPoints(), player.totalExperience});
+                msgHandler.accept(Component.translatable("info.inbox.generate.attachment.exp.point.send.fail", this.getPoints(), player.totalExperience));
                 return false;
             }
         }

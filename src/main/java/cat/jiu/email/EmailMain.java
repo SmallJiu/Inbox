@@ -52,7 +52,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.2.0-a1";
+                                VERSION = "1.20.1-1.2.1";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {

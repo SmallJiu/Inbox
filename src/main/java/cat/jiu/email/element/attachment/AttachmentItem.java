@@ -5,7 +5,6 @@ import cat.jiu.core.api.Lambdas;
 import cat.jiu.core.util.DataUtils;
 import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.RenderUtils;
-import cat.jiu.core.util.element.Text;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
@@ -32,7 +31,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import java.awt.Color;
 import java.util.*;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class AttachmentItem implements IAttachment {
     public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/item");
@@ -172,14 +171,14 @@ public class AttachmentItem implements IAttachment {
     }
 
     @Override
-    public boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+    public boolean onPlayerSendCheck(Player player, Consumer<Component> msgHandler) {
         if (!this.isEmpty() && !player.isCreative()) {
             Map<Integer, Integer> slots = this.getSlots();
             if (slots != null && !slots.isEmpty()) {
                 for (int slot : slots.keySet()) {
                     ItemStack stack = player.getInventory().getItem(slot);
                     if (stack.getCount() < slots.get(slot)) {
-                        msgHandler.accept("info.inbox.generate.attachment.item.send.fail", new Object[]{slot, slots.get(slot), stack.getCount()});
+                        msgHandler.accept(Component.translatable("info.inbox.generate.attachment.item.send.fail", slot, slots.get(slot), stack.getCount()));
                         return false;
                     }
                 }

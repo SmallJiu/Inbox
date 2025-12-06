@@ -1,6 +1,7 @@
 package cat.jiu.email.element.attachment;
 
 import cat.jiu.core.api.IData;
+import cat.jiu.core.util.Randoms;
 import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.EmailMain;
@@ -43,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class AttachmentWaypoint implements IAttachment {
+public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
     public static final ResourceLocation ID = Utils.location(EmailMain.MODID, "attachment/waypoint");
     public static final ItemStack MAP = new ItemStack(Items.FILLED_MAP);
 
@@ -51,10 +52,12 @@ public class AttachmentWaypoint implements IAttachment {
     protected String defaultMapMod = "xaerominimap";
 
     public AttachmentWaypoint() {
+        this.setDisplay(Component.translatable(this.getName()), MAP);
     }
 
     public AttachmentWaypoint(IData.IMapData<?> data) {
         this.read(data);
+        this.setDisplay(Component.translatable(this.getName()), MAP);
     }
 
     @Override
@@ -98,10 +101,10 @@ public class AttachmentWaypoint implements IAttachment {
     }
 
     /**
-     * @param dimension look like {@link Level#OVERWORLD}
+     * @param dimension looks like {@link Level#OVERWORLD}
      * @param name can be translation key
      */
-    public AttachmentWaypoint addWaypoint(ResourceKey<Level> dimension, BlockPos pos, String name, int color) {
+    public AttachmentWaypoint addWaypoint(ResourceKey<Level> dimension, BlockPos pos, String name, ChatFormatting color) {
         return this.addWaypoint(new Waypoint(dimension, pos, name)
                 .setColor(color)
         );
@@ -158,7 +161,7 @@ public class AttachmentWaypoint implements IAttachment {
                             ),
                             waypoint_d.getAsMap().getString("name", "Point_" + this.getWaypointCount())
                         )
-                            .setColor(waypoint_d.getAsMap().getInt("color"))
+                            .setColor(ChatFormatting.getById(waypoint_d.getAsMap().getInt("color")))
                             .setExtraName(waypoint_d.getAsMap().getString("extraName", null))
                     )
                 );
@@ -172,7 +175,7 @@ public class AttachmentWaypoint implements IAttachment {
                                 ),
                                 value.getAsMap().getString("name", "Point_" + this.getWaypointCount())
                         )
-                                .setColor(value.getAsMap().getInt("color"))
+                                .setColor(ChatFormatting.getById(value.getAsMap().getInt("color")))
                                 .setExtraName(value.getAsMap().getString("extraName", null))
                 );
             }
@@ -195,7 +198,7 @@ public class AttachmentWaypoint implements IAttachment {
                     if (waypoint.extraName != null) {
                         waypoint_d.putData("extraName", waypoint.extraName);
                     }
-                    waypoint_d.putData("color", waypoint.color);
+                    waypoint_d.putData("color", waypoint.color.getId());
                     dimension.putData(waypoint_d);
                 });
                 waypoints.putData(String.valueOf(key.location()), dimension);
@@ -220,24 +223,10 @@ public class AttachmentWaypoint implements IAttachment {
         return Arrays.asList(Component.translatable("info.inbox.generate.attachment.waypoints.regenerate"));
     }
 
-    private int iconX, iconY;
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void drawIcon(AttachmentEvent.Render event, int x) {
-        this.iconX = x;
-        this.iconY = event.getY();
-        IAttachment.super.drawIcon(event, x);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public boolean onClicked(double mouseX, double mouseY, int button) {
-        if (button == 0
-                && RenderUtils.inRange(mouseX, mouseY, this.iconX, this.iconY, 16, 16)) {
-            Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), this.getDefaultMapMod(), Screen.hasShiftDown()));
-            return true;
-        }
-        return false;
+    protected void onIconClicked(double mouseX, double mouseY, int button) {
+        Minecraft.getInstance().setScreen(new ChoiceMapModScreen(Minecraft.getInstance().screen, this.getWaypoints(), this.getDefaultMapMod(), Screen.hasShiftDown()));
     }
 
     public static class Waypoint {
@@ -245,7 +234,7 @@ public class AttachmentWaypoint implements IAttachment {
         public final BlockPos pos;
         public final String name;
         public String extraName;
-        public int color;
+        public ChatFormatting color;
 
         /**
          * @param dimension look like {@link Level#OVERWORLD}
@@ -261,19 +250,6 @@ public class AttachmentWaypoint implements IAttachment {
          * @param color 路径点颜色 - waypoint color
          */
         public Waypoint setColor(ChatFormatting color) {
-            return this.setColor(color.getColor() == null ? Color.BLACK.getRGB() : color.getColor());
-        }
-        /**
-         * @param color 路径点颜色 - waypoint color
-         */
-        public Waypoint setColor(Color color) {
-            return this.setColor(color.getRGB());
-        }
-
-        /**
-         * @param color 路径点颜色 - waypoint color
-         */
-        public Waypoint setColor(int color) {
             this.color = color;
             return this;
         }
@@ -291,8 +267,8 @@ public class AttachmentWaypoint implements IAttachment {
         public static final WidgetEntry INSTANCE = new WidgetEntry(ID, true, Widget::new);
 
         public final List<ResourceLocation> dimensions = new ArrayList<>();
-        public final SubWidget waypoints;
-        public final Button add;
+        public SubWidget waypoints;
+        public Button add;
         Widget() {
             super(Component.translatable("info.inbox.waypoints"));
 
@@ -317,7 +293,7 @@ public class AttachmentWaypoint implements IAttachment {
                                     }
                                     return false;
                                 })
-                        ),0, 5, 0, 0);
+                        ),0, 7, 0, 0);
                     }).size(350, 15)
                     .build(), 2, 0, 0, 0).cast();
         }
@@ -332,7 +308,8 @@ public class AttachmentWaypoint implements IAttachment {
                             ResourceKey.create(Registries.DIMENSION, Utils.location(waypoint.dimension.getValue())),
                             new BlockPos(waypoint.x.getAsNumber().intValue(), waypoint.y.getAsNumber().intValue(), waypoint.z.getAsNumber().intValue()),
                             waypoint.name.getValue()
-                    ).setExtraName(waypoint.extraName.getValue()));
+                    ).setExtraName(waypoint.extraName.getValue())
+                     .setColor(waypoint.color));
                 }
             }
             return attachment;
@@ -343,13 +320,14 @@ public class AttachmentWaypoint implements IAttachment {
             public final EditBox dimension, name, extraName;
             public ModifierWidget dimensionModifier;
             public GuiFilterTextField x, y, z;
+            public ChatFormatting color = ChatFormatting.GREEN;
 
             public WaypointWeiget(UUID uuid, List<ResourceLocation> dimensions, Runnable onRemove) {
                 super(true);
                 this.uuid = uuid;
 
                 this.dimension = this.addWiget(new EditBox(
-                        RenderUtils.getFontRenderer(), 0, 0, 120, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
+                        RenderUtils.getFontRenderer(), 0, 0, 110, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
                 )).cast();
                 this.dimension.setValue(Minecraft.getInstance().player.level().dimension().location().toString());
 
@@ -379,7 +357,7 @@ public class AttachmentWaypoint implements IAttachment {
                 this.dimensionModifier.setTooltip(dimensionName);
 
                 this.name = this.addWiget(new EditBox(
-                        RenderUtils.getFontRenderer(), 0, 0, 50, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
+                        RenderUtils.getFontRenderer(), 0, 0, 65, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
                 ), 0, 0, 2, 0).cast();
                 this.name.setValue("Waypoint");
 
@@ -388,29 +366,50 @@ public class AttachmentWaypoint implements IAttachment {
                 ), 0, 0, 5, 2).cast();
                 this.extraName.setValue("X");
 
+                int width = RenderUtils.width("AAAAA");
+
                 this.x = this.addWiget(new GuiFilterTextField(
-                        String.valueOf((int)Minecraft.getInstance().player.getX()), false, 0, 0, 27, RenderUtils.fontHeight()+4
-                ), 0, 0, 3, 0).setWigetRender(widget->{
+                        String.valueOf((int)Minecraft.getInstance().player.getX()), false, 0, 0, width, RenderUtils.fontHeight()+4
+                ).setCanBeNegative(true), 0, 0, 3, 0).setWigetRender(widget->{
                     RenderUtils.drawRightString(widget.graphics, "X:", widget.widget.getX()-1, widget.widget.getY() + 2, -1, true);
                     return RenderUtils.width("X: ") + 2;
                 }, null).cast();
                 this.y = this.addWiget(new GuiFilterTextField(
-                        String.valueOf((int)Minecraft.getInstance().player.getY()), false, 0, 0, 27, RenderUtils.fontHeight()+4
-                ), 0, 0, 3, 0).setWigetRender(widget->{
-                    RenderUtils.drawRightString(widget.graphics, "Y:", widget.widget.getX()-1, widget.widget.getY()+2, -1, true);
+                        String.valueOf((int)Minecraft.getInstance().player.getY()), false, 0, 0, width, RenderUtils.fontHeight()+4
+                ).setCanBeNegative(true), 0, 0, 3, 0).setWigetRender(widget->{
+                    RenderUtils.drawRightString(widget.graphics, "Y:", widget.widget.getX()-1, widget.widget.getY() + 2, -1, true);
                     return RenderUtils.width("Y: ") + 2;
                 }, null).cast();
                 this.z = this.addWiget(new GuiFilterTextField(
-                        String.valueOf((int)Minecraft.getInstance().player.getZ()), false, 0, 0, 27, RenderUtils.fontHeight()+4
-                ), 0, 0, 3, 0).setWigetRender(widget->{
+                        String.valueOf((int)Minecraft.getInstance().player.getZ()), false, 0, 0, width, RenderUtils.fontHeight()+4
+                ).setCanBeNegative(true), 0, 0, 3, 0).setWigetRender(widget->{
                     RenderUtils.drawRightString(widget.graphics, "Z:", widget.widget.getX()-1, widget.widget.getY()+2, -1, true);
                     return RenderUtils.width("Z: ") + 2;
                 }, null).cast();
 
+                AtomicInteger colorIndex = new AtomicInteger(Randoms.nextInt(16));
+                this.color = ChatFormatting.getById(colorIndex.get());
+                this.addWiget(new ModifierWidget(false, ()-> {
+                    if (colorIndex.addAndGet(1) >= 16) {
+                        colorIndex.set(0);
+                    }
+                    this.color = ChatFormatting.getById(colorIndex.get());
+                }, ()->{
+                    if (colorIndex.addAndGet(-1) < 0) {
+                        colorIndex.set(15);
+                    }
+                    this.color = ChatFormatting.getById(colorIndex.get());
+                }), 0, 0, 9, 2).setWigetRender(widget->{
+                    int color = (this.color.getColor() & -67108864) == 0 ? this.color.getColor() | -16777216 : this.color.getColor();
+                    RenderUtils.fill(widget.graphics, widget.widget.getX() - (RenderUtils.fontHeight()+1) - 2, widget.widget.getY()+1, RenderUtils.fontHeight()+1, RenderUtils.fontHeight()+1, color);
+                    return RenderUtils.fontHeight()+1;
+                }, null).cast();
+
                 this.addWiget(Button.builder(Component.literal("X"), b->
                                 onRemove.run()
-                        ).size(RenderUtils.fontHeight(), RenderUtils.fontHeight()).build(), 0, 0, 10, 0)
+                        ).size(RenderUtils.fontHeight()+1, RenderUtils.fontHeight()+1).build(), 0, 0, 12, 0)
                         .setConsumerEvent(false, true, false, false);
+
             }
         }
     }

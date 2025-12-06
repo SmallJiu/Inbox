@@ -10,13 +10,10 @@ import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.core.util.registry.DynamicRegistry2;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.event.AttachmentEvent;
-import cat.jiu.email.ui.KeyBinds;
 import cat.jiu.email.util.EmailUtils;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -29,13 +26,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.awt.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -56,12 +51,9 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
         public ResourceLocation getID() {return EMPTY_ID;}
     };
 
-    DynamicRegistry2<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry2<ResourceLocation, IAttachment>((id, data) -> {
-        LOGGER.error("'{}' is not registered.", id);
-        return EMPTY;
-    }).setKeyGetter(
-            data -> data.getLocation(ID_NAME)
-    );
+    DynamicRegistry2<ResourceLocation, IAttachment> REGISTRY = new DynamicRegistry2<ResourceLocation, IAttachment>(EmailMain.MODID, "attachment")
+            .setKeyGetter(data -> data.getLocation(ID_NAME))
+    ;
 
     ResourceLocation getID();
 
@@ -87,7 +79,7 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
      * 用于检查此附件是否可以在玩家发送时添加到邮件<p>
      * Used to check if this attachment can be added to the message when the player sends it
      */
-    default boolean onPlayerSendCheck(Player player, BiConsumer<String, Object[]> msgHandler) {
+    default boolean onPlayerSendCheck(Player player, Consumer<Component> msgHandler) {
         return true;
     }
     /**
@@ -201,12 +193,6 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
         protected Component displayName = CommonComponents.EMPTY;
 
         public SerializableAttachment() {}
-        public SerializableAttachment(JsonObject json) {
-            this.read(JsonData.map(json));
-        }
-        public SerializableAttachment(CompoundTag nbt) {
-            this.read(NBTData.map(nbt));
-        }
         public SerializableAttachment(IData.IMapData<?> data) {
             this.read(data);
         }
@@ -225,6 +211,46 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
         @Override
         public Component getDisplayName() {
             return displayName;
+        }
+    }
+
+    abstract class ClickIconAttachment extends SerializableAttachment {
+        private int iconX, iconY;
+        protected int iconWidth = 16, iconHeight = 16;
+
+        public ClickIconAttachment() {
+        }
+        public ClickIconAttachment(IData.IMapData<?> data) {
+            super(data);
+        }
+
+        public ClickIconAttachment setIconSize(int iconWidth, int iconHeight) {
+            this.iconWidth = iconWidth;
+            this.iconHeight = iconHeight;
+            return this;
+        }
+
+        @OnlyIn(Dist.CLIENT)
+        @Override
+        public void drawIcon(AttachmentEvent.Render event, int x) {
+            this.iconX = x;
+            this.iconY = event.getY();
+            super.drawIcon(event, x);
+        }
+
+        @OnlyIn(Dist.CLIENT)
+        @Override
+        public boolean onClicked(double mouseX, double mouseY, int button) {
+            if (button == 0
+                    && RenderUtils.inRange(mouseX, mouseY, this.iconX, this.iconY, this.iconWidth, this.iconHeight)) {
+                this.onIconClicked(mouseX, mouseY, button);
+                return true;
+            }
+            return false;
+        }
+        @OnlyIn(Dist.CLIENT)
+        protected void onIconClicked(double mouseX, double mouseY, int button){
+
         }
     }
 }

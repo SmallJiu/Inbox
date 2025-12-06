@@ -6,12 +6,15 @@ import java.util.List;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import cat.jiu.core.api.IData;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
 import cat.jiu.core.util.SideProxy;
 import cat.jiu.core.util.element.data.NBTData;
+import cat.jiu.email.api.IAttachment;
 import cat.jiu.email.api.IEmailStyle;
 import cat.jiu.email.configs.EmailConfigClient;
 import cat.jiu.email.configs.EmailConfigServer;
@@ -90,7 +93,28 @@ public class EmailAPI {
 		}
 		
 		if(MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.START, group, address, email))) return false;
-		
+
+		if (group.isPlayerSend() && email.hasAttachments()){
+			Player player = null;
+			if (!SideProxy.isServerClosed()) {
+				try {
+					player = SideProxy.getServer().getPlayerList().getPlayer(UUID.fromString(email.getSender().getText()));
+				}catch (Exception ignored) {
+					player = SideProxy.getServer().getPlayerList().getPlayerByName(email.getSender().getText());
+				}
+			}
+			if (player != null) {
+				Player sender = player;
+				Consumer<Component> messageHandler = sender::sendSystemMessage;
+				for (IAttachment attachment : email.getAttachments()) {
+					if (!attachment.onPlayerSendCheck(player, messageHandler)) {
+						return false;
+					}
+				}
+				email.getAttachments().forEach(attachment -> attachment.onPlayerSendChecked(sender));
+			}
+		}
+
 		inbox.addEmail(email, true);
 		
 		MinecraftForge.EVENT_BUS.post(new EmailSendEvent(Phase.END, group, address, email));
@@ -120,7 +144,7 @@ public class EmailAPI {
 	public static void saveEmailStyle(IEmailStyle style) {
 		JsonElement e = EmailAPI.globalEmailCache.exists() ? JsonUtils.parse(EmailAPI.globalEmailCache, EmailConfigServer.File_Charset.get()) : new JsonObject();
 		if(e != null && e.isJsonObject()) {
-			e.getAsJsonObject().addProperty(IEmailStyle.NAME_ID, String.valueOf(style.getID()));
+			e.getAsJsonObject().addProperty(IEmailStyle.ID_NAME, String.valueOf(style.getID()));
 			JsonUtils.toJsonFile(EmailAPI.globalEmailCache, e, false, EmailConfigServer.File_Charset.get());
 		}
 	}

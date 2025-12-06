@@ -282,7 +282,7 @@ public class AttachmentEffect implements IAttachment {
                 super(true);
                 this.uuid = uuid;
                 this.effect = this.addWiget(new EditBox(
-                        RenderUtils.getFontRenderer(), 0, 0, 200, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
+                        RenderUtils.getFontRenderer(), 0, 0, 145, RenderUtils.fontHeight()+4, CommonComponents.EMPTY
                 )).cast();
                 EffectIcon icon = this.addWiget(new EffectIcon(), -4, 0, 2, 0).cast();
                 icon.effect = MobEffects.MOVEMENT_SPEED;
