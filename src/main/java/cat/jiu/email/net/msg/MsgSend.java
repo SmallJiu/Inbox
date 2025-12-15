@@ -67,7 +67,10 @@ public class MsgSend extends BaseMessage {
 
         nbt.putString("addresser", this.addressed);
         nbt.putInt("group", EmailSenderGroup.getIDByGroup(this.group));
+
+        this.email.setNetworkSend(true);
         nbt.put("email", (CompoundTag) this.email.write(NBTData.map()).getData());
+        this.email.setNetworkSend(false);
 
         buf.writeNbt(nbt);
     }

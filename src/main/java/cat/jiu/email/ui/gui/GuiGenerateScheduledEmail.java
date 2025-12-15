@@ -38,10 +38,8 @@ import net.minecraftforge.client.gui.widget.ScrollPanel;
 import net.minecraftforge.common.MinecraftForge;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GuiGenerateScheduledEmail extends Screen {
@@ -51,7 +49,6 @@ public class GuiGenerateScheduledEmail extends Screen {
     private ScheduledEmailInfo emailInfo;
     private EditBox currentEmailTitle;
     private Button refreshBtn, confirmBtn;
-//    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
 
     public GuiGenerateScheduledEmail(Screen parent) {
         super(CommonComponents.EMPTY);
@@ -554,7 +551,7 @@ public class GuiGenerateScheduledEmail extends Screen {
             this.note.setMaxLength(Integer.MAX_VALUE);
             this.note.setBordered(false);
 
-            this.custom_addressee = this.addRenderableWidget(new EditBox(RenderUtils.getFontRenderer(), this.leftPos + 5, y += (this.note.getHeight() + 2)*2 + 8, 160, RenderUtils.getFontRenderer().lineHeight + 2, Component.empty()));
+            this.custom_addressee = this.addRenderableWidget(new EditBox(RenderUtils.getFontRenderer(), this.leftPos + 5, y += (this.note.getHeight() + 2)*2 + RenderUtils.fontHeight()*2, 160, RenderUtils.getFontRenderer().lineHeight + 2, Component.empty()));
             this.custom_addressee.setMaxLength(Integer.MAX_VALUE);
             this.custom_addressee.setBordered(false);
             this.custom_addressee.visible = false;
@@ -612,7 +609,10 @@ public class GuiGenerateScheduledEmail extends Screen {
             graphics.hLine(this.note.getX(), this.note.getX() + this.note.getWidth(), this.note.getY() + this.note.getHeight() - 2, Color.LIGHT_GRAY.getRGB());
 
             if (this.currentAddressee == 2) {
-                RenderUtils.drawString(graphics, I18n.get("info.inbox.scheduled.gen.addressee.2.custom"), this.custom_addressee.getX(), this.custom_addressee.getY() - RenderUtils.getFontRenderer().lineHeight - 3, Color.WHITE.getRGB(), true);
+                RenderUtils.drawString(graphics, Arrays.asList(
+                    I18n.get("info.inbox.scheduled.gen.addressee.2.custom.0"),
+                    I18n.get("info.inbox.scheduled.gen.addressee.2.custom.1")
+                ), this.custom_addressee.getX(), this.custom_addressee.getY() - RenderUtils.getFontRenderer().lineHeight*2 - 3, Color.WHITE.getRGB(), true);
                 graphics.hLine(this.custom_addressee.getX(), this.custom_addressee.getX() + this.custom_addressee.getWidth(), this.custom_addressee.getY() + this.custom_addressee.getHeight() - 2, Color.LIGHT_GRAY.getRGB());
             }
         }

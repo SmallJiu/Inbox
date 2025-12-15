@@ -46,19 +46,18 @@ public class GuiScheduledEmail extends Screen {
     private EditBox currentEmailTitle, currentEmailLastTime;
     private ScheduledEmailList emailList;
     private ScheduledEmailInfo emailInfo;
-    private Button deleteEmailBtn, addBtn, refreshBtn;
-//    private final GuiDynamicImage loadImage = new GuiDynamicImage(GuiInbox.load, 18, false, 32, 32, 0, 0, 16, 16, 32, 576);
+    private Button deleteEmailBtn, addBtn, refreshBtn, modifyBtn;
     private final List<ScheduledEmail> emails = new ArrayList<>();
 
     public GuiScheduledEmail(Screen parent) {
         super(CommonComponents.EMPTY);
         this.parent = parent;
-        EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
     }
 
     @Override
     protected void init() {
-        super.init();
+        this.emails.clear();
+        EmailMain.NETWORK.sendMessageToServer(MsgRefreshScheduledEmail.REFRESH_MAIN);
         Font font = RenderUtils.getFontRenderer();
         int listWidth = EmailConfigClient.Email_List_Width.get();
         int x = 6, y = this.font.lineHeight + 6;
@@ -94,7 +93,6 @@ public class GuiScheduledEmail extends Screen {
                 this.refresh(()->{
                             this.setCurrentScheduledEmail(-1);
                             this.refreshBtn.visible = false;
-//                            this.loadImage.visible = true;
                             this.emails.clear();
                             this.emailList.clearEntries();
                             this.emailInfo.clearMessage();
@@ -102,10 +100,7 @@ public class GuiScheduledEmail extends Screen {
                         }, ()->
                                 this.refreshBtn.visible = true
                 )
-        )).setBackground(()-> GuiInbox.BackGround);
-//        this.loadImage.visible = false;
-//        this.loadImage.width = this.refreshBtn.getWidth();
-//        this.loadImage.height = this.refreshBtn.getHeight();
+        )).setBackground(()-> GuiInbox.ICON);
 
         int width = RenderUtils.getFontRenderer().width(Component.translatable("info.inbox.black.back"));
         Button btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
@@ -118,7 +113,7 @@ public class GuiScheduledEmail extends Screen {
 
         if (EmailUtils.isOP(Minecraft.getInstance().player)) {
             width = this.font.width(Component.translatable("info.inbox.black.add"));
-            this.addBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
+            btn = this.addBtn = this.addRenderableWidget(GuiInbox.GuiButton.builder(
                             Component.translatable("info.inbox.black.add"),
                             b->
                                     Minecraft.getInstance().setScreen(new GuiGenerateScheduledEmail(this))
@@ -136,6 +131,7 @@ public class GuiScheduledEmail extends Screen {
                                     for (int i = 0; i < this.emails.size(); i++) {
                                         if (this.emails.get(i).getId() == this.getCurrentScheduledEmail().getId()) {
                                             this.deleteEmailBtn.visible = false;
+                                            this.modifyBtn.visible = false;
                                             this.emails.remove(i);
                                             this.setCurrentScheduledEmail(-1);
                                             this.emailList.refresh();
@@ -149,6 +145,15 @@ public class GuiScheduledEmail extends Screen {
                     .size(width + 6, this.font.lineHeight + 6)
                     .build());
             this.deleteEmailBtn.visible = false;
+
+            width = RenderUtils.width(Component.translatable("info.inbox.modify"));
+            this.modifyBtn = btn = this.addRenderableWidget(GuiInbox.GuiButton.builder(Component.translatable("info.inbox.modify"), b->
+                        Minecraft.getInstance().setScreen(new GuiModifyScheduledEmail(this.getCurrentScheduledEmail(), this))
+                    )
+                    .pos(btn.getX() - width - 8, this.emailInfo.getBottom() + 2)
+                    .size(width + 6, this.font.lineHeight + 6)
+                    .build());
+            this.modifyBtn.visible = false;
         }
     }
 
@@ -183,6 +188,10 @@ public class GuiScheduledEmail extends Screen {
         graphics.fill(this.emailInfo.getLeft(), this.emailInfo.getTop() - this.currentEmailTitle.getHeight()*2 - 5, this.emailInfo.getRight(), this.emailInfo.getTop(), 0xC0101010);
         EmailUtils.hLineGradient(graphics, false, this.currentEmailLastTime.getX(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 4, this.emailInfo.getRight(), this.currentEmailLastTime.getY() + this.currentEmailLastTime.getHeight() - 3, Color.YELLOW.getRGB(), 0);
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
+        if (!this.refreshBtn.visible && GuiInbox.LOADING_GIF.get() != null) GuiInbox.LOADING_GIF.get()
+                .setRenderPos(this.refreshBtn.getX(), this.refreshBtn.getY() - 5)
+                .setRenderSize(this.refreshBtn.getWidth(), this.refreshBtn.getHeight())
+                .render(graphics);
         this.renderTooltip(graphics, pMouseX, pMouseY);
         this.renderLabels(graphics, pMouseX, pMouseY);
     }
@@ -287,6 +296,7 @@ public class GuiScheduledEmail extends Screen {
                 this.deleteEmailBtn.visible = false;
             }
             this.setCurrentScheduledEmail(-1);
+            this.modifyBtn.visible = false;
             return;
         }
         ScheduledEmailList.ScheduledEmailEntry entry = null;
@@ -306,6 +316,7 @@ public class GuiScheduledEmail extends Screen {
             this.emailInfo.clearMessage();
             if (EmailUtils.isOP(Minecraft.getInstance().player)) {
                 this.deleteEmailBtn.visible = true;
+                this.modifyBtn.visible = true;
             }
 
             int textMaxLength = this.currentEmailLastTime.getWidth()-13;

@@ -1,6 +1,5 @@
 package cat.jiu.email;
 
-import cat.jiu.core.util.Utils;
 import cat.jiu.core.util.client.config.ConfigWriteEvent;
 import cat.jiu.email.api.AttachmentSendScreenWidget;
 import cat.jiu.email.api.IAttachment;
@@ -33,7 +32,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.IModBusEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -41,7 +39,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -52,7 +49,7 @@ import java.util.List;
 public class EmailMain {
     public static final Logger log = LogManager.getLogger();
     public static final String MODID = "email",
-                                VERSION = "1.20.1-1.2.1";
+                                VERSION = "1.20.1-1.2.1-a1";
     public static final String SYSTEM = "?????";
     public static final boolean SQLite_INIT;
     static {

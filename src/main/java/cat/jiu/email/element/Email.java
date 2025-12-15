@@ -773,6 +773,13 @@ public class Email implements IDataSerializable<IData.IMapData<?>> {
 		return copy;
 	}
 
+	public Email setNetworkSend(boolean isNetworkSend) {
+		if (this.hasAttachments()) {
+			this.getAttachments().forEach(attachment -> attachment.setNetworkSend(isNetworkSend));
+		}
+		return this;
+	}
+
 	@Override
 	public IData.IMapData<?> write(IData.IMapData<?> data) {
 		data.putData("title", this.title.dynamicWrite(data));

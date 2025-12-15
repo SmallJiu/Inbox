@@ -1,15 +1,21 @@
 package cat.jiu.email.element;
 
+import cat.jiu.core.api.IData;
+import cat.jiu.core.api.serializable.IDataSerializable;
 import cat.jiu.core.api.serializable.ISerializable;
 import cat.jiu.core.util.JsonUtils;
 import cat.jiu.core.util.NBTUtils;
+import cat.jiu.core.util.element.data.JsonData;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.EmailAPI;
 import cat.jiu.email.EmailMain;
 import cat.jiu.email.configs.EmailConfigServer;
 import cat.jiu.email.util.EmailUtils;
+import cat.jiu.email.util.SendDevEmail;
 import cat.jiu.email.util.TimeMillis;
 import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -25,12 +31,12 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Mod.EventBusSubscriber
-public class ScheduledEmail implements ISerializable {
+public class ScheduledEmail implements IDataSerializable<IData.IMapData<?>> {
     protected long id = System.currentTimeMillis();
     protected String emailFile;
     protected String note;
     protected TimeMillis interval;
-    protected long nextExecuteTime;
+    protected long nextExecuteTime, lastExecuteTime;
     protected Email email;
     protected Addressee addressee;
     protected HashSet<String> custom_addressee;
@@ -50,7 +56,7 @@ public class ScheduledEmail implements ISerializable {
 
     public ScheduledEmail setInterval(TimeMillis interval) {
         this.interval = interval;
-        this.refreshNextExecuteTime();
+        this.refreshNextExecuteTimeFromNewInterval();
         return this;
     }
 
@@ -78,7 +84,7 @@ public class ScheduledEmail implements ISerializable {
     }
     public Set<String> getCustomAddressee(){
         if (this.custom_addressee ==null) this.custom_addressee = new HashSet<>();
-        return Collections.unmodifiableSet(this.custom_addressee);
+        return this.custom_addressee;
     }
 
     public File getAsFile() {
@@ -87,7 +93,16 @@ public class ScheduledEmail implements ISerializable {
 
     public Email getAsEmail() {
         if (this.email==null) {
-            this.email = new Email(JsonUtils.parse(this.getAsFile(), EmailConfigServer.File_Charset.get()).getAsJsonObject());
+            if ("default".equalsIgnoreCase(this.emailFile)) {
+                this.email = SendDevEmail.getDevEmail();
+            }else {
+                JsonElement element = JsonUtils.parse(this.getAsFile(), EmailConfigServer.File_Charset.get());
+                if (element != null) {
+                    this.email = new Email(element.getAsJsonObject());
+                }else {
+                    return Email.EMPTY;
+                }
+            }
         }
         return this.email.setCreateTimeToNow();
     }
@@ -96,12 +111,25 @@ public class ScheduledEmail implements ISerializable {
         return id;
     }
 
-    public boolean canSend() {
-        return System.currentTimeMillis() >= this.nextExecuteTime && this.getAsEmail() != null;
+    public ScheduledEmail setId(long id) {
+        this.id = id;
+        return this;
     }
 
+    public boolean canSend() {
+        return System.currentTimeMillis() >= this.nextExecuteTime
+                && this.getAsEmail() != null
+                && this.getAsEmail() != Email.EMPTY;
+    }
+
+    public ScheduledEmail refreshNextExecuteTimeFromNewInterval() {
+        this.nextExecuteTime = this.lastExecuteTime + this.getInterval().millis;
+        return this;
+    }
     public ScheduledEmail refreshNextExecuteTime() {
-        this.nextExecuteTime = System.currentTimeMillis() + this.getInterval().millis;
+        long time = System.currentTimeMillis();
+        this.lastExecuteTime = time;
+        this.nextExecuteTime = time + this.getInterval().millis;
         return this;
     }
 
@@ -128,74 +156,58 @@ public class ScheduledEmail implements ISerializable {
     }
 
     @Override
-    public JsonObject write(JsonObject json) {
-        json.addProperty("id", this.id);
-        json.addProperty("path", this.getFilePath());
-        json.addProperty("interval", this.getInterval().millis);
-        json.addProperty("next", this.getNextExecuteTime());
-        json.addProperty("note", this.getNote());
-        json.addProperty("addressee", this.getAddressee().getName());
+    public IData.IMapData<?> write(IData.IMapData<?> data) {
+        data.putData("id", this.id);
+        data.putData("path", this.getFilePath());
+        data.putData("interval", this.getInterval().millis);
+        data.putData("next", this.getNextExecuteTime());
+        data.putData("last", this.lastExecuteTime);
+        data.putData("note", this.getNote());
+        data.putData("addressee", this.getAddressee().getName());
         if (this.getAddressee().isCustomPlayers()) {
-            JsonArray array = new JsonArray();
-            this.getCustomAddressee().forEach(array::add);
-            json.add("custom_addressee", array);
+            IData.IListData<?> list = data.newList();
+            this.getCustomAddressee().forEach(list::putData);
+            data.putData("custom_addressee", list);
         }
+        return data;
+    }
+
+    @Override
+    public void read(IData.IMapData<?> data) {
+        this.id = data.getLong("id", System.currentTimeMillis());
+        this.setFilePath(data.getString("path", ""));
+        this.setInterval(new TimeMillis(data.getLong("interval", 0)));
+        this.setNote(data.getString("note", ""));
+        this.setAddressee(Addressee.get(data.getString("addressee", "online")));
+        this.nextExecuteTime = data.getLong("next", -1);
+        this.lastExecuteTime = data.getLong("last", -1);
+        if (this.nextExecuteTime == -1) {
+            this.refreshNextExecuteTime();
+        }
+        if (data.containsKey("custom_addressee") && this.getAddressee().isCustomPlayers()) {
+            data.getList("custom_addressee", String.class).foreach((i,data1)->this.addCustomAddressee(data1.getAsPrimitive().getAsString()));
+        }
+    }
+
+    public JsonObject write(JsonObject json) {
+        this.write(JsonData.map(json));
         return json;
     }
 
-    @Override
     public void read(JsonObject data) {
-        this.setFilePath(JsonUtils.get(data, "path", ""));
-        this.setInterval(new TimeMillis(JsonUtils.get(data, "interval", 0)));
-        this.id = JsonUtils.get(data, "id", 0);
-        this.setNote(JsonUtils.get(data, "note", ""));
-        this.setAddressee(Addressee.get(data.has("addressee") ? data.get("addressee").getAsString() : "online"));
-        this.nextExecuteTime = JsonUtils.get(data, "next", -1);
-        if (this.nextExecuteTime == -1) {
-            this.refreshNextExecuteTime();
-        }
-        if (data.has("custom_addressee") && this.getAddressee().isCustomPlayers()) {
-            data.getAsJsonArray("custom_addressee").forEach(e->this.addCustomAddressee(e.getAsString()));
-        }
+        this.read(JsonData.map(data));
     }
 
-    @Override
     public CompoundTag write(CompoundTag nbt) {
-        nbt.putLong("id", this.id);
-        nbt.putString("path", this.getFilePath());
-        nbt.putLong("interval", this.getInterval().millis);
-        nbt.putLong("next", this.getNextExecuteTime());
-        nbt.putString("note", this.getNote());
-        nbt.put("email", this.getAsEmail().write(new CompoundTag()));
-        nbt.putString("addressee", this.getAddressee().getName());
-        if (this.getAddressee().isCustomPlayers()) {
-            ListTag list = new ListTag();
-            this.getCustomAddressee().forEach(e->list.add(StringTag.valueOf(e)));
-            nbt.put("custom_addressee", list);
-        }
+        this.write(NBTData.map(nbt));
         return nbt;
     }
 
-    @Override
     public void read(CompoundTag nbt) {
-        this.id = nbt.getLong("id");
-        this.setFilePath(nbt.getString("path"));
-        this.setInterval(new TimeMillis(nbt.getLong("interval")));
-        this.setNote(nbt.getString("note"));
-        this.nextExecuteTime = NBTUtils.get(nbt, "next", -1);
-        if (this.nextExecuteTime == -1) {
-            this.refreshNextExecuteTime();
-        }
-        this.email = new Email(nbt.getCompound("email"));
-        this.setAddressee(Addressee.get(nbt.getString("addressee")));
-        if (nbt.contains("custom_addressee") && this.getAddressee().isCustomPlayers()) {
-            nbt.getList("custom_addressee", 8).forEach(e->this.addCustomAddressee(e.getAsString()));
-        }
+        this.read(NBTData.map(nbt));
     }
 
-    @Override
     public SQLValues write(SQLValues value) {return value;}
-    @Override
     public void read(ResultSet result) throws SQLException {}
 
     @Override
@@ -211,18 +223,18 @@ public class ScheduledEmail implements ISerializable {
         return Objects.hash(emailFile, this.id);
     }
 
-    private static final List<ScheduledEmail>
-            scheduled_emails = new ArrayList<>(),
-            unmodifiable = Collections.unmodifiableList(scheduled_emails);
+    private static final Map<Long, ScheduledEmail>
+            scheduled_emails = new HashMap<>(),
+            unmodifiable = Collections.unmodifiableMap(scheduled_emails);
 
     public static void addScheduledEmail(ScheduledEmail email, boolean saveToDisk) {
-        scheduled_emails.add(email);
+        scheduled_emails.put(email.id, email);
         if (saveToDisk) {
             save();
         }
     }
     public static boolean removeScheduledEmail(long id) {
-        boolean res = scheduled_emails.removeIf(e->e.getId() == id);
+        boolean res = scheduled_emails.remove(id) != null;
         if (res) save();
         return res;
     }
@@ -231,19 +243,17 @@ public class ScheduledEmail implements ISerializable {
         save();
     }
     public static ScheduledEmail getScheduledEmail(long id) {
-        for (ScheduledEmail email : scheduled_emails) {
-            if (email.getId() == id) {
-                return email;
-            }
-        }
-        return null;
+        return scheduled_emails.get(id);
     }
     public static boolean hasScheduledEmail(ScheduledEmail email) {
-        return scheduled_emails.contains(email);
+        return hasScheduledEmail(email.id);
+    }
+    public static boolean hasScheduledEmail(long id) {
+        return scheduled_emails.containsKey(id);
     }
 
-    public static List<ScheduledEmail> getScheduledEmails() {
-        return unmodifiable;
+    public static Collection<ScheduledEmail> getScheduledEmails() {
+        return unmodifiable.values();
     }
 
     public static void init() {
@@ -257,12 +267,15 @@ public class ScheduledEmail implements ISerializable {
                 JsonUtils.parse(file, EmailConfigServer.File_Charset.get()).getAsJsonArray().forEach(e->{
                     try {
                         ScheduledEmail email = new ScheduledEmail();
-                        email.readFrom(e);
+                        email.read(JsonData.map(e.getAsJsonObject()));
                         email.getAsEmail();
-                        if (hasScheduledEmail(email)) {
-                            getScheduledEmail(email.getId()).changeTo(email);
-                        }else {
-                            scheduled_emails.add(email.refreshNextExecuteTime());
+//                        if (email.getAsEmail() != Email.EMPTY)
+                        {
+                            if (hasScheduledEmail(email)) {
+                                getScheduledEmail(email.getId()).changeTo(email);
+                            } else {
+                                scheduled_emails.put(email.id, email.refreshNextExecuteTime());
+                            }
                         }
                     }catch (Throwable t) {
                         t.printStackTrace();
@@ -279,17 +292,17 @@ public class ScheduledEmail implements ISerializable {
 
     public static void save() {
         JsonArray array = new JsonArray();
-        for (ScheduledEmail email : scheduled_emails) {
-            array.add(email.write(new JsonObject()));
-        }
+        scheduled_emails.forEach((id, email) ->
+            array.add(email.write(new JsonObject()))
+        );
         JsonUtils.toJsonFile(EmailAPI.getGlobalDataPath() + "scheduled_emails.json", array, false, EmailConfigServer.File_Charset.get());
     }
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (!scheduled_emails.isEmpty()) {
-            for (int i = 0; i < scheduled_emails.size(); i++) {
-                ScheduledEmail email = scheduled_emails.get(i);
+            for (Long id : scheduled_emails.keySet()) {
+                ScheduledEmail email = scheduled_emails.get(id);
                 if (email.getAsEmail()==null) {
                     removeScheduledEmail(email.getId());
                     continue;

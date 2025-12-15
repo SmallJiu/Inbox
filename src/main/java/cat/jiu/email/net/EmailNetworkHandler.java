@@ -43,6 +43,7 @@ public class EmailNetworkHandler extends BaseNetworkHandler {
 
 				.register(MsgScheduledEmail.Add.class)
 				.register(MsgScheduledEmail.Remove.class)
+				.register(MsgScheduledEmail.Modify.class)
 
 				.register(MsgSend.class)
 				.register(MsgSend.MsgLock.class)

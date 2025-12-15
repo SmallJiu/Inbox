@@ -7,6 +7,7 @@ import java.util.List;
 import cat.jiu.core.util.client.RenderUtils;
 import cat.jiu.email.util.EmailUtils;
 
+import cat.jiu.email.util.TimeMillis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -254,6 +255,32 @@ public class GuiTime extends AbstractWidget {
 
 	public long getTimeOfTicks() {
 		return this.getTimeOfMillis() / 50;
+	}
+
+	public void setTimeOfTicks(long ticks) {
+		this.setTime(new TimeMillis(ticks*50));
+	}
+
+	public void setTimeOfMillis(long millis) {
+		this.setTime(new TimeMillis(millis));
+	}
+
+	public void setTime(TimeMillis time) {
+		if (this.day != null) {
+			this.day.field.setValue(String.valueOf(time.getDay()));
+		}
+		if (this.hour != null) {
+			this.hour.field.setValue(String.valueOf(time.getHour()));
+		}
+		if (this.minute != null) {
+			this.minute.field.setValue(String.valueOf(time.getMinute()));
+		}
+		if (this.second != null) {
+			this.second.field.setValue(String.valueOf(time.getSecond()));
+		}
+		if (this.tick != null) {
+			this.tick.field.setValue(String.valueOf(time.getTick()));
+		}
 	}
 
 	@Override

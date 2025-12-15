@@ -51,7 +51,7 @@ public class MsgRefreshScheduledEmail {
         @Override
         public void fromBytes(FriendlyByteBuf buf) {
             this.email = new ScheduledEmail();
-            this.email.readFrom(buf.readNbt());
+            this.email.read(buf.readNbt());
         }
 
         @Override

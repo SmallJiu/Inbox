@@ -1,6 +1,7 @@
 package cat.jiu.email.net.msg;
 
 import cat.jiu.core.net.BaseMessage;
+import cat.jiu.core.util.element.data.NBTData;
 import cat.jiu.email.element.ScheduledEmail;
 import cat.jiu.email.util.TimeMillis;
 import net.minecraft.nbt.CompoundTag;
@@ -110,6 +111,42 @@ public class MsgScheduledEmail {
         @Override
         public boolean handler(Supplier<NetworkEvent.Context> context) {
             ScheduledEmail.removeScheduledEmail(this.id);
+            return true;
+        }
+    }
+
+    public static class Modify extends BaseMessage {
+        private long id;
+        private ScheduledEmail email;
+
+        public Modify() {
+        }
+
+        public Modify(long id, ScheduledEmail email) {
+            this.id = id;
+            this.email = email;
+        }
+
+        @Override
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeLong(this.id);
+            buf.writeNbt((CompoundTag) this.email.write(NBTData.map()).getData());
+        }
+
+        @Override
+        public void fromBytes(FriendlyByteBuf buf) {
+            this.id = buf.readLong();
+            this.email = new ScheduledEmail();
+            this.email.read(NBTData.map(buf.readNbt()));
+        }
+
+        @Override
+        public boolean handler(Supplier<NetworkEvent.Context> context) {
+            if (this.id != this.email.getId()) {
+                ScheduledEmail.removeScheduledEmail(this.id);
+            }
+            ScheduledEmail.addScheduledEmail(this.email.refreshNextExecuteTimeFromNewInterval(), true);
+            context.get().getSender().sendSystemMessage(Component.nullToEmpty("Success!"));
             return true;
         }
     }

@@ -224,11 +224,17 @@ public class AttachmentWaypoint extends IAttachment.ClickIconAttachment {
             this.name = name;
         }
 
+        /**]
+         * @param name 可为翻译键 - can be translation key
+         */
         public Waypoint setName(String name) {
             this.name = name;
             return this;
         }
 
+        /**
+         * @param pos waypoint pos
+         */
         public Waypoint setPos(BlockPos pos) {
             this.pos = pos;
             return this;

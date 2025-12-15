@@ -1,6 +1,5 @@
 package cat.jiu.email.util;
 
-import java.awt.*;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -56,12 +55,12 @@ public class SendDevEmail {
 		for(int i = 0; i < 14; i++) {
 			msgs.add(new Text("inbox.dev_message."+i));
 		}
-		msgs.add(new Text("%s of %s of %s of %s",
-				new Text("inbox.dev_message.title"),
-				Component.translatable("info.inbox.main.from", "981314"),
-				Component.literal("9856168549616596416548"),
-				"99999"
-		));
+//		msgs.add(new Text("%s of %s of %s of %s",
+//				new Text("inbox.dev_message.title"),
+//				Component.translatable("info.inbox.main.from", "981314"),
+//				Component.literal("9856168549616596416548"),
+//				"99999"
+//		));
 		devEmail = new Email(new Text("inbox.dev_message.title"), EmailAPI.SYSTEM)
 //				.setMcSound(new Sound(new Timer(3,6,0), SoundEvents.MUSIC_DISC_CAT, 1, 1, SoundSource.PLAYERS))
 				.setExpirationTime(new TimeMillis(9999, 23, 59, 59, 9999))

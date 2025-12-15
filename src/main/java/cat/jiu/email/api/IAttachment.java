@@ -15,6 +15,7 @@ import cat.jiu.sql.SQLValues;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -143,6 +144,24 @@ public interface IAttachment extends IDataSerializable<IData.IMapData<?>>, Consu
     @SuppressWarnings("unchecked")
     default <T extends IAttachment> T cast() {
         return (T) this;
+    }
+
+    /**
+     * 如果有数据为发送时的检查使用，则重写<p>
+     * If there have data for the check to use at the time of sending, it can rewritten
+     * @see cat.jiu.email.net.msg.MsgSend#toBytes(FriendlyByteBuf)
+     * @see cat.jiu.email.element.Email#setNetworkSend(boolean)
+     * @see #onPlayerSendCheck(Player, Consumer)
+     * @see #onPlayerSendChecked(Player)
+     * @see cat.jiu.email.element.attachment.AttachmentItem#write(IData.IMapData)
+     * @see cat.jiu.email.element.attachment.AttachmentItem#onPlayerSendCheck(Player, Consumer)
+     * @see cat.jiu.email.element.attachment.AttachmentItem#onPlayerSendChecked(Player)
+     */
+    default IAttachment setNetworkSend(boolean isNetworkSend) {
+        return this;
+    }
+    default boolean isNetworkSend(){
+        return false;
     }
 
     default SQLValues write(SQLValues value) {

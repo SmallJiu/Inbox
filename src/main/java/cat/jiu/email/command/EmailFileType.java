@@ -26,6 +26,13 @@ public class EmailFileType implements ArgumentType<File> {
         return new File(EmailAPI.getGlobalDataPath() + "emails/");
     }
 
+    public static File file(CommandContext<?> ctx, String name) {
+        return ctx.getArgument(name, File.class);
+    }
+    public static String fileString(CommandContext<?> ctx, String name) {
+        return file(ctx, name).toString();
+    }
+
     public final Map<String, File> files = new HashMap<>();
 
     public EmailFileType() {
@@ -54,7 +61,12 @@ public class EmailFileType implements ArgumentType<File> {
 
     @Override
     public File parse(StringReader reader) throws CommandSyntaxException {
-        String s = reader.readUnquotedString();
+        int i = reader.getCursor();
+        while(reader.canRead() && reader.peek() != ' ') {
+            reader.skip();
+        }
+        String s = reader.getString().substring(i, reader.getCursor());
+
         if ("default".equals(s)) {
             return DEFAULT_EMAIL;
         }

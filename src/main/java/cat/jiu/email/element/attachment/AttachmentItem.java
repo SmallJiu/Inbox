@@ -129,18 +129,31 @@ public class AttachmentItem implements IAttachment {
         return this.items==null || this.items.isEmpty();
     }
 
+    protected boolean networkSend = false;
+    @Override
+    public boolean isNetworkSend() {
+        return this.networkSend;
+    }
+    @Override
+    public AttachmentItem setNetworkSend(boolean isNetworkSend) {
+        this.networkSend = isNetworkSend;
+        return this;
+    }
+
     @Override
     public IData.IMapData<?> write(IData.IMapData<?> data) {
         if (!this.isEmpty()) {
             data.putData("items", DataUtils.toData(this.getItems(), data.newList()));
         }
-        Map<Integer, Integer> slots = this.getSlots();
-        if (slots !=null && !slots.isEmpty()) {
-            IData.IMapData<?> slotDatas = data.newMap();
-            for (Integer slot : slots.keySet()) {
-                slotDatas.putData(String.valueOf(slot), slots.get(slot));
+        if (this.isNetworkSend()) {
+            Map<Integer, Integer> slots = this.getSlots();
+            if (slots != null && !slots.isEmpty()) {
+                IData.IMapData<?> slotDatas = data.newMap();
+                for (Integer slot : slots.keySet()) {
+                    slotDatas.putData(String.valueOf(slot), slots.get(slot));
+                }
+                data.putData("slots", slotDatas);
             }
-            data.putData("slots", slotDatas);
         }
         return data;
     }
